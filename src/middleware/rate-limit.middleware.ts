@@ -3,7 +3,8 @@ import { Request, Response, NextFunction } from "express";
 import { sendError } from "../utils/response-builder.util";
 
 const getRetrySeconds = (req: Request, windowMs: number): number => {
-  const resetTime = req.rateLimit?.resetTime?.getTime() ?? Date.now() + windowMs;
+  const resetTime =
+    req.rateLimit?.resetTime?.getTime() ?? Date.now() + windowMs;
   const diff = Math.max(resetTime - Date.now(), 0);
   return Math.max(Math.ceil(diff / 1000), 1);
 };
@@ -20,6 +21,7 @@ export const globalRateLimiter = rateLimit({
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS", // Skip rate limit for preflight requests
   handler: buildHandler(60_000, "Too many requests from this IP"),
 });
 
@@ -29,9 +31,10 @@ export const loginRateLimiter = rateLimit({
   standardHeaders: false,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const identifier = typeof req.body?.identifier === "string"
-      ? req.body.identifier.toLowerCase()
-      : undefined;
+    const identifier =
+      typeof req.body?.identifier === "string"
+        ? req.body.identifier.toLowerCase()
+        : undefined;
     return identifier ?? ipKeyGenerator(req.ip ?? "");
   },
   handler: buildHandler(60_000, "Too many login attempts"),
@@ -43,13 +46,11 @@ export const passwordResetRateLimiter = rateLimit({
   standardHeaders: false,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const email = typeof req.body?.email === "string"
-      ? req.body.email.toLowerCase()
-      : undefined;
+    const email =
+      typeof req.body?.email === "string"
+        ? req.body.email.toLowerCase()
+        : undefined;
     return email ?? ipKeyGenerator(req.ip ?? "");
   },
-  handler: buildHandler(
-    15 * 60 * 1000,
-    "Too many password reset attempts"
-  ),
+  handler: buildHandler(15 * 60 * 1000, "Too many password reset attempts"),
 });

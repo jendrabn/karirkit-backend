@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import path from "path";
+import env from "./config/env.config";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
 import requestLogger from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
@@ -14,7 +15,15 @@ import "./queues/email.queue";
 
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow credentials
+app.use(
+  cors({
+    origin: env.frontendUrl || "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(requestLogger);
 app.use(globalRateLimiter);
 app.use(express.json());
