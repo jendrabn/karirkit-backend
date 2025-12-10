@@ -1,0 +1,106 @@
+import { Request, Response, NextFunction } from "express";
+import { CvService } from "../services/cv.service";
+import { sendSuccess } from "../utils/response-builder.util";
+import { ResponseError } from "../utils/response-error.util";
+
+export class CvController {
+  static async list(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await CvService.list(req.user!.id, req.query);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async get(req: Request, res: Response, next: NextFunction) {
+    try {
+      const cv = await CvService.get(req.user!.id, req.params.id);
+      sendSuccess(res, cv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const cv = await CvService.create(req.user!.id, req.body);
+      sendSuccess(res, cv, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const cv = await CvService.update(
+        req.user!.id,
+        req.params.id,
+        req.body
+      );
+      sendSuccess(res, cv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      await CvService.delete(req.user!.id, req.params.id);
+      sendSuccess(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async duplicate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const cv = await CvService.duplicate(req.user!.id, req.params.id);
+      sendSuccess(res, cv, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async download(req: Request, res: Response, next: NextFunction) {
+    try {
+      const rawFormat = Array.isArray(req.query.format)
+        ? req.query.format[0]
+        : req.query.format;
+      const format = typeof rawFormat === "string" ? rawFormat : undefined;
+      const document = await CvService.download(
+        req.user!.id,
+        req.params.id,
+        format
+      );
+
+      res.setHeader("Content-Type", document.mimeType);
+      res.setHeader(
+        "Content-Disposition",
+        CvController.buildContentDisposition(document.fileName)
+      );
+      res.send(document.buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static preview(_req: Request, _res: Response, next: NextFunction) {
+    next(new ResponseError(501, "CV preview is not available yet"));
+  }
+
+  private static buildContentDisposition(fileName: string): string {
+    const fallback = fileName
+      .replace(/[\r\n]+/g, " ")
+      .replace(/["\\]/g, "")
+      .trim();
+    const asciiSafe = fallback
+      .replace(/[^\x20-\x7E]+/g, "")
+      .replace(/[\s-]+/g, "_")
+      .trim();
+    const safeName = asciiSafe || "cv-document";
+    const encoded = encodeURIComponent(fileName);
+
+    return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
+  }
+}

@@ -1,0 +1,1760 @@
+openapi: 3.0.3
+info:
+  title: KarirKit API
+  version: 1.0.0
+  description: |
+    REST-ish API for KarirKit covering authentication, job applications, application letters, portfolios, and CV builder.
+    Authentication uses an HTTP-only cookie named karirkit_session when required.
+servers:
+  - url: http://localhost:3000
+    description: Local
+tags:
+  - name: Auth
+  - name: Applications
+  - name: Application Letters
+  - name: Portfolios
+  - name: CVs
+  - name: Public
+  - name: Uploads
+  - name: Stats
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      description: Create a new user account. May also log the user in by setting the auth cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with username or email
+      description: Log in using identifier (username or email) and password. Sets the karirkit_session cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Login with Google
+      description: Login or register via Google OAuth using an ID token or authorization code. Sets auth cookie on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Authenticated with Google
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Clear the authentication cookie.
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Logged out
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Auth]
+      summary: Update current user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  nullable: true
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Forgot password
+      description: Send a reset email with token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset email dispatched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /auth/change-password:
+    put:
+      tags: [Auth]
+      summary: Change current password
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /applications:
+    get:
+      tags: [Applications]
+      summary: List applications
+      description: List applications for the authenticated user with search, filters, sorting, and pagination.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [date, created_at, updated_at, company_name, position, status, result_status]
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: result_status
+          in: query
+          schema:
+            type: string
+            enum: [pending, passed, failed]
+        - name: job_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/JobType'
+        - name: work_system
+          in: query
+          schema:
+            $ref: '#/components/schemas/WorkSystem'
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: location
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Applications]
+      summary: Create application
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationPayload'
+      responses:
+        '201':
+          description: Created application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /applications/{id}:
+    get:
+      tags: [Applications]
+      summary: Get application detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Application detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Applications]
+      summary: Update application
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationPayload'
+      responses:
+        '200':
+          description: Updated application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Applications]
+      summary: Delete application
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /applications/{id}/duplicate:
+    post:
+      tags: [Applications]
+      summary: Duplicate application
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '201':
+          description: Duplicated application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /application-letters:
+    get:
+      tags: [Application Letters]
+      summary: List application letters
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, application_date, company_name, subject]
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [en, id]
+        - name: company_name
+          in: query
+          schema:
+            type: string
+        - name: application_date
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Letters list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationLetterListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Application Letters]
+      summary: Create application letter
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationLetterPayload'
+      responses:
+        '201':
+          description: Created letter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationLetterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /application-letters/{id}:
+    get:
+      tags: [Application Letters]
+      summary: Get application letter detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Application letter detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationLetterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Application Letters]
+      summary: Update application letter
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationLetterPayload'
+      responses:
+        '200':
+          description: Updated letter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationLetterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Application Letters]
+      summary: Delete application letter
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /application-letters/{id}/duplicate:
+    post:
+      tags: [Application Letters]
+      summary: Duplicate application letter
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '201':
+          description: Duplicated application letter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationLetterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /application-letters/{id}/download:
+    get:
+      tags: [Application Letters]
+      summary: Download application letter
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, docx]
+            default: pdf
+      responses:
+        '200':
+          description: Downloaded letter
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /uploads:
+    post:
+      tags: [Uploads]
+      summary: Upload temporary file
+      description: Upload any binary file to the temp folder so that it can be attached to other resources later.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to persist inside the temp folder
+              required: [file]
+      responses:
+        '201':
+          description: File uploaded to the temp storage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TempUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /portfolios:
+    get:
+      tags: [Portfolios]
+      summary: List portfolios
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, year, month, title]
+        - name: project_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ProjectType'
+        - name: industry
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Portfolios list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Portfolios]
+      summary: Create portfolio
+      description: >
+        Submit the complete portfolio data (details, cover, media, tools) in a single JSON request.
+        Any files must be uploaded beforehand via `/uploads` and referenced here by their returned path.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioPayload'
+      responses:
+        '201':
+          description: Created portfolio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /portfolios/{id}:
+    get:
+      tags: [Portfolios]
+      summary: Get portfolio detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Portfolio detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Portfolios]
+      summary: Update portfolio
+      description: >
+        Replace the entire portfolio definition in one request. To attach images or other files,
+        first upload them to `/uploads` and send the resulting path inside the JSON payload.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioPayload'
+      responses:
+        '200':
+          description: Updated portfolio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Portfolios]
+      summary: Delete portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /public/portfolios/@{username}:
+    get:
+      tags: [Public]
+      summary: Public portfolio page by username
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public portfolio listing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPortfolioResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /public/portfolios/@{username}/{id}:
+    get:
+      tags: [Public]
+      summary: Public portfolio detail by username and id
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public portfolio detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPortfolioDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /cvs:
+    get:
+      tags: [CVs]
+      summary: List CVs
+      description: List every CV owned by the authenticated user with optional filters and pagination.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: email
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CVs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CvListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [CVs]
+      summary: Create CV
+      description: >
+        Submit the entire CV definition (profile, sections, and optional `photo` path) in a single JSON payload.
+        The referenced `photo` and section attachments must already be uploaded via `/uploads`.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CvPayload'
+      responses:
+        '201':
+          description: Created CV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CvResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /cvs/{id}:
+    get:
+      tags: [CVs]
+      summary: Get CV detail
+      description: Retrieve the complete CV payload for editing or viewing.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: CV detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CvResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [CVs]
+      summary: Update CV
+      description: >
+        Replace the CV with a new `CvPayload`, syncing every section (educations, experiences, etc.) and the `photo` path
+        exactly as provided in the request body.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CvPayload'
+      responses:
+        '200':
+          description: Updated CV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CvResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [CVs]
+      summary: Delete CV
+      description: Permanently remove the CV and all associated sections.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /cvs/{id}/duplicate:
+    post:
+      tags: [CVs]
+      summary: Duplicate CV
+      description: Create a new CV by cloning every field, section, and photo reference from the source CV.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '201':
+          description: Duplicated CV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CvResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /cvs/{id}/download:
+    get:
+      tags: [CVs]
+      summary: Download CV (PDF/DOCX)
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, docx]
+            default: pdf
+      responses:
+        '200':
+          description: Downloaded CV
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /stats:
+    get:
+      tags: [Stats]
+      summary: Get platform statistics
+      description: Retrieve platform statistics for display on the home page.
+      responses:
+        '200':
+          description: Platform statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: karirkit_session
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SearchQuery:
+      name: q
+      in: query
+      schema:
+        type: string
+    SortOrder:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    MessageResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+    DownloadUrlResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            download_url:
+              type: string
+    PreviewUrlResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            preview_url:
+              type: string
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total_items:
+          type: integer
+        total_pages:
+          type: integer
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+        avatar:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: string
+          nullable: true
+      required: [name, username, email, password]
+    LoginRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+        password:
+          type: string
+      required: [identifier, password]
+    GoogleLoginRequest:
+      type: object
+      properties:
+        id_token:
+          type: string
+      required: [id_token]
+    UpdateMeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required: [token, password]
+    ChangePasswordRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+      required: [current_password, new_password]
+    JobType:
+      type: string
+      enum: [full_time, contract, internship, freelance, part_time]
+    WorkSystem:
+      type: string
+      enum: [onsite, hybrid, remote]
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        company_name:
+          type: string
+        company_url:
+          type: string
+          nullable: true
+        position:
+          type: string
+        job_source:
+          type: string
+          nullable: true
+        job_type:
+          $ref: '#/components/schemas/JobType'
+        work_system:
+          $ref: '#/components/schemas/WorkSystem'
+        salary_min:
+          type: number
+        salary_max:
+          type: number
+        location:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+        result_status:
+          type: string
+          enum: [pending, passed, failed]
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        follow_up_date:
+          type: string
+          format: date
+          nullable: true
+        follow_up_note:
+          type: string
+          nullable: true
+        job_url:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ApplicationPayload:
+      type: object
+      properties:
+        company_name:
+          type: string
+        company_url:
+          type: string
+          nullable: true
+        position:
+          type: string
+        job_source:
+          type: string
+          nullable: true
+        job_type:
+          $ref: '#/components/schemas/JobType'
+        work_system:
+          $ref: '#/components/schemas/WorkSystem'
+        salary_min:
+          type: number
+        salary_max:
+          type: number
+        location:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+        result_status:
+          type: string
+          enum: [pending, passed, failed]
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        follow_up_date:
+          type: string
+          format: date
+          nullable: true
+        follow_up_note:
+          type: string
+          nullable: true
+        job_url:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        [company_name, position, job_type, work_system, date, status, result_status]
+    ApplicationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Application'
+    TempUploadResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            path:
+              type: string
+              description: Relative path pointing to the stored temp file
+            original_name:
+              type: string
+              description: Original filename supplied by the client
+            size:
+              type: integer
+              format: int64
+              description: File size in bytes
+            mime_type:
+              type: string
+              description: Detected MIME type
+    ApplicationListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Application'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    ApplicationLetter:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        name:
+          type: string
+        birth_place_date:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        marital_status:
+          type: string
+          enum: [single, married, widowed]
+        education:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        subject:
+          type: string
+        applicant_city:
+          type: string
+        application_date:
+          type: string
+        receiver_title:
+          type: string
+        company_name:
+          type: string
+        company_city:
+          type: string
+          nullable: true
+        company_address:
+          type: string
+          nullable: true
+        opening_paragraph:
+          type: string
+        body_paragraph:
+          type: string
+        attachments:
+          type: string
+        closing_paragraph:
+          type: string
+        signature:
+          type: string
+          nullable: true
+        language:
+          type: string
+          enum: [en, id]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ApplicationLetterPayload:
+      type: object
+      properties:
+        name: { type: string }
+        birth_place_date: { type: string }
+        gender: { type: string, enum: [male, female] }
+        marital_status: { type: string, enum: [single, married, widowed] }
+        education: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        address: { type: string }
+        subject: { type: string }
+        applicant_city: { type: string }
+        application_date: { type: string }
+        receiver_title: { type: string }
+        company_name: { type: string }
+        company_city: { type: string, nullable: true }
+        company_address: { type: string, nullable: true }
+        opening_paragraph: { type: string }
+        body_paragraph: { type: string }
+        attachments: { type: string }
+        closing_paragraph: { type: string }
+        signature:
+          type: string
+          nullable: true
+        language: { type: string, enum: [en, id] }
+      required:
+        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, language]
+    ApplicationLetterResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ApplicationLetter'
+    ApplicationLetterListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApplicationLetter'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    PortfolioMedia:
+      type: object
+      properties:
+        id:
+          type: string
+        portfolio_id:
+          type: string
+        path:
+          type: string
+        caption:
+          type: string
+          nullable: true
+    PortfolioTool:
+      type: object
+      properties:
+        id:
+          type: string
+        portfolio_id:
+          type: string
+        name:
+          type: string
+    ProjectType:
+      type: string
+      enum: [work, freelance, personal, academic]
+    Portfolio:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        sort_description:
+          type: string
+        description:
+          type: string
+        role_title:
+          type: string
+        project_type:
+          $ref: '#/components/schemas/ProjectType'
+        industry:
+          type: string
+        month:
+          type: integer
+        year:
+          type: integer
+        live_url:
+          type: string
+          nullable: true
+        repo_url:
+          type: string
+          nullable: true
+        cover:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        medias:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioMedia'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioTool'
+    PortfolioPayload:
+      type: object
+      properties:
+        title: { type: string }
+        slug: { type: string }
+        sort_description: { type: string }
+        description: { type: string }
+        role_title: { type: string }
+        project_type: { $ref: '#/components/schemas/ProjectType' }
+        industry: { type: string }
+        month: { type: integer }
+        year: { type: integer }
+        live_url: { type: string, nullable: true }
+        repo_url: { type: string, nullable: true }
+        cover:
+          type: string
+          nullable: true
+          description: Path returned from `/uploads` representing the portfolio cover image. Leave null to remove the cover.
+        tools:
+          type: array
+          items:
+            type: string
+          description: Full list of tools/technologies for the portfolio item.
+        medias:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+                description: Path returned from `/uploads` for each media file.
+              caption:
+                type: string
+                nullable: true
+            required: [path]
+          description: Ordered gallery assets referencing files previously uploaded via `/uploads`.
+      required:
+        [title, slug, sort_description, description, role_title, project_type, industry, month, year]
+    PortfolioResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Portfolio'
+    PortfolioListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Portfolio'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    PublicPortfolioResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                username: { type: string }
+                avatar: { type: string, nullable: true }
+                headline: { type: string, nullable: true }
+            portfolios:
+              type: array
+              items:
+                $ref: '#/components/schemas/Portfolio'
+    PublicPortfolioDetailResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                username: { type: string }
+                avatar: { type: string, nullable: true }
+                headline: { type: string, nullable: true }
+            portfolio:
+              $ref: '#/components/schemas/Portfolio'
+    CvEducation:
+      type: object
+      properties:
+          degree:
+            type: string
+            enum: [highschool, associate, bachelor, master, doctorate, other]
+          school_name:
+            type: string
+          school_location:
+            type: string
+          major:
+            type: string
+          start_month:
+            type: integer
+          start_year:
+            type: integer
+          end_month:
+            type: integer
+            nullable: true
+          end_year:
+            type: integer
+            nullable: true
+          is_current:
+            type: boolean
+          gpa:
+            type: number
+            nullable: true
+          description:
+            type: string
+            nullable: true
+    CvCertificate:
+      type: object
+      properties:
+        title: { type: string }
+        issuer: { type: string }
+        issue_month: { type: integer }
+        issue_year: { type: integer }
+        expiry_month: { type: integer, nullable: true }
+        expiry_year: { type: integer, nullable: true }
+        no_expiry: { type: boolean, nullable: true }
+        credential_id: { type: string, nullable: true }
+        credential_url: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+    CvExperience:
+      type: object
+      properties:
+        job_title: { type: string }
+        company_name: { type: string }
+        company_location: { type: string }
+        job_type: { $ref: '#/components/schemas/JobType' }
+        start_month: { type: integer }
+        start_year: { type: integer }
+        end_month: { type: integer, nullable: true }
+        end_year: { type: integer, nullable: true }
+        is_current: { type: boolean }
+        description: { type: string, nullable: true }
+    CvSkill:
+      type: object
+      properties:
+        name: { type: string }
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced, expert]
+    CvAward:
+      type: object
+      properties:
+        title: { type: string }
+        issuer: { type: string }
+        description: { type: string, nullable: true }
+        year: { type: integer }
+    CvSocialLink:
+      type: object
+      properties:
+        platform: { type: string }
+        url: { type: string }
+    CvOrganization:
+      type: object
+      properties:
+        organization_name: { type: string }
+        role_title: { type: string }
+        organization_type:
+          type: string
+          enum: [student, community, professional, volunteer, other]
+        location: { type: string }
+        start_month: { type: integer }
+        start_year: { type: integer }
+        end_month: { type: integer, nullable: true }
+        end_year: { type: integer, nullable: true }
+        is_current: { type: boolean }
+        description: { type: string, nullable: true }
+    Cv:
+      type: object
+      properties:
+        id: { type: string }
+        user_id: { type: string }
+        name: { type: string }
+        headline: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        about: { type: string }
+        photo: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        educations:
+          type: array
+          items: { $ref: '#/components/schemas/CvEducation' }
+        certificates:
+          type: array
+          items: { $ref: '#/components/schemas/CvCertificate' }
+        experiences:
+          type: array
+          items: { $ref: '#/components/schemas/CvExperience' }
+        skills:
+          type: array
+          items: { $ref: '#/components/schemas/CvSkill' }
+        awards:
+          type: array
+          items: { $ref: '#/components/schemas/CvAward' }
+        social_links:
+          type: array
+          items: { $ref: '#/components/schemas/CvSocialLink' }
+        organizations:
+          type: array
+          items: { $ref: '#/components/schemas/CvOrganization' }
+    CvPayload:
+      type: object
+      properties:
+        name: { type: string }
+        headline: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        about: { type: string }
+        photo: { type: string, nullable: true }
+        educations:
+          type: array
+          items: { $ref: '#/components/schemas/CvEducation' }
+        certificates:
+          type: array
+          items: { $ref: '#/components/schemas/CvCertificate' }
+        experiences:
+          type: array
+          items: { $ref: '#/components/schemas/CvExperience' }
+        skills:
+          type: array
+          items: { $ref: '#/components/schemas/CvSkill' }
+        awards:
+          type: array
+          items: { $ref: '#/components/schemas/CvAward' }
+        social_links:
+          type: array
+          items: { $ref: '#/components/schemas/CvSocialLink' }
+        organizations:
+          type: array
+          items: { $ref: '#/components/schemas/CvOrganization' }
+      required: [name, headline, email, phone, address, about]
+    CvResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Cv'
+    CvListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Cv'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    UserResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+    AuthUserResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+    StatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total_users:
+              type: integer
+              description: Total number of registered users with 'user' role
+            total_cvs:
+              type: integer
+              description: Total number of CVs created
+            total_application_letters:
+              type: integer
+              description: Total number of application letters created
+            total_applications:
+              type: integer
+              description: Total number of job applications
+            total_cv_templates:
+              type: integer
+              description: Total number of available CV templates
+            total_application_letter_templates:
+              type: integer
+              description: Total number of available application letter templates
+

@@ -1,0 +1,418 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum ProjectType {
+  work
+  freelance
+  personal
+  academic
+}
+
+enum JobType {
+  full_time
+  contract
+  internship
+  freelance
+  part_time
+}
+
+enum WorkSystem {
+  onsite
+  hybrid
+  remote
+}
+
+enum ApplicationStatus {
+  draft
+  submitted
+  administration_screening
+  hr_screening
+  online_test
+  psychological_test
+  technical_test
+  hr_interview
+  user_interview
+  final_interview
+  offering
+  mcu
+  onboarding
+  accepted
+  rejected
+}
+
+enum ApplicationResultStatus {
+  pending
+  passed
+  failed
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum MaritalStatus {
+  single
+  married
+  widowed
+}
+
+enum Degree {
+  highschool
+  associate
+  bachelor
+  master
+  doctorate
+  other
+}
+
+enum SkillLevel {
+  beginner
+  intermediate
+  advanced
+  expert
+}
+
+enum Language {
+  en
+  id
+}
+
+enum OrganizationType {
+  student
+  community
+  professional
+  volunteer
+  other
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.VarChar(255)
+  name      String    @db.VarChar(255)
+  username  String    @unique @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  role      UserRole  @default(user)
+  phone     String?   @db.VarChar(255)
+  googleId  String?   @map("google_id") @db.VarChar(255)
+  avatar    String?   @db.VarChar(255)
+  createdAt DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cvs                Cv[]
+  portfolios         Portfolio[]
+  applications       Application[]
+  applicationLetters ApplicationLetter[]
+
+  @@map("users")
+}
+
+model Cv {
+  id        String    @id @default(uuid()) @db.VarChar(255)
+  userId    String    @map("user_id") @db.VarChar(255)
+  name      String    @db.VarChar(255)
+  headline  String    @db.VarChar(255)
+  email     String    @db.VarChar(255)
+  phone     String    @db.VarChar(255)
+  address   String    @db.VarChar(255)
+  about     String    @db.Text
+  photo     String?   @db.VarChar(255)
+  createdAt DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  educations    CvEducation[]
+  certificates  CvCertificate[]
+  experiences   CvExperience[]
+  skills        CvSkill[]
+  awards        CvAward[]
+  socialLinks   CvSocialLink[]
+  organizations CvOrganization[]
+
+  @@index([userId], map: "idx_cvs_user_id")
+  @@map("cvs")
+}
+
+model Portfolio {
+  id              String      @id @default(uuid()) @db.VarChar(255)
+  userId          String      @map("user_id") @db.VarChar(255)
+  title           String      @db.VarChar(255)
+  slug            String      @unique(map: "uq_portfolios_slug") @db.VarChar(255)
+  sortDescription String      @map("sort_description") @db.VarChar(255)
+  description     String      @db.Text
+  roleTitle       String      @map("role_title") @db.VarChar(255)
+  projectType     ProjectType @map("project_type")
+  industry        String      @db.VarChar(255)
+  month           Int         @db.TinyInt
+  year            Int         @db.Year
+  liveUrl         String?     @map("live_url") @db.VarChar(255)
+  repoUrl         String?     @map("repo_url") @db.VarChar(255)
+  cover           String      @db.VarChar(255)
+  createdAt       DateTime?   @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime?   @map("updated_at") @db.Timestamp(0)
+  deletedAt       DateTime?   @map("deleted_at") @db.Timestamp(0)
+
+  user   User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  medias PortfolioMedia[]
+  tools  PortfolioTool[]
+
+  @@index([userId], map: "idx_portfolios_user_id")
+  @@map("portfolios")
+}
+
+model Application {
+  id           String                  @id @default(uuid()) @db.VarChar(255)
+  userId       String                  @map("user_id") @db.VarChar(255)
+  companyName  String                  @map("company_name") @db.VarChar(255)
+  companyUrl   String?                 @map("company_url") @db.Text
+  position     String                  @db.VarChar(255)
+  jobSource    String?                 @map("job_source") @db.VarChar(255)
+  jobType      JobType                 @map("job_type")
+  workSystem   WorkSystem              @map("work_system")
+  salaryMin    BigInt?                 @map("salary_min") @db.BigInt
+  salaryMax    BigInt?                 @map("salary_max") @db.BigInt
+  location     String?                 @db.VarChar(255)
+  date         DateTime                @db.Date
+  status       ApplicationStatus
+  resultStatus ApplicationResultStatus @map("result_status")
+  contactName  String?                 @map("contact_name") @db.VarChar(255)
+  contactEmail String?                 @map("contact_email") @db.VarChar(255)
+  contactPhone String?                 @map("contact_phone") @db.VarChar(255)
+  followUpDate DateTime?               @map("follow_up_date") @db.Date
+  followUpNote String?                 @map("follow_up_note") @db.Text
+  jobUrl       String?                 @map("job_url") @db.Text
+  notes        String?                 @db.Text
+  createdAt    DateTime?               @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime?               @map("updated_at") @db.Timestamp(0)
+  deletedAt    DateTime?               @map("deleted_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_applications_user_id")
+  @@index([status], map: "idx_applications_status")
+  @@index([date], map: "idx_applications_date")
+  @@map("applications")
+}
+
+model ApplicationLetter {
+  id               String        @id @default(uuid()) @db.VarChar(255)
+  userId           String        @map("user_id") @db.VarChar(255)
+  name             String        @db.VarChar(255)
+  birthPlaceDate   String        @map("birth_place_date") @db.VarChar(255)
+  gender           Gender
+  maritalStatus    MaritalStatus @map("marital_status")
+  education        String        @db.VarChar(255)
+  phone            String        @db.VarChar(255)
+  email            String        @db.VarChar(255)
+  address          String        @db.VarChar(255)
+  subject          String        @db.VarChar(255)
+  applicantCity    String        @map("applicant_city") @db.VarChar(255)
+  applicationDate  String        @map("application_date") @db.VarChar(255)
+  receiverTitle    String        @map("receiver_title") @db.VarChar(255)
+  companyName      String        @map("company_name") @db.VarChar(255)
+  companyCity      String?       @map("company_city") @db.VarChar(255)
+  companyAddress   String?       @map("company_address") @db.VarChar(255)
+  openingParagraph String        @map("opening_paragraph") @db.Text
+  bodyParagraph    String        @map("body_paragraph") @db.Text
+  attachments      String        @db.Text
+  closingParagraph String        @map("closing_paragraph") @db.Text
+  signature        String        @db.VarChar(255)
+  language         Language      @default(id)
+  createdAt        DateTime?     @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?     @map("updated_at") @db.Timestamp(0)
+  deletedAt        DateTime?     @map("deleted_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_application_letters_user_id")
+  @@map("application_letters")
+}
+
+model CvEducation {
+  id             String    @id @default(uuid()) @db.VarChar(255)
+  cvId           String    @map("cv_id") @db.VarChar(255)
+  degree         Degree
+  schoolName     String    @map("school_name") @db.VarChar(255)
+  schoolLocation String    @map("school_location") @db.VarChar(255)
+  major          String    @db.VarChar(255)
+  startMonth     Int       @map("start_month") @db.TinyInt
+  startYear      Int       @map("start_year") @db.Year
+  endMonth       Int?      @map("end_month") @db.TinyInt
+  endYear        Int?      @map("end_year") @db.Year
+  isCurrent      Boolean   @default(false) @map("is_current")
+  gpa            Float?    @db.Float
+  description    String?   @db.Text
+  createdAt      DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_educations_cv_id")
+  @@map("cv_educations")
+}
+
+model CvCertificate {
+  id            String    @id @default(uuid()) @db.VarChar(255)
+  cvId          String    @map("cv_id") @db.VarChar(255)
+  title         String    @db.VarChar(255)
+  issuer        String    @db.VarChar(255)
+  issueMonth    Int       @map("issue_month") @db.TinyInt
+  issueYear     Int       @map("issue_year") @db.Year
+  expiryMonth   Int?      @map("expiry_month") @db.TinyInt
+  expiryYear    Int?      @map("expiry_year") @db.Year
+  noExpiry      Boolean   @default(false) @map("no_expiry")
+  credentialId  String?   @map("credential_id") @db.VarChar(255)
+  credentialUrl String?   @map("credential_url") @db.VarChar(255)
+  description   String?   @db.Text
+  createdAt     DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_certificates_cv_id")
+  @@map("cv_certificates")
+}
+
+model CvExperience {
+  id              String    @id @default(uuid()) @db.VarChar(255)
+  cvId            String    @map("cv_id") @db.VarChar(255)
+  jobTitle        String    @map("job_title") @db.VarChar(255)
+  companyName     String    @map("company_name") @db.VarChar(255)
+  companyLocation String    @map("company_location") @db.VarChar(255)
+  jobType         JobType   @map("job_type")
+  startMonth      Int       @map("start_month") @db.TinyInt
+  startYear       Int       @map("start_year") @db.Year
+  endMonth        Int?      @map("end_month") @db.TinyInt
+  endYear         Int?      @map("end_year") @db.Year
+  isCurrent       Boolean   @default(false) @map("is_current")
+  description     String?   @db.Text
+  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_experiences_cv_id")
+  @@index([companyName], map: "idx_cv_experiences_company")
+  @@map("cv_experiences")
+}
+
+model CvSkill {
+  id        String     @id @default(uuid()) @db.VarChar(255)
+  cvId      String     @map("cv_id") @db.VarChar(255)
+  name      String     @db.VarChar(255)
+  level     SkillLevel
+  createdAt DateTime?  @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime?  @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_skills_cv_id")
+  @@map("cv_skills")
+}
+
+model CvAward {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  cvId        String    @map("cv_id") @db.VarChar(255)
+  title       String    @db.VarChar(255)
+  issuer      String    @db.VarChar(255)
+  description String?   @db.Text
+  year        Int       @db.Year
+  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_awards_cv_id")
+  @@map("cv_awards")
+}
+
+model CvSocialLink {
+  id        String    @id @default(uuid()) @db.VarChar(255)
+  cvId      String    @map("cv_id") @db.VarChar(255)
+  platform  String    @db.VarChar(255)
+  url       String    @db.VarChar(255)
+  createdAt DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_social_links_cv_id")
+  @@map("cv_social_links")
+}
+
+model CvOrganization {
+  id               String           @id @default(uuid()) @db.VarChar(255)
+  cvId             String           @map("cv_id") @db.VarChar(255)
+  organizationName String           @map("organization_name") @db.VarChar(255)
+  roleTitle        String           @map("role_title") @db.VarChar(255)
+  organizationType OrganizationType @map("organization_type")
+  location         String           @db.VarChar(255)
+  startMonth       Int              @map("start_month") @db.TinyInt
+  startYear        Int              @map("start_year") @db.Year
+  endMonth         Int?             @map("end_month") @db.TinyInt
+  endYear          Int?             @map("end_year") @db.Year
+  isCurrent        Boolean          @default(false) @map("is_current")
+  description      String?          @db.Text
+  createdAt        DateTime?        @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?        @map("updated_at") @db.Timestamp(0)
+  deletedAt        DateTime?        @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_organizations_cv_id")
+  @@map("cv_organizations")
+}
+
+model PortfolioMedia {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  portfolioId String    @map("portfolio_id") @db.VarChar(255)
+  path        String    @db.VarChar(255)
+  caption     String?   @db.VarChar(255)
+  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([portfolioId], map: "idx_portfolio_medias_portfolio_id")
+  @@map("portfolio_medias")
+}
+
+model PortfolioTool {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  portfolioId String    @map("portfolio_id") @db.VarChar(255)
+  name        String    @db.VarChar(255)
+  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([portfolioId], map: "idx_portfolio_tools_portfolio_id")
+  @@map("portfolio_tools")
+}
