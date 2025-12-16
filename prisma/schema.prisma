@@ -103,6 +103,12 @@ enum OrganizationType {
   other
 }
 
+enum BlogStatus {
+  draft
+  published
+  archived
+}
+
 model User {
   id        String    @id @default(uuid()) @db.VarChar(255)
   name      String    @db.VarChar(255)
@@ -121,6 +127,7 @@ model User {
   portfolios         Portfolio[]
   applications       Application[]
   applicationLetters ApplicationLetter[]
+  blogs              Blog[]
 
   @@map("users")
 }
@@ -415,4 +422,73 @@ model PortfolioTool {
 
   @@index([portfolioId], map: "idx_portfolio_tools_portfolio_id")
   @@map("portfolio_tools")
+}
+
+model BlogCategory {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  name        String    @unique @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  blogs Blog[]
+
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id        String    @id @default(uuid()) @db.VarChar(255)
+  name      String    @unique @db.VarChar(255)
+  slug      String    @unique @db.VarChar(255)
+  createdAt DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  blogs BlogTagRelation[]
+
+  @@map("blog_tags")
+}
+
+model Blog {
+  id            String     @id @default(uuid()) @db.VarChar(255)
+  userId        String     @map("user_id") @db.VarChar(255)
+  categoryId    String     @map("category_id") @db.VarChar(255)
+  title         String     @db.VarChar(255)
+  slug          String     @unique @db.VarChar(255)
+  excerpt       String?    @db.Text
+  content       String     @db.Text
+  featuredImage String?    @map("featured_image") @db.VarChar(255)
+  status        BlogStatus @default(draft)
+  readTime      Int?       @map("read_time") @db.Int
+  views         Int        @default(0)
+  createdAt     DateTime?  @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime?  @map("updated_at") @db.Timestamp(0)
+  publishedAt   DateTime?  @map("published_at") @db.Timestamp(0)
+  deletedAt     DateTime?  @map("deleted_at") @db.Timestamp(0)
+
+  user     User              @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category BlogCategory      @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  tags     BlogTagRelation[]
+
+  @@index([userId], map: "idx_blogs_user_id")
+  @@index([categoryId], map: "idx_blogs_category_id")
+  @@index([status], map: "idx_blogs_status")
+  @@index([publishedAt], map: "idx_blogs_published_at")
+  @@map("blogs")
+}
+
+model BlogTagRelation {
+  id     String @id @default(uuid()) @db.VarChar(255)
+  blogId String @map("blog_id") @db.VarChar(255)
+  tagId  String @map("tag_id") @db.VarChar(255)
+
+  blog Blog    @relation(fields: [blogId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  tag  BlogTag @relation(fields: [tagId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([blogId, tagId], map: "uq_blog_tag_relation")
+  @@index([blogId], map: "idx_blog_tag_relation_blog_id")
+  @@index([tagId], map: "idx_blog_tag_relation_tag_id")
+  @@map("blog_tag_relations")
 }

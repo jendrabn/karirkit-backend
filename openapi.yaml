@@ -17,6 +17,8 @@ tags:
   - name: Public
   - name: Uploads
   - name: Stats
+  - name: Blogs
+    description: Frontend blog endpoints for displaying blog content, categories, and tags
 paths:
   /auth/register:
     post:
@@ -919,6 +921,117 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatsResponse'
+  /blogs:
+    get:
+      tags: [Blogs]
+      summary: List blogs
+      description: List blogs with search, filters, sorting, and pagination.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, published_at, title, views]
+            default: published_at
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [published]
+            default: published
+        - name: category_id
+          in: query
+          schema:
+            type: string
+        - name: tag_id
+          in: query
+          schema:
+            type: string
+        - name: author_id
+          in: query
+          schema:
+            type: string
+        - name: published_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: published_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Blogs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogListResponse'
+  /blogs/{slug}:
+    get:
+      tags: [Blogs]
+      summary: Get blog detail by slug
+      description: Get published blog detail by slug for frontend display
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /blogs/categories:
+    get:
+      tags: [Blogs]
+      summary: List blog categories
+      description: Get all blog categories for frontend display
+      responses:
+        '200':
+          description: Blog categories list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BlogCategory'
+  /blogs/tags:
+    get:
+      tags: [Blogs]
+      summary: List blog tags
+      description: Get all blog tags for frontend display
+      responses:
+        '200':
+          description: Blog tags list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BlogTag'
 components:
   securitySchemes:
     sessionCookie:
@@ -1754,4 +1867,183 @@ components:
             total_application_letter_templates:
               type: integer
               description: Total number of available application letter templates
+    BlogStatus:
+      type: string
+      enum: [draft, published, archived]
+    BlogCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BlogCategoryPayload:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required: [name, slug]
+    BlogCategoryResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/BlogCategory'
+    BlogCategoryListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BlogCategory'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    BlogTag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BlogTagPayload:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+      required: [name, slug]
+    BlogTagResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/BlogTag'
+    BlogTagListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BlogTag'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    Blog:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        category_id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+          nullable: true
+        content:
+          type: string
+        featured_image:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BlogStatus'
+        read_time:
+          type: integer
+          nullable: true
+        views:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/BlogCategory'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogTag'
+    BlogPayload:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+          nullable: true
+        content:
+          type: string
+        featured_image:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BlogStatus'
+        read_time:
+          type: integer
+          nullable: true
+        category_id:
+          type: string
+        tag_ids:
+          type: array
+          items:
+            type: string
+      required: [title, slug, content, status, category_id]
+    BlogResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Blog'
+    BlogListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Blog'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
 
