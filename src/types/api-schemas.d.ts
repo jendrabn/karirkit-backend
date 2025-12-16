@@ -443,3 +443,98 @@ export interface UserResponse {
 export interface AuthUserResponse {
   data?: User;
 }
+
+export type BlogStatus = "draft" | "published" | "archived";
+
+export interface BlogCategory {
+  id?: string;
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BlogCategoryPayload {
+  name: string;
+  slug: string;
+  description?: string | null;
+}
+
+export interface BlogCategoryResponse {
+  data?: BlogCategory;
+}
+
+export interface BlogCategoryListResponse {
+  data?: {
+    items?: BlogCategory[];
+    pagination?: Pagination;
+  };
+}
+
+export interface BlogTag {
+  id?: string;
+  name?: string;
+  slug?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BlogTagPayload {
+  name: string;
+  slug: string;
+}
+
+export interface BlogTagResponse {
+  data?: BlogTag;
+}
+
+export interface BlogTagListResponse {
+  data?: {
+    items?: BlogTag[];
+    pagination?: Pagination;
+  };
+}
+
+export interface Blog {
+  id?: string;
+  user_id?: string;
+  category_id?: string;
+  title?: string;
+  slug?: string;
+  excerpt?: string | null;
+  content?: string;
+  featured_image?: string | null;
+  status?: BlogStatus;
+  read_time?: number | null;
+  views?: number;
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string | null;
+  user?: User;
+  category?: BlogCategory | null;
+  tags?: BlogTag[];
+}
+
+export interface BlogPayload {
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content: string;
+  featured_image?: string | null;
+  status: BlogStatus;
+  read_time?: number | null;
+  category_id: string;
+  tag_ids?: string[];
+}
+
+export interface BlogResponse {
+  data?: Blog;
+}
+
+export interface BlogListResponse {
+  data?: {
+    items?: Blog[];
+    pagination?: Pagination;
+  };
+}

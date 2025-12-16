@@ -1,0 +1,487 @@
+import type {
+  Blog as PrismaBlog,
+  BlogCategory as PrismaBlogCategory,
+  BlogTag as PrismaBlogTag,
+  Prisma,
+} from "../generated/prisma/client";
+import type {
+  Blog as BlogResponse,
+  BlogCategory,
+  BlogTag,
+  Pagination,
+} from "../types/api-schemas";
+import { prisma } from "../config/prisma.config";
+import { validate } from "../utils/validate.util";
+import {
+  BlogValidation,
+  type BlogListQuery,
+  type BlogPayloadInput,
+} from "../validations/blog.validation";
+import { ResponseError } from "../utils/response-error.util";
+
+type BlogListResult = {
+  items: BlogResponse[];
+  pagination: Pagination;
+};
+
+type BlogMutableFields = Omit<
+  Prisma.BlogUncheckedCreateInput,
+  "id" | "userId" | "createdAt" | "updatedAt" | "publishedAt"
+>;
+
+const sortFieldMap = {
+  created_at: "createdAt",
+  updated_at: "updatedAt",
+  published_at: "publishedAt",
+  title: "title",
+  views: "views",
+} as const;
+
+export class BlogService {
+  static async list(query: unknown): Promise<BlogListResult> {
+    const filters: BlogListQuery = validate(BlogValidation.LIST_QUERY, query);
+    const page = filters.page;
+    const perPage = filters.per_page;
+
+    const where: Prisma.BlogWhereInput = {
+      status: filters.status,
+      deletedAt: null,
+    };
+
+    if (filters.q) {
+      const search = filters.q;
+      where.OR = [
+        { title: { contains: search } },
+        { excerpt: { contains: search } },
+        { content: { contains: search } },
+      ];
+    }
+
+    if (filters.category_id) {
+      where.categoryId = filters.category_id;
+    }
+
+    if (filters.tag_id) {
+      where.tags = {
+        some: {
+          tagId: filters.tag_id,
+        },
+      };
+    }
+
+    if (filters.author_id) {
+      where.userId = filters.author_id;
+    }
+
+    if (filters.published_from || filters.published_to) {
+      where.publishedAt = {};
+
+      if (filters.published_from) {
+        where.publishedAt.gte = new Date(
+          `${filters.published_from}T00:00:00.000Z`
+        );
+      }
+
+      if (filters.published_to) {
+        where.publishedAt.lte = new Date(
+          `${filters.published_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    const sortField = sortFieldMap[filters.sort_by] ?? "publishedAt";
+    const orderBy: Prisma.BlogOrderByWithRelationInput = {
+      [sortField]: filters.sort_order,
+    };
+
+    const [totalItems, records] = await Promise.all([
+      prisma.blog.count({ where }),
+      prisma.blog.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              avatar: true,
+            },
+          },
+          category: true,
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages =
+      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
+
+    return {
+      items: records.map((record) => BlogService.toResponse(record)),
+      pagination: {
+        page,
+        per_page: perPage,
+        total_items: totalItems,
+        total_pages: totalPages,
+      },
+    };
+  }
+
+  static async getBySlug(slug: string): Promise<BlogResponse> {
+    const blog = await prisma.blog.findFirst({
+      where: {
+        slug,
+        status: "published",
+        deletedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!blog) {
+      throw new ResponseError(404, "Blog not found");
+    }
+
+    // Increment view count
+    await prisma.blog.update({
+      where: { id: blog.id },
+      data: { views: { increment: 1 } },
+    });
+
+    return BlogService.toResponse({ ...blog, views: blog.views + 1 });
+  }
+
+  static async create(userId: string, request: unknown): Promise<BlogResponse> {
+    const payload: BlogPayloadInput = validate(BlogValidation.PAYLOAD, request);
+    const now = new Date();
+    const data = BlogService.mapPayloadToData(payload);
+
+    // Check if slug is unique
+    const existingBlog = await prisma.blog.findFirst({
+      where: { slug: data.slug },
+    });
+
+    if (existingBlog) {
+      throw new ResponseError(400, "Slug already exists");
+    }
+
+    // Check if category exists
+    const category = await prisma.blogCategory.findFirst({
+      where: { id: payload.category_id },
+    });
+
+    if (!category) {
+      throw new ResponseError(400, "Category not found");
+    }
+
+    // Validate tags if provided
+    if (payload.tag_ids && payload.tag_ids.length > 0) {
+      const tags = await prisma.blogTag.findMany({
+        where: { id: { in: payload.tag_ids } },
+      });
+
+      if (tags.length !== payload.tag_ids.length) {
+        throw new ResponseError(400, "One or more tags not found");
+      }
+    }
+
+    const blogData: any = {
+      ...data,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: data.status === "published" ? now : null,
+    };
+
+    // Remove tag_ids from main data as it's not a direct field
+    const { tag_ids, ...blogCreateData } = blogData;
+
+    const blog = await prisma.blog.create({
+      data: {
+        ...blogCreateData,
+        tags:
+          tag_ids && tag_ids.length > 0
+            ? {
+                create: tag_ids.map((tagId: string) => ({
+                  tagId,
+                })),
+              }
+            : undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return BlogService.toResponse(blog);
+  }
+
+  static async get(userId: string, id: string): Promise<BlogResponse> {
+    const blog = await BlogService.findOwnedBlog(userId, id, {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          avatar: true,
+        },
+      },
+      category: true,
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    });
+    return BlogService.toResponse(blog);
+  }
+
+  static async update(
+    userId: string,
+    id: string,
+    request: unknown
+  ): Promise<BlogResponse> {
+    await BlogService.findOwnedBlog(userId, id);
+    const payload: BlogPayloadInput = validate(BlogValidation.PAYLOAD, request);
+    const data = BlogService.mapPayloadToData(payload);
+
+    // Check if slug is unique (excluding current blog)
+    const existingBlog = await prisma.blog.findFirst({
+      where: {
+        slug: data.slug,
+        NOT: { id },
+      },
+    });
+
+    if (existingBlog) {
+      throw new ResponseError(400, "Slug already exists");
+    }
+
+    // Check if category exists
+    const category = await prisma.blogCategory.findFirst({
+      where: { id: payload.category_id },
+    });
+
+    if (!category) {
+      throw new ResponseError(400, "Category not found");
+    }
+
+    // Validate tags if provided
+    if (payload.tag_ids && payload.tag_ids.length > 0) {
+      const tags = await prisma.blogTag.findMany({
+        where: { id: { in: payload.tag_ids } },
+      });
+
+      if (tags.length !== payload.tag_ids.length) {
+        throw new ResponseError(400, "One or more tags not found");
+      }
+    }
+
+    // Get current blog to check status change
+    const currentBlog = await prisma.blog.findUnique({
+      where: { id },
+    });
+
+    const updateData: any = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    // Set publishedAt if status is changing to published and it wasn't published before
+    if (currentBlog?.status !== "published" && data.status === "published") {
+      updateData.publishedAt = new Date();
+    }
+
+    // Remove tag_ids from main data as it's not a direct field
+    const { tag_ids, ...blogUpdateData } = updateData;
+
+    const blog = await prisma.blog.update({
+      where: { id },
+      data: {
+        ...blogUpdateData,
+        tags: tag_ids
+          ? {
+              deleteMany: {},
+              create: tag_ids.map((tagId: string) => ({
+                tagId,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return BlogService.toResponse(blog);
+  }
+
+  static async delete(userId: string, id: string): Promise<void> {
+    await BlogService.findOwnedBlog(userId, id);
+    await prisma.blog.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  static async getCategories(): Promise<BlogCategory[]> {
+    const categories = await prisma.blogCategory.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: "asc" },
+    });
+
+    return categories.map((category) =>
+      BlogService.toCategoryResponse(category)
+    );
+  }
+
+  static async getTags(): Promise<BlogTag[]> {
+    const tags = await prisma.blogTag.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: "asc" },
+    });
+
+    return tags.map((tag) => BlogService.toTagResponse(tag));
+  }
+
+  private static async findOwnedBlog(
+    userId: string,
+    id: string,
+    include?: Prisma.BlogInclude
+  ): Promise<PrismaBlog & { user?: any; category?: any; tags?: any[] }> {
+    const blog = await prisma.blog.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
+      include,
+    });
+
+    if (!blog) {
+      throw new ResponseError(404, "Blog not found");
+    }
+
+    return blog;
+  }
+
+  private static mapPayloadToData(
+    payload: BlogPayloadInput
+  ): BlogMutableFields & { tag_ids?: string[] } {
+    return {
+      title: payload.title,
+      slug: payload.slug,
+      excerpt: payload.excerpt ?? null,
+      content: payload.content,
+      featuredImage: payload.featured_image ?? null,
+      status: payload.status,
+      readTime: payload.read_time ?? null,
+      categoryId: payload.category_id,
+      tag_ids: payload.tag_ids,
+    };
+  }
+
+  private static toCategoryResponse(
+    category: PrismaBlogCategory
+  ): BlogCategory {
+    return {
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description ?? null,
+      created_at: category.createdAt?.toISOString(),
+      updated_at: category.updatedAt?.toISOString(),
+    };
+  }
+
+  private static toTagResponse(tag: PrismaBlogTag): BlogTag {
+    return {
+      id: tag.id,
+      name: tag.name,
+      slug: tag.slug,
+      created_at: tag.createdAt?.toISOString(),
+      updated_at: tag.updatedAt?.toISOString(),
+    };
+  }
+
+  private static toResponse(
+    blog: PrismaBlog & {
+      user?: any;
+      category?: PrismaBlogCategory;
+      tags?: { tag: PrismaBlogTag }[];
+    }
+  ): BlogResponse {
+    return {
+      id: blog.id,
+      user_id: blog.userId,
+      category_id: blog.categoryId,
+      title: blog.title,
+      slug: blog.slug,
+      excerpt: blog.excerpt ?? null,
+      content: blog.content,
+      featured_image: blog.featuredImage ?? null,
+      status: blog.status,
+      read_time: blog.readTime ?? null,
+      views: blog.views,
+      created_at: blog.createdAt?.toISOString(),
+      updated_at: blog.updatedAt?.toISOString(),
+      published_at: blog.publishedAt?.toISOString() ?? null,
+      user: blog.user ?? null,
+      category: blog.category
+        ? BlogService.toCategoryResponse(blog.category)
+        : null,
+      tags: blog.tags
+        ? blog.tags.map((tagRelation) =>
+            BlogService.toTagResponse(tagRelation.tag)
+          )
+        : [],
+    };
+  }
+}

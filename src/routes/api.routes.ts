@@ -14,6 +14,7 @@ import { PortfolioController } from "../controllers/portfolio.controller";
 import { CvController } from "../controllers/cv.controller";
 import { PublicController } from "../controllers/public.controller";
 import { StatsController } from "../controllers/stats.controller";
+import { BlogController } from "../controllers/blog.controller";
 
 const router = Router();
 
@@ -127,5 +128,17 @@ router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
 router.get("/cvs/:id/download", authMiddleware, CvController.download);
 router.get("/cvs/:id/preview", authMiddleware, CvController.preview);
+
+// Blogs API
+router.get("/blogs", BlogController.list);
+router.get("/blogs/:slug", BlogController.getBySlug);
+router.get("/blogs/categories", BlogController.getCategories);
+router.get("/blogs/tags", BlogController.getTags);
+
+// Blogs API
+router.post("/blogs", authMiddleware, BlogController.create);
+router.get("/blogs/admin/:id", authMiddleware, BlogController.get);
+router.put("/blogs/admin/:id", authMiddleware, BlogController.update);
+router.delete("/blogs/admin/:id", authMiddleware, BlogController.delete);
 
 export default router;
