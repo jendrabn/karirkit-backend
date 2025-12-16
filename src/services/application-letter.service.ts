@@ -24,10 +24,7 @@ type ApplicationLetterListResult = {
   pagination: Pagination;
 };
 
-type ApplicationLetterMutableFields = Omit<
-  Prisma.ApplicationLetterUncheckedCreateInput,
-  "id" | "userId" | "createdAt" | "updatedAt"
->;
+type ApplicationLetterMutableFields = any;
 
 type GeneratedDocument = {
   buffer: Buffer;
@@ -87,10 +84,6 @@ export class ApplicationLetterService {
         { receiverTitle: { contains: search } },
         { applicantCity: { contains: search } },
       ];
-    }
-
-    if (filters.language) {
-      where.language = filters.language;
     }
 
     if (filters.company_name) {
@@ -243,7 +236,6 @@ export class ApplicationLetterService {
         attachments: source.attachments,
         closingParagraph: source.closingParagraph,
         signature: source.signature,
-        language: source.language,
         createdAt: now,
         updatedAt: now,
       },
@@ -309,7 +301,7 @@ export class ApplicationLetterService {
       attachments: payload.attachments,
       closingParagraph: payload.closing_paragraph,
       signature: signaturePath,
-      language: payload.language,
+      templateId: payload.template_id,
     };
   }
 
@@ -495,11 +487,20 @@ export class ApplicationLetterService {
   private static async renderDocx(
     letter: PrismaApplicationLetter
   ): Promise<Buffer> {
-    const templatePath = path.join(
-      process.cwd(),
-      "word_templates",
-      "application_letter_001.docx"
-    );
+    // Template is now required, no fallback to default template
+    if (!(letter as any).templateId) {
+      throw new ResponseError(400, "Template is required");
+    }
+
+    const template = await (prisma as any).template.findUnique({
+      where: { id: (letter as any).templateId },
+    });
+
+    if (!template) {
+      throw new ResponseError(404, "Template not found");
+    }
+
+    const templatePath = path.join(process.cwd(), template.path);
     const templateBinary = await fs.readFile(templatePath);
     const additionalJsContext =
       ApplicationLetterService.buildAdditionalJsContext();
@@ -767,7 +768,7 @@ export class ApplicationLetterService {
       attachments: letter.attachments,
       closing_paragraph: letter.closingParagraph,
       signature: letter.signature,
-      language: letter.language,
+      template_id: (letter as any).templateId ?? null,
       created_at: letter.createdAt?.toISOString(),
       updated_at: letter.updatedAt?.toISOString(),
     };

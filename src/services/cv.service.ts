@@ -38,6 +38,13 @@ type CvListResult = {
 };
 
 type CvWithRelations = PrismaCv & {
+  templateId?: string | null;
+  template?: {
+    id: string;
+    name: string;
+    path: string;
+    type: string;
+  } | null;
   educations: PrismaCvEducation[];
   certificates: PrismaCvCertificate[];
   experiences: PrismaCvExperience[];
@@ -147,7 +154,9 @@ export class CvService {
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
     return {
-      items: records.map((record) => CvService.toResponse(record)),
+      items: await Promise.all(
+        records.map((record) => CvService.toResponse(record))
+      ),
       pagination: {
         page,
         per_page: perPage,
@@ -242,7 +251,7 @@ export class CvService {
         include: relationInclude,
       });
 
-      return CvService.toResponse(cv);
+      return await CvService.toResponse(cv);
     } catch (error) {
       await CvService.deleteFiles(photoChange.created);
       throw error;
@@ -251,7 +260,7 @@ export class CvService {
 
   static async get(userId: string, id: string): Promise<CvResponse> {
     const cv = await CvService.findOwnedCv(userId, id);
-    return CvService.toResponse(cv);
+    return await CvService.toResponse(cv);
   }
 
   static async update(
@@ -365,7 +374,7 @@ export class CvService {
       });
 
       await CvService.deleteFiles(photoChange.obsolete);
-      return CvService.toResponse(cv);
+      return await CvService.toResponse(cv);
     } catch (error) {
       await CvService.deleteFiles(photoChange.created);
       throw error;
@@ -480,7 +489,7 @@ export class CvService {
       include: relationInclude,
     });
 
-    return CvService.toResponse(duplicated);
+    return await CvService.toResponse(duplicated);
   }
 
   static async download(
@@ -511,7 +520,7 @@ export class CvService {
   private static mapPayloadToData(
     payload: CvPayloadInput,
     photo: string | null
-  ): Omit<Prisma.CvUncheckedCreateInput, "userId"> {
+  ): any {
     return {
       name: payload.name,
       headline: payload.headline,
@@ -520,6 +529,7 @@ export class CvService {
       address: payload.address,
       about: payload.about,
       photo,
+      templateId: payload.template_id,
     };
   }
 
@@ -815,11 +825,21 @@ export class CvService {
       })
     );
   }
-
   private static async renderDocx(cv: CvWithRelations): Promise<Buffer> {
-    const templatePath = cv.photo
-      ? CV_TEMPLATE_WITH_PHOTO_PATH
-      : CV_TEMPLATE_PATH;
+    // Template is now required, no fallback to default templates
+    if (!cv.templateId) {
+      throw new ResponseError(400, "Template is required");
+    }
+
+    const template = await (prisma as any).template.findUnique({
+      where: { id: cv.templateId },
+    });
+
+    if (!template) {
+      throw new ResponseError(404, "Template not found");
+    }
+
+    const templatePath = path.join(process.cwd(), template.path);
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
     const additionalJsContext = cv.photo
@@ -1093,7 +1113,21 @@ export class CvService {
     return sanitized || "curriculum-vitae";
   }
 
-  private static toResponse(cv: CvWithRelations): CvResponse {
+  private static async toResponse(cv: CvWithRelations): Promise<CvResponse> {
+    // Fetch template data if templateId exists
+    let template = null;
+    if (cv.templateId) {
+      template = await (prisma as any).template.findUnique({
+        where: { id: cv.templateId },
+        select: {
+          id: true,
+          name: true,
+          path: true,
+          type: true,
+        },
+      });
+    }
+
     return {
       id: cv.id,
       user_id: cv.userId,
@@ -1104,6 +1138,15 @@ export class CvService {
       address: cv.address,
       about: cv.about,
       photo: cv.photo ?? null,
+      template_id: cv.templateId ?? null,
+      template: template
+        ? {
+            id: template.id,
+            name: template.name,
+            file_path: template.path,
+            type: template.type,
+          }
+        : null,
       created_at: cv.createdAt?.toISOString(),
       updated_at: cv.updatedAt?.toISOString(),
       educations: cv.educations.map((record) => ({

@@ -109,6 +109,11 @@ enum BlogStatus {
   archived
 }
 
+enum TemplateType {
+  cv
+  application_letter
+}
+
 model User {
   id        String    @id @default(uuid()) @db.VarChar(255)
   name      String    @db.VarChar(255)
@@ -133,18 +138,19 @@ model User {
 }
 
 model Cv {
-  id        String    @id @default(uuid()) @db.VarChar(255)
-  userId    String    @map("user_id") @db.VarChar(255)
-  name      String    @db.VarChar(255)
-  headline  String    @db.VarChar(255)
-  email     String    @db.VarChar(255)
-  phone     String    @db.VarChar(255)
-  address   String    @db.VarChar(255)
-  about     String    @db.Text
-  photo     String?   @db.VarChar(255)
-  createdAt DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+  id         String    @id @default(uuid()) @db.VarChar(255)
+  userId     String    @map("user_id") @db.VarChar(255)
+  templateId String?   @map("template_id") @db.VarChar(255)
+  name       String    @db.VarChar(255)
+  headline   String    @db.VarChar(255)
+  email      String    @db.VarChar(255)
+  phone      String    @db.VarChar(255)
+  address    String    @db.VarChar(255)
+  about      String    @db.Text
+  photo      String?   @db.VarChar(255)
+  createdAt  DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamp(0)
 
   user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   educations    CvEducation[]
@@ -154,6 +160,7 @@ model Cv {
   awards        CvAward[]
   socialLinks   CvSocialLink[]
   organizations CvOrganization[]
+  template      Template?        @relation(fields: [templateId], references: [id])
 
   @@index([userId], map: "idx_cvs_user_id")
   @@map("cvs")
@@ -223,6 +230,7 @@ model Application {
 model ApplicationLetter {
   id               String        @id @default(uuid()) @db.VarChar(255)
   userId           String        @map("user_id") @db.VarChar(255)
+  templateId       String?       @map("template_id") @db.VarChar(255)
   name             String        @db.VarChar(255)
   birthPlaceDate   String        @map("birth_place_date") @db.VarChar(255)
   gender           Gender
@@ -243,12 +251,12 @@ model ApplicationLetter {
   attachments      String        @db.Text
   closingParagraph String        @map("closing_paragraph") @db.Text
   signature        String        @db.VarChar(255)
-  language         Language      @default(id)
   createdAt        DateTime?     @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime?     @map("updated_at") @db.Timestamp(0)
   deletedAt        DateTime?     @map("deleted_at") @db.Timestamp(0)
 
-  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  template Template? @relation(fields: [templateId], references: [id])
 
   @@index([userId], map: "idx_application_letters_user_id")
   @@map("application_letters")
@@ -491,4 +499,22 @@ model BlogTagRelation {
   @@index([blogId], map: "idx_blog_tag_relation_blog_id")
   @@index([tagId], map: "idx_blog_tag_relation_tag_id")
   @@map("blog_tag_relations")
+}
+
+model Template {
+  id        String       @id @default(uuid()) @db.VarChar(255)
+  name      String       @db.VarChar(255)
+  slug      String       @unique @db.VarChar(255)
+  type      TemplateType
+  language  Language     @default(en)
+  path      String       @db.VarChar(255)
+  isPremium Boolean      @default(false) @map("is_premium")
+  createdAt DateTime?    @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime?    @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime?    @map("deleted_at") @db.Timestamp(0)
+
+  cvs                Cv[]
+  applicationLetters ApplicationLetter[]
+
+  @@map("templates")
 }

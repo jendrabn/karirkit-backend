@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  Gender,
-  Language,
-  MaritalStatus,
-} from "../generated/prisma/client";
+import { Gender, Language, MaritalStatus } from "../generated/prisma/client";
 
 const stringField = (max = 255) => z.string().trim().min(1).max(max);
 
@@ -31,7 +27,7 @@ const payloadSchema = z.object({
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
   signature: z.union([stringField(255), z.null()]).optional(),
-  language: z.nativeEnum(Language),
+  template_id: z.string().uuid(),
 });
 
 const listQuerySchema = z.object({
@@ -48,7 +44,6 @@ const listQuerySchema = z.object({
       "subject",
     ])
     .default("created_at"),
-  language: z.nativeEnum(Language).optional(),
   company_name: stringField(255).optional(),
   application_date: stringField(50).optional(),
 });

@@ -383,11 +383,6 @@ paths:
           schema:
             type: string
             enum: [created_at, updated_at, application_date, company_name, subject]
-        - name: language
-          in: query
-          schema:
-            type: string
-            enum: [en, id]
         - name: company_name
           in: query
           schema:
@@ -1445,9 +1440,23 @@ components:
         signature:
           type: string
           nullable: true
-        language:
+        template_id:
           type: string
-          enum: [en, id]
+          format: uuid
+          description: ID of the template used for this application letter
+        template:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            file_path:
+              type: string
+            type:
+              type: string
+              enum: [cv, application_letter]
+          description: Template details
         created_at:
           type: string
           format: date-time
@@ -1479,9 +1488,12 @@ components:
         signature:
           type: string
           nullable: true
-        language: { type: string, enum: [en, id] }
+        template_id:
+          type: string
+          format: uuid
+          description: ID of the template to use for this application letter
       required:
-        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, language]
+        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, template_id]
     ApplicationLetterResponse:
       type: object
       properties:
@@ -1761,6 +1773,23 @@ components:
         address: { type: string }
         about: { type: string }
         photo: { type: string, nullable: true }
+        template_id:
+          type: string
+          format: uuid
+          description: ID of the template used for this CV
+        template:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            file_path:
+              type: string
+            type:
+              type: string
+              enum: [cv, application_letter]
+          description: Template details
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         educations:
@@ -1794,6 +1823,10 @@ components:
         address: { type: string }
         about: { type: string }
         photo: { type: string, nullable: true }
+        template_id:
+          type: string
+          format: uuid
+          description: ID of the template to use for this CV
         educations:
           type: array
           items: { $ref: '#/components/schemas/CvEducation' }
@@ -1815,7 +1848,7 @@ components:
         organizations:
           type: array
           items: { $ref: '#/components/schemas/CvOrganization' }
-      required: [name, headline, email, phone, address, about]
+      required: [name, headline, email, phone, address, about, template_id]
     CvResponse:
       type: object
       properties:

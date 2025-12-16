@@ -94,6 +94,7 @@ const payloadSchema = z.object({
   address: trimmedString(),
   about: trimmedString(5000),
   photo: trimmedString().nullable().optional(),
+  template_id: z.string().uuid(),
   educations: z.array(educationSchema).optional(),
   certificates: z.array(certificateSchema).optional(),
   experiences: z.array(experienceSchema).optional(),
