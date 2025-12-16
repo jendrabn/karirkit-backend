@@ -441,7 +441,5 @@ export interface UserResponse {
 }
 
 export interface AuthUserResponse {
-  data?: {
-    user?: User;
-  };
+  data?: User;
 }

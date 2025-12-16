@@ -16,12 +16,13 @@ import "./queues/email.queue";
 const app = express();
 
 // Configure CORS to allow credentials
+console.log(env.frontendUrl);
 app.use(
   cors({
     origin: env.frontendUrl || "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
 );
 app.use(requestLogger);

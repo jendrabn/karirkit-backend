@@ -1729,10 +1729,7 @@ components:
       type: object
       properties:
         data:
-          type: object
-          properties:
-            user:
-              $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/User'
     StatsResponse:
       type: object
       properties:

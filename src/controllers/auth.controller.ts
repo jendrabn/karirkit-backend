@@ -41,7 +41,7 @@ export class AuthController {
         maxAge,
       });
 
-      sendSuccess(res, { user });
+      sendSuccess(res, user);
     } catch (error) {
       next(error);
     }
@@ -69,7 +69,7 @@ export class AuthController {
         maxAge,
       });
 
-      sendSuccess(res, { user });
+      sendSuccess(res, user);
     } catch (error) {
       next(error);
     }
@@ -92,7 +92,7 @@ export class AuthController {
   static async me(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await AuthService.me(req.user!.id);
-      sendSuccess(res, { user });
+      sendSuccess(res, user);
     } catch (error) {
       next(error);
     }
@@ -103,7 +103,7 @@ export class AuthController {
       const payload = (req.body ?? {}) as UpdateMeRequest;
       const user = await AuthService.updateMe(req.user!.id, payload);
 
-      sendSuccess(res, { user });
+      sendSuccess(res, user);
     } catch (error) {
       next(error);
     }
