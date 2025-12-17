@@ -128,8 +128,8 @@ model User {
   phone     String?   @db.VarChar(255)
   googleId  String?   @map("google_id") @db.VarChar(255)
   avatar    String?   @db.VarChar(255)
-  createdAt DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cvs                Cv[]
@@ -153,8 +153,8 @@ model Cv {
   address    String    @db.VarChar(255)
   about      String    @db.Text
   photo      String?   @db.VarChar(255)
-  createdAt  DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt  DateTime? @map("deleted_at") @db.Timestamp(0)
 
   user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -186,8 +186,8 @@ model Portfolio {
   liveUrl         String?     @map("live_url") @db.VarChar(255)
   repoUrl         String?     @map("repo_url") @db.VarChar(255)
   cover           String      @db.VarChar(255)
-  createdAt       DateTime?   @map("created_at") @db.Timestamp(0)
-  updatedAt       DateTime?   @map("updated_at") @db.Timestamp(0)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt       DateTime?   @map("deleted_at") @db.Timestamp(0)
 
   user   User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -220,8 +220,8 @@ model Application {
   followUpNote String?                 @map("follow_up_note") @db.Text
   jobUrl       String?                 @map("job_url") @db.Text
   notes        String?                 @db.Text
-  createdAt    DateTime?               @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime?               @map("updated_at") @db.Timestamp(0)
+  createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime                @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt    DateTime?               @map("deleted_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -256,8 +256,8 @@ model ApplicationLetter {
   attachments      String        @db.Text
   closingParagraph String        @map("closing_paragraph") @db.Text
   signature        String        @db.VarChar(255)
-  createdAt        DateTime?     @map("created_at") @db.Timestamp(0)
-  updatedAt        DateTime?     @map("updated_at") @db.Timestamp(0)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt        DateTime?     @map("deleted_at") @db.Timestamp(0)
 
   user     User      @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -281,8 +281,8 @@ model CvEducation {
   isCurrent      Boolean   @default(false) @map("is_current")
   gpa            Float?    @db.Float
   description    String?   @db.Text
-  createdAt      DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt      DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt      DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -304,8 +304,8 @@ model CvCertificate {
   credentialId  String?   @map("credential_id") @db.VarChar(255)
   credentialUrl String?   @map("credential_url") @db.VarChar(255)
   description   String?   @db.Text
-  createdAt     DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt     DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt     DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -327,8 +327,8 @@ model CvExperience {
   endYear         Int?      @map("end_year") @db.Year
   isCurrent       Boolean   @default(false) @map("is_current")
   description     String?   @db.Text
-  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt       DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt       DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -343,8 +343,8 @@ model CvSkill {
   cvId      String     @map("cv_id") @db.VarChar(255)
   name      String     @db.VarChar(255)
   level     SkillLevel
-  createdAt DateTime?  @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime?  @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -360,8 +360,8 @@ model CvAward {
   issuer      String    @db.VarChar(255)
   description String?   @db.Text
   year        Int       @db.Year
-  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -375,8 +375,8 @@ model CvSocialLink {
   cvId      String    @map("cv_id") @db.VarChar(255)
   platform  String    @db.VarChar(255)
   url       String    @db.VarChar(255)
-  createdAt DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -398,8 +398,8 @@ model CvOrganization {
   endYear          Int?             @map("end_year") @db.Year
   isCurrent        Boolean          @default(false) @map("is_current")
   description      String?          @db.Text
-  createdAt        DateTime?        @map("created_at") @db.Timestamp(0)
-  updatedAt        DateTime?        @map("updated_at") @db.Timestamp(0)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt        DateTime?        @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -413,8 +413,8 @@ model PortfolioMedia {
   portfolioId String    @map("portfolio_id") @db.VarChar(255)
   path        String    @db.VarChar(255)
   caption     String?   @db.VarChar(255)
-  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -427,8 +427,8 @@ model PortfolioTool {
   id          String    @id @default(uuid()) @db.VarChar(255)
   portfolioId String    @map("portfolio_id") @db.VarChar(255)
   name        String    @db.VarChar(255)
-  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -442,8 +442,8 @@ model BlogCategory {
   name        String    @unique @db.VarChar(255)
   slug        String    @unique @db.VarChar(255)
   description String?   @db.Text
-  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
 
   blogs Blog[]
@@ -455,8 +455,8 @@ model BlogTag {
   id        String    @id @default(uuid()) @db.VarChar(255)
   name      String    @unique @db.VarChar(255)
   slug      String    @unique @db.VarChar(255)
-  createdAt DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
   blogs BlogTagRelation[]
@@ -476,8 +476,8 @@ model Blog {
   status        BlogStatus @default(draft)
   readTime      Int?       @map("read_time") @db.Int
   views         Int        @default(0)
-  createdAt     DateTime?  @map("created_at") @db.Timestamp(0)
-  updatedAt     DateTime?  @map("updated_at") @db.Timestamp(0)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
   publishedAt   DateTime?  @map("published_at") @db.Timestamp(0)
   deletedAt     DateTime?  @map("deleted_at") @db.Timestamp(0)
 
@@ -514,8 +514,8 @@ model Template {
   language  Language     @default(en)
   path      String       @db.VarChar(255)
   isPremium Boolean      @default(false) @map("is_premium")
-  createdAt DateTime?    @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime?    @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime?    @map("deleted_at") @db.Timestamp(0)
 
   cvs                Cv[]
@@ -530,8 +530,8 @@ model Otp {
   code      String     @db.VarChar(10)
   purpose   OtpPurpose @default(login_verification)
   expiresAt DateTime?  @map("expires_at") @db.Timestamp(0)
-  createdAt DateTime?  @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime?  @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
