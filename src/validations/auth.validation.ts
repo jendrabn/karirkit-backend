@@ -60,4 +60,18 @@ export class AuthValidation {
     current_password: z.string().min(6).max(100),
     new_password: z.string().min(6).max(100),
   });
+
+  static readonly SEND_OTP = z.object({
+    identifier: z.string().min(1).max(100),
+  });
+
+  static readonly VERIFY_OTP = z.object({
+    identifier: z.string().min(1).max(100),
+    otp_code: z.string().min(4).max(10),
+    password: z.string().min(6).max(100),
+  });
+
+  static readonly RESEND_OTP = z.object({
+    identifier: z.string().min(1).max(100),
+  });
 }

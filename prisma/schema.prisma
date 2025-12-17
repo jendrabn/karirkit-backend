@@ -114,6 +114,10 @@ enum TemplateType {
   application_letter
 }
 
+enum OtpPurpose {
+  login_verification
+}
+
 model User {
   id        String    @id @default(uuid()) @db.VarChar(255)
   name      String    @db.VarChar(255)
@@ -133,6 +137,7 @@ model User {
   applications       Application[]
   applicationLetters ApplicationLetter[]
   blogs              Blog[]
+  otps               Otp[]
 
   @@map("users")
 }
@@ -517,4 +522,22 @@ model Template {
   applicationLetters ApplicationLetter[]
 
   @@map("templates")
+}
+
+model Otp {
+  id        String     @id @default(uuid()) @db.VarChar(255)
+  userId    String     @map("user_id") @db.VarChar(255)
+  code      String     @db.VarChar(10)
+  purpose   OtpPurpose @default(login_verification)
+  expiresAt DateTime?  @map("expires_at") @db.Timestamp(0)
+  createdAt DateTime?  @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime?  @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_otps_user_id")
+  @@index([code], map: "idx_otps_code")
+  @@index([expiresAt], map: "idx_otps_expires_at")
+  @@map("otps")
 }

@@ -101,6 +101,10 @@ const env = {
     username: resolveOptional(process.env.REDIS_USERNAME ?? undefined),
     db: parseNumber(process.env.REDIS_DB, 0),
   },
+  otp: {
+    enabled: process.env.OTP_ENABLED === "true",
+    expiresInSeconds: parseNumber(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
+  },
 };
 
 export default env;

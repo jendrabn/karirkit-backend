@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getHealth } from "../controllers/health.controller";
 import { AuthController } from "../controllers/auth.controller";
+import { OtpController } from "../controllers/otp.controller";
 import authMiddleware from "../middleware/auth.middleware";
 import adminMiddleware from "../middleware/admin.middleware";
 import {
@@ -65,6 +66,15 @@ router.put(
   "/auth/change-password",
   authMiddleware,
   AuthController.changePassword
+);
+
+// OTP API
+router.post("/auth/send-otp", passwordResetRateLimiter, OtpController.sendOtp);
+router.post("/auth/verify-otp", loginRateLimiter, OtpController.verifyOtp);
+router.post(
+  "/auth/resend-otp",
+  passwordResetRateLimiter,
+  OtpController.resendOtp
 );
 
 // Applications API

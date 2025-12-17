@@ -214,6 +214,84 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '400':
           $ref: '#/components/responses/ValidationError'
+  /auth/send-otp:
+    post:
+      tags: [Auth]
+      summary: Send OTP for login verification
+      description: Send a one-time password (OTP) to the user's email for login verification. This endpoint is used when OTP is enabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendOtpRequest'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP for login
+      description: Verify the one-time password (OTP) sent to the user's email and complete the login process.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: OTP verified successfully, user authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/resend-otp:
+    post:
+      tags: [Auth]
+      summary: Resend OTP for login verification
+      description: Resend a new one-time password (OTP) to the user's email for login verification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendOtpRequest'
+      responses:
+        '200':
+          description: OTP resent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /applications:
     get:
       tags: [Applications]
@@ -1899,6 +1977,33 @@ components:
         new_password:
           type: string
       required: [current_password, new_password]
+    SendOtpRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Username or email of user
+      required: [identifier]
+    VerifyOtpRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Username or email of user
+        otp_code:
+          type: string
+          description: The OTP code sent to user's email
+        password:
+          type: string
+          description: User's password for authentication
+      required: [identifier, otp_code, password]
+    ResendOtpRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Username or email of user
+      required: [identifier]
     JobType:
       type: string
       enum: [full_time, contract, internship, freelance, part_time]

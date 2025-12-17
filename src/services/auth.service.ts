@@ -102,6 +102,14 @@ export class AuthService {
       throw new ResponseError(401, "Password is incorrect");
     }
 
+    // If OTP is enabled, don't complete login yet
+    if (env.otp.enabled) {
+      throw new ResponseError(
+        428,
+        "OTP verification required. Please use /auth/verify-otp endpoint to complete login."
+      );
+    }
+
     const token = jwt.sign(
       {
         sub: user.id,

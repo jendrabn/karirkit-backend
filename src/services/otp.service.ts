@@ -1,0 +1,239 @@
+import { randomBytes } from "crypto";
+import type { User, Otp, PrismaClient } from "../generated/prisma/client";
+import bcrypt from "bcrypt";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import env from "../config/env.config";
+import { prisma } from "../config/prisma.config";
+import { ResponseError } from "../utils/response-error.util";
+import { validate } from "../utils/validate.util";
+import { AuthValidation } from "../validations/auth.validation";
+import { enqueueEmail } from "../queues/email.queue";
+
+export class OtpService {
+  static async generateOtpCode(): Promise<string> {
+    // Generate a 6-digit OTP code
+    return randomBytes(3).toString("hex").toUpperCase();
+  }
+
+  static async sendOtp(request: { identifier: string }): Promise<void> {
+    const requestData = validate(AuthValidation.SEND_OTP, request);
+
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: requestData.identifier },
+          { username: requestData.identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new ResponseError(404, "User not found");
+    }
+
+    // Generate OTP code
+    const otpCode = await OtpService.generateOtpCode();
+
+    // Calculate expiry time (default 5 minutes from config)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(
+      expiresAt.getMinutes() + env.otp.expiresInSeconds / 60
+    );
+
+    // Delete any existing OTP codes for this user
+    await prisma.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    // Store new OTP
+    await prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otpCode,
+        purpose: "login_verification",
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Send OTP via email
+    await enqueueEmail({
+      to: user.email,
+      subject: "Your OTP Code for Login Verification",
+      text: `Your OTP code is: ${otpCode}. This code will expire in 5 minutes.`,
+      template: "otp",
+      context: {
+        name: user.name ?? user.email,
+        otpCode,
+        supportEmail: env.mail.fromAddress,
+      },
+    });
+  }
+
+  static async verifyOtp(request: {
+    identifier: string;
+    otp_code: string;
+    password: string;
+  }): Promise<{ token: string; user: any }> {
+    const requestData = validate(AuthValidation.VERIFY_OTP, request);
+
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: requestData.identifier },
+          { username: requestData.identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new ResponseError(404, "User not found");
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(
+      requestData.password,
+      user.password
+    );
+    if (!isPasswordValid) {
+      throw new ResponseError(401, "Password is incorrect");
+    }
+
+    // Find valid OTP for this user
+    const otp = await prisma.otp.findFirst({
+      where: {
+        userId: user.id,
+        code: requestData.otp_code,
+        purpose: "login_verification",
+        expiresAt: {
+          gt: new Date(), // OTP must not be expired
+        },
+      },
+    });
+
+    if (!otp) {
+      throw new ResponseError(401, "Invalid or expired OTP code");
+    }
+
+    // Delete the used OTP
+    await prisma.otp.delete({
+      where: {
+        id: otp.id,
+      },
+    });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        sub: user.id,
+        username: user.username,
+        email: user.email,
+      },
+      env.jwtSecret,
+      { expiresIn: env.jwtExpiresIn }
+    );
+
+    const decoded = jwt.decode(token) as JwtPayload | null;
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    };
+  }
+
+  static async resendOtp(request: { identifier: string }): Promise<void> {
+    const requestData = validate(AuthValidation.RESEND_OTP, request);
+
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: requestData.identifier },
+          { username: requestData.identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new ResponseError(404, "User not found");
+    }
+
+    // Check if there's an existing OTP that's still valid
+    const existingOtp = await prisma.otp.findFirst({
+      where: {
+        userId: user.id,
+        purpose: "login_verification",
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (existingOtp) {
+      throw new ResponseError(
+        400,
+        "An OTP has already been sent. Please wait for it to expire before requesting a new one."
+      );
+    }
+
+    // Generate new OTP code
+    const otpCode = await OtpService.generateOtpCode();
+
+    // Calculate expiry time
+    const expiresAt = new Date();
+    expiresAt.setMinutes(
+      expiresAt.getMinutes() + env.otp.expiresInSeconds / 60
+    );
+
+    // Store new OTP
+    await prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otpCode,
+        purpose: "login_verification",
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Send OTP via email
+    await enqueueEmail({
+      to: user.email,
+      subject: "Your OTP Code for Login Verification",
+      text: `Your OTP code is: ${otpCode}. This code will expire in 5 minutes.`,
+      template: "otp",
+      context: {
+        name: user.name ?? user.email,
+        otpCode,
+        supportEmail: env.mail.fromAddress,
+      },
+    });
+  }
+
+  static async cleanupExpiredOtps(): Promise<void> {
+    // This method can be called periodically to clean up expired OTPs
+    await prisma.otp.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+  }
+}
