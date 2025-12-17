@@ -1259,6 +1259,39 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /templates:
+    get:
+      tags: [Public]
+      summary: List templates
+      description: List all templates with optional filters by type and language
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [cv, application_letter]
+          description: Filter by template type
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [en, id]
+          description: Filter by template language
+      responses:
+        '200':
+          description: Templates list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TemplateWithoutPath'
   /admin/templates:
     get:
       tags: [Admin]
@@ -3221,4 +3254,31 @@ components:
                 $ref: '#/components/schemas/BlogTag'
             pagination:
               $ref: '#/components/schemas/Pagination'
+    TemplateWithoutPath:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        type:
+          type: string
+          enum: [cv, application_letter]
+        language:
+          type: string
+          enum: [en, id]
+          default: en
+        is_premium:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
 

@@ -20,6 +20,7 @@ import { CvController } from "../controllers/cv.controller";
 import { PublicController } from "../controllers/public.controller";
 import { StatsController } from "../controllers/stats.controller";
 import { BlogController } from "../controllers/blog.controller";
+import { TemplateController as PublicTemplateController } from "../controllers/template.controller";
 // Admin controllers
 import { DashboardController } from "../controllers/admin/dashboard.controller";
 import { UserController } from "../controllers/admin/user.controller";
@@ -51,6 +52,9 @@ router.get(
 
 // Stats API (public, no authentication required)
 router.get("/stats", StatsController.getStats);
+
+// Templates API (public, no authentication required)
+router.get("/templates", PublicTemplateController.getTemplates);
 
 // Auth API
 router.post("/auth/register", AuthController.register);
