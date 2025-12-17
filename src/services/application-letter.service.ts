@@ -330,7 +330,7 @@ export class ApplicationLetterService {
     });
 
     if (!letter) {
-      throw new ResponseError(404, "Application letter not found");
+      throw new ResponseError(404, "Surat lamaran tidak ditemukan");
     }
 
     return letter;
@@ -420,7 +420,7 @@ export class ApplicationLetterService {
     if (!resolved) {
       throw new ResponseError(
         400,
-        "Signature must reference an uploaded temp file"
+        "Tanda tangan harus merujuk ke file sementara yang diunggah"
       );
     }
 
@@ -430,7 +430,7 @@ export class ApplicationLetterService {
     if (!extension) {
       throw new ResponseError(
         400,
-        "Signature must be an image with PNG or JPG format"
+        "Tanda tangan harus berupa gambar dengan format PNG atau JPG"
       );
     }
 
@@ -446,7 +446,10 @@ export class ApplicationLetterService {
       await fs.rename(resolved.absolute, destination);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(400, "Temporary signature file not found");
+        throw new ResponseError(
+          400,
+          "File tanda tangan sementara tidak ditemukan"
+        );
       }
       throw error;
     }
@@ -549,7 +552,7 @@ export class ApplicationLetterService {
   ): Promise<Buffer> {
     // Template is now required, no fallback to default template
     if (!(letter as any).templateId) {
-      throw new ResponseError(400, "Template is required");
+      throw new ResponseError(400, "Template diperlukan");
     }
 
     const template = await (prisma as any).template.findUnique({
@@ -557,7 +560,7 @@ export class ApplicationLetterService {
     });
 
     if (!template) {
-      throw new ResponseError(404, "Template not found");
+      throw new ResponseError(404, "Template tidak ditemukan");
     }
 
     const templatePath = path.join(process.cwd(), template.path);

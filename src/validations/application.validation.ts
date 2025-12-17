@@ -11,30 +11,27 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const dateOnlySchema = z
   .string()
   .trim()
-  .regex(dateRegex, "Date must use YYYY-MM-DD format")
-  .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date value");
+  .regex(dateRegex, "Format tanggal harus YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max)
-    .nullable()
-    .optional();
+  z.string().trim().min(1).max(max).nullable().optional();
 
-const optionalString = (max = 255) =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max);
+const optionalString = (max = 255) => z.string().trim().min(1).max(max);
 
 const payloadSchema = z
   .object({
-    company_name: z.string().trim().min(1).max(255),
+    company_name: z
+      .string()
+      .trim()
+      .min(1, "Nama perusahaan wajib diisi")
+      .max(255, "Nama perusahaan maksimal 255 karakter"),
     company_url: nullableString(2000),
-    position: z.string().trim().min(1).max(255),
+    position: z
+      .string()
+      .trim()
+      .min(1, "Posisi wajib diisi")
+      .max(255, "Posisi maksimal 255 karakter"),
     job_source: nullableString(),
     job_type: z.nativeEnum(JobType),
     work_system: z.nativeEnum(WorkSystem),
@@ -48,9 +45,19 @@ const payloadSchema = z
     contact_email: z.string().trim().email().nullable().optional(),
     contact_phone: nullableString(),
     follow_up_date: dateOnlySchema.nullable().optional(),
-    follow_up_note: z.string().trim().max(2000).nullable().optional(),
+    follow_up_note: z
+      .string()
+      .trim()
+      .max(2000, "Catatan follow-up maksimal 2000 karakter")
+      .nullable()
+      .optional(),
     job_url: nullableString(2000),
-    notes: z.string().trim().max(5000).nullable().optional(),
+    notes: z
+      .string()
+      .trim()
+      .max(5000, "Catatan maksimal 5000 karakter")
+      .nullable()
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (
@@ -60,7 +67,8 @@ const payloadSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "salary_max must be greater than or equal to salary_min",
+        message:
+          "Gaji maksimal harus lebih besar atau sama dengan gaji minimal",
         path: ["salary_max"],
       });
     }
@@ -100,7 +108,7 @@ const listQuerySchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["date_from"],
-        message: "date_from cannot be after date_to",
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
       });
     }
   });

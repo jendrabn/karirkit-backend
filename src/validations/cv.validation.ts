@@ -13,8 +13,16 @@ const optionalTrimmedString = (max = 255) => trimmedString(max).optional();
 const nullableTrimmedString = (max = 255) =>
   trimmedString(max).nullable().optional();
 
-const yearSchema = z.number().int().min(1900).max(2100);
-const monthSchema = z.number().int().min(1).max(12);
+const yearSchema = z
+  .number()
+  .int()
+  .min(1900, "Tahun minimal 1900")
+  .max(2100, "Tahun maksimal 2100");
+const monthSchema = z
+  .number()
+  .int()
+  .min(1, "Bulan minimal 1")
+  .max(12, "Bulan maksimal 12");
 
 const educationSchema = z.object({
   degree: z.nativeEnum(Degree),
@@ -89,12 +97,12 @@ const organizationSchema = z.object({
 const payloadSchema = z.object({
   name: trimmedString(),
   headline: trimmedString(),
-  email: z.string().trim().email(),
+  email: z.string().trim().email("Format email tidak valid"),
   phone: trimmedString(),
   address: trimmedString(),
   about: trimmedString(5000),
   photo: trimmedString().nullable().optional(),
-  template_id: z.string().uuid(),
+  template_id: z.string().uuid("ID Template harus UUID yang valid"),
   educations: z.array(educationSchema).optional(),
   certificates: z.array(certificateSchema).optional(),
   experiences: z.array(experienceSchema).optional(),

@@ -29,7 +29,7 @@ export class OtpService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     // Generate OTP code
@@ -63,8 +63,8 @@ export class OtpService {
     // Send OTP via email
     await enqueueEmail({
       to: user.email,
-      subject: "Your OTP Code for Login Verification",
-      text: `Your OTP code is: ${otpCode}. This code will expire in 5 minutes.`,
+      subject: "Kode OTP untuk Verifikasi Login",
+      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam 5 menit.`,
       template: "otp",
       context: {
         name: user.name ?? user.email,
@@ -92,7 +92,7 @@ export class OtpService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     // Verify password (still needed for security)
@@ -101,7 +101,7 @@ export class OtpService {
       user.password
     );
     if (!isPasswordValid) {
-      throw new ResponseError(401, "Password is incorrect");
+      throw new ResponseError(401, "Kata sandi salah");
     }
 
     // Find valid OTP for this user
@@ -117,7 +117,7 @@ export class OtpService {
     });
 
     if (!otp) {
-      throw new ResponseError(401, "Invalid or expired OTP code");
+      throw new ResponseError(401, "Kode OTP tidak valid atau kadaluarsa");
     }
 
     // Delete the used OTP
@@ -171,7 +171,7 @@ export class OtpService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     // Check if there's an existing OTP that's still valid
@@ -188,7 +188,7 @@ export class OtpService {
     if (existingOtp) {
       throw new ResponseError(
         400,
-        "An OTP has already been sent. Please wait for it to expire before requesting a new one."
+        "OTP sudah dikirim. Silakan tunggu hingga kadaluarsa sebelum meminta yang baru."
       );
     }
 
@@ -216,8 +216,8 @@ export class OtpService {
     // Send OTP via email
     await enqueueEmail({
       to: user.email,
-      subject: "Your OTP Code for Login Verification",
-      text: `Your OTP code is: ${otpCode}. This code will expire in 5 minutes.`,
+      subject: "Kode OTP untuk Verifikasi Login",
+      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam 5 menit.`,
       template: "otp",
       context: {
         name: user.name ?? user.email,

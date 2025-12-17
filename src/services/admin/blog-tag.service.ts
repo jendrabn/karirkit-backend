@@ -106,7 +106,7 @@ export class BlogTagService {
     });
 
     if (!tag) {
-      throw new ResponseError(404, "Blog tag not found");
+      throw new ResponseError(404, "Tag blog tidak ditemukan");
     }
 
     return BlogTagService.toResponse(tag);
@@ -121,7 +121,7 @@ export class BlogTagService {
     });
 
     if (existingName) {
-      throw new ResponseError(400, "Tag name already exists");
+      throw new ResponseError(400, "Nama tag sudah ada");
     }
 
     // Check if slug is unique
@@ -130,7 +130,7 @@ export class BlogTagService {
     });
 
     if (existingSlug) {
-      throw new ResponseError(400, "Tag slug already exists");
+      throw new ResponseError(400, "Slug tag sudah ada");
     }
 
     const tag = await prisma.blogTag.create({
@@ -155,7 +155,7 @@ export class BlogTagService {
     });
 
     if (!existingTag) {
-      throw new ResponseError(404, "Blog tag not found");
+      throw new ResponseError(404, "Tag blog tidak ditemukan");
     }
 
     const requestData = validate(BlogTagPayload.partial(), request);
@@ -170,7 +170,7 @@ export class BlogTagService {
       });
 
       if (nameExists) {
-        throw new ResponseError(400, "Tag name already exists");
+        throw new ResponseError(400, "Nama tag sudah ada");
       }
     }
 
@@ -184,7 +184,7 @@ export class BlogTagService {
       });
 
       if (slugExists) {
-        throw new ResponseError(400, "Tag slug already exists");
+        throw new ResponseError(400, "Slug tag sudah ada");
       }
     }
 
@@ -215,7 +215,7 @@ export class BlogTagService {
     });
 
     if (!existingTag) {
-      throw new ResponseError(404, "Blog tag not found");
+      throw new ResponseError(404, "Tag blog tidak ditemukan");
     }
 
     // Check if tag is being used by any blogs
@@ -228,7 +228,7 @@ export class BlogTagService {
     if (blogsUsingTag > 0) {
       throw new ResponseError(
         400,
-        "Cannot delete tag that is being used by blogs"
+        "Tidak dapat menghapus tag yang sedang digunakan oleh blog"
       );
     }
 

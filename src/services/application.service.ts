@@ -148,7 +148,10 @@ export class ApplicationService {
   }
 
   static async get(userId: string, id: string): Promise<ApplicationResponse> {
-    const application = await ApplicationService.findOwnedApplication(userId, id);
+    const application = await ApplicationService.findOwnedApplication(
+      userId,
+      id
+    );
     return ApplicationService.toResponse(application);
   }
 
@@ -231,7 +234,7 @@ export class ApplicationService {
     });
 
     if (!application) {
-      throw new ResponseError(404, "Application not found");
+      throw new ResponseError(404, "Lamaran tidak ditemukan");
     }
 
     return application;
@@ -256,7 +259,9 @@ export class ApplicationService {
       contactName: payload.contact_name ?? null,
       contactEmail: payload.contact_email ?? null,
       contactPhone: payload.contact_phone ?? null,
-      followUpDate: ApplicationService.parseOptionalDate(payload.follow_up_date),
+      followUpDate: ApplicationService.parseOptionalDate(
+        payload.follow_up_date
+      ),
       followUpNote: payload.follow_up_note ?? null,
       jobUrl: payload.job_url ?? null,
       notes: payload.notes ?? null,
@@ -295,7 +300,9 @@ export class ApplicationService {
     return date.toISOString().split("T")[0];
   }
 
-  private static toResponse(application: PrismaApplication): ApplicationResponse {
+  private static toResponse(
+    application: PrismaApplication
+  ): ApplicationResponse {
     return {
       id: application.id,
       user_id: application.userId,
@@ -314,7 +321,9 @@ export class ApplicationService {
       contact_name: application.contactName ?? null,
       contact_email: application.contactEmail ?? null,
       contact_phone: application.contactPhone ?? null,
-      follow_up_date: ApplicationService.formatDateOnly(application.followUpDate),
+      follow_up_date: ApplicationService.formatDateOnly(
+        application.followUpDate
+      ),
       follow_up_note: application.followUpNote ?? null,
       job_url: application.jobUrl ?? null,
       notes: application.notes ?? null,

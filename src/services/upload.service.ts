@@ -21,7 +21,7 @@ export class UploadService {
     file?: Express.Multer.File
   ): Promise<TempUploadResult> {
     if (!file) {
-      throw new ResponseError(400, "File is required");
+      throw new ResponseError(400, "File diperlukan");
     }
 
     await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true });
@@ -132,7 +132,7 @@ export class UploadService {
     file?: Express.Multer.File
   ): Promise<TempUploadResult> {
     if (!file) {
-      throw new ResponseError(400, "File is required");
+      throw new ResponseError(400, "File diperlukan");
     }
 
     await fs.mkdir(BLOG_UPLOAD_DIR, { recursive: true });

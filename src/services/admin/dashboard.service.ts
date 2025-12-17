@@ -1,10 +1,3 @@
-import type {
-  User,
-  Blog,
-  BlogCategory,
-  BlogTag,
-  Template,
-} from "../../generated/prisma/client";
 import { prisma } from "../../config/prisma.config";
 
 type SafeUser = {

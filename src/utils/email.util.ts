@@ -1,6 +1,8 @@
 import nodemailer, { SendMailOptions as NodemailerOptions } from "nodemailer";
 import env from "../config/env.config";
 import { appLogger } from "../middleware/logger.middleware";
+import path from "path";
+import fs from "fs";
 
 export interface SendMailOptions {
   to: string;
@@ -8,6 +10,7 @@ export interface SendMailOptions {
   html?: string;
   text?: string;
   from?: string;
+  attachments?: NodemailerOptions["attachments"];
 }
 
 const isSecure = env.mail.encryption === "ssl";
@@ -32,14 +35,29 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendMail = async (options: SendMailOptions): Promise<void> => {
+  // Default attachments include logo if not provided
+  const defaultAttachments = options.attachments || [];
+
+  // Add logo as attachment if not already included
+  const hasLogo = defaultAttachments.some((att) => att.cid === "logo");
+  if (!hasLogo) {
+    const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      defaultAttachments.push({
+        filename: "logo.png",
+        path: logoPath,
+        cid: "logo",
+      });
+    }
+  }
+
   const mailOptions: NodemailerOptions = {
-    from:
-      options.from ??
-      `${env.mail.fromName} <${env.mail.fromAddress}>`,
+    from: options.from ?? `${env.mail.fromName} <${env.mail.fromAddress}>`,
     to: options.to,
     subject: options.subject,
     text: options.text,
     html: options.html,
+    attachments: defaultAttachments,
   };
 
   try {

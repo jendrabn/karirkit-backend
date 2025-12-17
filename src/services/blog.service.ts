@@ -160,7 +160,7 @@ export class BlogService {
     });
 
     if (!blog) {
-      throw new ResponseError(404, "Blog not found");
+      throw new ResponseError(404, "Blog tidak ditemukan");
     }
 
     // Increment view count
@@ -183,7 +183,7 @@ export class BlogService {
     });
 
     if (existingBlog) {
-      throw new ResponseError(400, "Slug already exists");
+      throw new ResponseError(400, "Slug sudah ada");
     }
 
     // Check if category exists
@@ -192,7 +192,7 @@ export class BlogService {
     });
 
     if (!category) {
-      throw new ResponseError(400, "Category not found");
+      throw new ResponseError(400, "Kategori tidak ditemukan");
     }
 
     // Validate tags if provided
@@ -202,7 +202,7 @@ export class BlogService {
       });
 
       if (tags.length !== payload.tag_ids.length) {
-        throw new ResponseError(400, "One or more tags not found");
+        throw new ResponseError(400, "Satu atau lebih tag tidak ditemukan");
       }
     }
 
@@ -288,7 +288,7 @@ export class BlogService {
     });
 
     if (existingBlog) {
-      throw new ResponseError(400, "Slug already exists");
+      throw new ResponseError(400, "Slug sudah ada");
     }
 
     // Check if category exists
@@ -297,7 +297,7 @@ export class BlogService {
     });
 
     if (!category) {
-      throw new ResponseError(400, "Category not found");
+      throw new ResponseError(400, "Kategori tidak ditemukan");
     }
 
     // Validate tags if provided
@@ -307,7 +307,7 @@ export class BlogService {
       });
 
       if (tags.length !== payload.tag_ids.length) {
-        throw new ResponseError(400, "One or more tags not found");
+        throw new ResponseError(400, "Satu atau lebih tag tidak ditemukan");
       }
     }
 
@@ -406,7 +406,7 @@ export class BlogService {
     });
 
     if (!blog) {
-      throw new ResponseError(404, "Blog not found");
+      throw new ResponseError(404, "Blog tidak ditemukan");
     }
 
     return blog;

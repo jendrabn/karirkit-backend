@@ -181,7 +181,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     return {
@@ -206,7 +206,7 @@ export class UserService {
     });
 
     if (existingEmail > 0) {
-      throw new ResponseError(400, "Email already exists");
+      throw new ResponseError(400, "Email sudah terdaftar");
     }
 
     // Check if username already exists
@@ -215,7 +215,7 @@ export class UserService {
     });
 
     if (existingUsername > 0) {
-      throw new ResponseError(400, "Username already exists");
+      throw new ResponseError(400, "Username sudah terdaftar");
     }
 
     const hashedPassword = await bcrypt.hash(requestData.password, 10);
@@ -268,7 +268,7 @@ export class UserService {
     });
 
     if (!existingUser) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     // Check if email already exists (excluding current user)
@@ -281,7 +281,7 @@ export class UserService {
       });
 
       if (emailExists > 0) {
-        throw new ResponseError(400, "Email already exists");
+        throw new ResponseError(400, "Email sudah terdaftar");
       }
     }
 
@@ -295,7 +295,7 @@ export class UserService {
       });
 
       if (usernameExists > 0) {
-        throw new ResponseError(400, "Username already exists");
+        throw new ResponseError(400, "Username sudah terdaftar");
       }
     }
 
@@ -363,7 +363,7 @@ export class UserService {
     });
 
     if (!existingUser) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     // Soft delete

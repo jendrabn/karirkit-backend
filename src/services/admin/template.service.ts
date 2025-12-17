@@ -143,7 +143,7 @@ export class TemplateService {
     });
 
     if (!template) {
-      throw new ResponseError(404, "Template not found");
+      throw new ResponseError(404, "Template tidak ditemukan");
     }
 
     return template;
@@ -158,7 +158,7 @@ export class TemplateService {
     });
 
     if (existingTemplate) {
-      throw new ResponseError(400, "Slug already exists");
+      throw new ResponseError(400, "Slug sudah ada");
     }
 
     // Move file from temp to permanent location if path is provided
@@ -171,7 +171,7 @@ export class TemplateService {
           requestData.slug
         );
       } catch (error) {
-        throw new ResponseError(400, "Failed to process template file");
+        throw new ResponseError(400, "Gagal memproses file template");
       }
     }
 
@@ -201,7 +201,7 @@ export class TemplateService {
     });
 
     if (!existingTemplate) {
-      throw new ResponseError(404, "Template not found");
+      throw new ResponseError(404, "Template tidak ditemukan");
     }
 
     const requestData = validate(TemplatePayload.partial(), request);
@@ -216,7 +216,7 @@ export class TemplateService {
       });
 
       if (slugExists) {
-        throw new ResponseError(400, "Slug already exists");
+        throw new ResponseError(400, "Slug sudah ada");
       }
     }
 
@@ -230,7 +230,7 @@ export class TemplateService {
           requestData.slug || existingTemplate.slug
         );
       } catch (error) {
-        throw new ResponseError(400, "Failed to process template file");
+        throw new ResponseError(400, "Gagal memproses file template");
       }
     }
 
@@ -277,7 +277,7 @@ export class TemplateService {
     });
 
     if (!existingTemplate) {
-      throw new ResponseError(404, "Template not found");
+      throw new ResponseError(404, "Template tidak ditemukan");
     }
 
     // Soft delete

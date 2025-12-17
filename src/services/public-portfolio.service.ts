@@ -23,16 +23,10 @@ type PublicUserProfile = {
 
 const publicPortfolioInclude = {
   medias: {
-    orderBy: [
-      { createdAt: "asc" as const },
-      { id: "asc" as const },
-    ],
+    orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
   tools: {
-    orderBy: [
-      { createdAt: "asc" as const },
-      { id: "asc" as const },
-    ],
+    orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
 } satisfies Prisma.PortfolioInclude;
 
@@ -72,7 +66,7 @@ export class PublicPortfolioService {
     });
 
     if (!portfolio) {
-      throw new ResponseError(404, "Portfolio not found");
+      throw new ResponseError(404, "Portfolio tidak ditemukan");
     }
 
     return {
@@ -91,15 +85,12 @@ export class PublicPortfolioService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     const latestCv = await prisma.cv.findFirst({
       where: { userId: user.id },
-      orderBy: [
-        { updatedAt: "desc" as const },
-        { createdAt: "desc" as const },
-      ],
+      orderBy: [{ updatedAt: "desc" as const }, { createdAt: "desc" as const }],
       select: { headline: true },
     });
 
@@ -118,7 +109,7 @@ export class PublicPortfolioService {
     const trimmed = value?.trim() ?? "";
     const normalized = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
     if (!normalized) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
     return normalized;
   }

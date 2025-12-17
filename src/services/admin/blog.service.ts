@@ -212,7 +212,7 @@ export class BlogService {
     });
 
     if (!blog) {
-      throw new ResponseError(404, "Blog not found");
+      throw new ResponseError(404, "Blog tidak ditemukan");
     }
 
     return BlogService.toResponse(blog);
@@ -227,7 +227,7 @@ export class BlogService {
     });
 
     if (existingBlog) {
-      throw new ResponseError(400, "Slug already exists");
+      throw new ResponseError(400, "Slug sudah ada");
     }
 
     // Check if category exists
@@ -236,7 +236,7 @@ export class BlogService {
     });
 
     if (!category) {
-      throw new ResponseError(400, "Category not found");
+      throw new ResponseError(400, "Kategori tidak ditemukan");
     }
 
     // Check if author exists
@@ -245,7 +245,7 @@ export class BlogService {
     });
 
     if (!author) {
-      throw new ResponseError(400, "Author not found");
+      throw new ResponseError(400, "Penulis tidak ditemukan");
     }
 
     // Validate tags if provided
@@ -255,7 +255,7 @@ export class BlogService {
       });
 
       if (tags.length !== requestData.tag_ids.length) {
-        throw new ResponseError(400, "One or more tags not found");
+        throw new ResponseError(400, "Satu atau lebih tag tidak ditemukan");
       }
     }
 
@@ -269,7 +269,7 @@ export class BlogService {
           requestData.slug
         );
       } catch (error) {
-        throw new ResponseError(400, "Failed to process featured image");
+        throw new ResponseError(400, "Gagal memproses gambar utama");
       }
     }
 
@@ -342,7 +342,7 @@ export class BlogService {
       });
 
       if (existingBlog) {
-        throw new ResponseError(400, "Slug already exists");
+        throw new ResponseError(400, "Slug sudah ada");
       }
     }
 
@@ -353,7 +353,7 @@ export class BlogService {
       });
 
       if (!category) {
-        throw new ResponseError(400, "Category not found");
+        throw new ResponseError(400, "Kategori tidak ditemukan");
       }
     }
 
@@ -364,7 +364,7 @@ export class BlogService {
       });
 
       if (!author) {
-        throw new ResponseError(400, "Author not found");
+        throw new ResponseError(400, "Penulis tidak ditemukan");
       }
     }
 
@@ -375,7 +375,7 @@ export class BlogService {
       });
 
       if (tags.length !== requestData.tag_ids.length) {
-        throw new ResponseError(400, "One or more tags not found");
+        throw new ResponseError(400, "Satu atau lebih tag tidak ditemukan");
       }
     }
 
@@ -394,7 +394,7 @@ export class BlogService {
           requestData.slug || currentBlog?.slug || id
         );
       } catch (error) {
-        throw new ResponseError(400, "Failed to process featured image");
+        throw new ResponseError(400, "Gagal memproses gambar utama");
       }
     }
 
@@ -500,7 +500,7 @@ export class BlogService {
     });
 
     if (!blog) {
-      throw new ResponseError(404, "Blog not found");
+      throw new ResponseError(404, "Blog tidak ditemukan");
     }
 
     return blog;

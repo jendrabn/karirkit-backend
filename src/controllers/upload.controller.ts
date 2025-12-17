@@ -8,7 +8,7 @@ export class UploadController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        throw new ResponseError(401, "Unauthenticated");
+        throw new ResponseError(401, "Tidak terautentikasi");
       }
 
       const result = await UploadService.uploadTempFile(userId, req.file);

@@ -11,6 +11,7 @@ export interface EmailJobData {
   html?: string;
   template?: string;
   context?: Record<string, unknown>;
+  attachments?: any[];
 }
 
 const emailQueue = new Bull<EmailJobData>("email_queue", {
@@ -48,6 +49,7 @@ emailQueue.process(async (job) => {
     subject,
     text,
     html: finalHtml,
+    attachments: job.data.attachments,
   });
 });
 

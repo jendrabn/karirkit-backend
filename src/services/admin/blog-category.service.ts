@@ -110,7 +110,7 @@ export class BlogCategoryService {
     });
 
     if (!category) {
-      throw new ResponseError(404, "Blog category not found");
+      throw new ResponseError(404, "Kategori blog tidak ditemukan");
     }
 
     return BlogCategoryService.toResponse(category);
@@ -127,7 +127,7 @@ export class BlogCategoryService {
     });
 
     if (existingName) {
-      throw new ResponseError(400, "Category name already exists");
+      throw new ResponseError(400, "Nama kategori sudah ada");
     }
 
     // Check if slug is unique
@@ -136,7 +136,7 @@ export class BlogCategoryService {
     });
 
     if (existingSlug) {
-      throw new ResponseError(400, "Category slug already exists");
+      throw new ResponseError(400, "Slug kategori sudah ada");
     }
 
     const category = await prisma.blogCategory.create({
@@ -162,7 +162,7 @@ export class BlogCategoryService {
     });
 
     if (!existingCategory) {
-      throw new ResponseError(404, "Blog category not found");
+      throw new ResponseError(404, "Kategori blog tidak ditemukan");
     }
 
     const requestData = validate(BlogCategoryPayload.partial(), request);
@@ -177,7 +177,7 @@ export class BlogCategoryService {
       });
 
       if (nameExists) {
-        throw new ResponseError(400, "Category name already exists");
+        throw new ResponseError(400, "Nama kategori sudah ada");
       }
     }
 
@@ -191,7 +191,7 @@ export class BlogCategoryService {
       });
 
       if (slugExists) {
-        throw new ResponseError(400, "Category slug already exists");
+        throw new ResponseError(400, "Slug kategori sudah ada");
       }
     }
 
@@ -226,7 +226,7 @@ export class BlogCategoryService {
     });
 
     if (!existingCategory) {
-      throw new ResponseError(404, "Blog category not found");
+      throw new ResponseError(404, "Kategori blog tidak ditemukan");
     }
 
     // Check if category is being used by any blogs
@@ -240,7 +240,7 @@ export class BlogCategoryService {
     if (blogsUsingCategory > 0) {
       throw new ResponseError(
         400,
-        "Cannot delete category that is being used by blogs"
+        "Tidak dapat menghapus kategori yang sedang digunakan oleh blog"
       );
     }
 

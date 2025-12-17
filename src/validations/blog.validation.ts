@@ -6,8 +6,8 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const dateOnlySchema = z
   .string()
   .trim()
-  .regex(dateRegex, "Date must use YYYY-MM-DD format")
-  .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date value");
+  .regex(dateRegex, "Format tanggal harus YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
   z.string().trim().min(1).max(max).nullable().optional();
@@ -15,14 +15,22 @@ const nullableString = (max = 255) =>
 const optionalString = (max = 255) => z.string().trim().min(1).max(max);
 
 const payloadSchema = z.object({
-  title: z.string().trim().min(1).max(255),
-  slug: z.string().trim().min(1).max(255),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Judul wajib diisi")
+    .max(255, "Judul maksimal 255 karakter"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Slug wajib diisi")
+    .max(255, "Slug maksimal 255 karakter"),
   excerpt: nullableString(500),
-  content: z.string().trim().min(1),
+  content: z.string().trim().min(1, "Konten wajib diisi"),
   featured_image: nullableString(500),
   status: z.nativeEnum(BlogStatus),
   read_time: z.number().int().nonnegative().optional(),
-  category_id: z.string().trim().min(1),
+  category_id: z.string().trim().min(1, "Kategori wajib diisi"),
   tag_ids: z.array(z.string().trim().min(1)).optional(),
 });
 
@@ -51,7 +59,8 @@ const listQuerySchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["published_from"],
-        message: "published_from cannot be after published_to",
+        message:
+          "Tanggal publish mulai tidak boleh setelah tanggal publish selesai",
       });
     }
   });

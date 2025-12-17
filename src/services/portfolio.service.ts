@@ -345,7 +345,7 @@ export class PortfolioService {
     });
 
     if (!portfolio) {
-      throw new ResponseError(404, "Portfolio not found");
+      throw new ResponseError(404, "Portfolio tidak ditemukan");
     }
 
     return portfolio;
@@ -526,7 +526,7 @@ export class PortfolioService {
     if (!resolved) {
       throw new ResponseError(
         400,
-        "File must reference an uploaded temporary file"
+        "File harus merujuk ke file sementara yang diunggah"
       );
     }
 
@@ -540,7 +540,7 @@ export class PortfolioService {
       await fs.rename(resolved.absolute, destination);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(400, "Temporary file not found");
+        throw new ResponseError(400, "File sementara tidak ditemukan");
       }
       throw error;
     }

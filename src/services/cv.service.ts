@@ -64,16 +64,7 @@ const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 const TEMP_PUBLIC_PREFIX = "uploads/temp";
 const CV_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "cvs");
 const CV_PUBLIC_PREFIX = "uploads/cvs";
-const CV_TEMPLATE_PATH = path.join(
-  process.cwd(),
-  "word_templates",
-  "cv_001.docx"
-);
-const CV_TEMPLATE_WITH_PHOTO_PATH = path.join(
-  process.cwd(),
-  "word_templates",
-  "cv_001_photo.docx"
-);
+
 const PHOTO_TARGET_WIDTH_CM = 3;
 
 const sortFieldMap = {
@@ -499,10 +490,7 @@ export class CvService {
   ): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
     const normalized = (format ?? "docx").toLowerCase();
     if (normalized !== "docx") {
-      throw new ResponseError(
-        400,
-        "Only DOCX downloads are supported currently"
-      );
+      throw new ResponseError(400, "Hanya unduhan DOCX yang didukung saat ini");
     }
 
     const cv = await CvService.findOwnedCv(userId, id);
@@ -644,7 +632,7 @@ export class CvService {
     });
 
     if (!cv) {
-      throw new ResponseError(404, "CV not found");
+      throw new ResponseError(404, "CV tidak ditemukan");
     }
 
     return cv;
@@ -709,7 +697,7 @@ export class CvService {
     if (!resolved) {
       throw new ResponseError(
         400,
-        "Photo must reference an uploaded temp file"
+        "Foto harus merujuk ke file sementara yang diunggah"
       );
     }
 
@@ -723,7 +711,7 @@ export class CvService {
       await fs.rename(resolved.absolute, destination);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(400, "Temporary photo file not found");
+        throw new ResponseError(400, "File foto sementara tidak ditemukan");
       }
       throw error;
     }
@@ -828,7 +816,7 @@ export class CvService {
   private static async renderDocx(cv: CvWithRelations): Promise<Buffer> {
     // Template is now required, no fallback to default templates
     if (!cv.templateId) {
-      throw new ResponseError(400, "Template is required");
+      throw new ResponseError(400, "Template diperlukan");
     }
 
     const template = await (prisma as any).template.findUnique({
@@ -836,7 +824,7 @@ export class CvService {
     });
 
     if (!template) {
-      throw new ResponseError(404, "Template not found");
+      throw new ResponseError(404, "Template tidak ditemukan");
     }
 
     const templatePath = path.join(process.cwd(), template.path);

@@ -13,7 +13,7 @@ const payloadSchema = z.object({
   marital_status: z.nativeEnum(MaritalStatus),
   education: stringField(),
   phone: stringField(50),
-  email: z.string().trim().email().max(255),
+  email: z.string().trim().email().max(255, "Email maksimal 255 karakter"),
   address: stringField(500),
   subject: stringField(255),
   applicant_city: stringField(255),
@@ -27,7 +27,7 @@ const payloadSchema = z.object({
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
   signature: z.union([stringField(255), z.null()]).optional(),
-  template_id: z.string().uuid(),
+  template_id: z.string().uuid("ID Template harus UUID yang valid"),
 });
 
 const listQuerySchema = z.object({

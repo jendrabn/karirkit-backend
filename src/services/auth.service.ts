@@ -48,7 +48,7 @@ export class AuthService {
     });
 
     if (totalUserWithSameEmail > 0) {
-      throw new ResponseError(400, "Email already exists");
+      throw new ResponseError(400, "Email sudah terdaftar");
     }
 
     const totalUserWithSameUsername = await prisma.user.count({
@@ -58,7 +58,7 @@ export class AuthService {
     });
 
     if (totalUserWithSameUsername > 0) {
-      throw new ResponseError(400, "Username already exists");
+      throw new ResponseError(400, "Username sudah terdaftar");
     }
 
     requestData.password = await bcrypt.hash(requestData.password, 10);
@@ -92,7 +92,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "User not found");
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -101,7 +101,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new ResponseError(401, "Password is incorrect");
+      throw new ResponseError(401, "Kata sandi salah");
     }
 
     // If OTP is enabled, send OTP and return different response
@@ -114,7 +114,8 @@ export class AuthService {
 
       return {
         requiresOtp: true,
-        message: "OTP sent to your email. Please verify to complete login.",
+        message:
+          "OTP telah dikirim ke email Anda. Silakan verifikasi untuk menyelesaikan login.",
       };
     }
 
@@ -152,15 +153,15 @@ export class AuthService {
       });
       payload = ticket.getPayload();
     } catch {
-      throw new ResponseError(401, "Invalid Google token");
+      throw new ResponseError(401, "Token Google tidak valid");
     }
 
     if (!payload || !payload.sub || !payload.email) {
-      throw new ResponseError(401, "Invalid Google token");
+      throw new ResponseError(401, "Token Google tidak valid");
     }
 
     if (payload.email_verified === false) {
-      throw new ResponseError(401, "Google email is not verified");
+      throw new ResponseError(401, "Email Google belum diverifikasi");
     }
 
     const googleId = payload.sub;
@@ -246,7 +247,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ResponseError(401, "Unauthenticated");
+      throw new ResponseError(401, "Tidak terautentikasi");
     }
 
     return toSafeUser(user);
@@ -263,7 +264,7 @@ export class AuthService {
     });
 
     if (!existingUser) {
-      throw new ResponseError(401, "Unauthenticated");
+      throw new ResponseError(401, "Tidak terautentikasi");
     }
 
     if (requestData.email && requestData.email !== existingUser.email) {
@@ -275,7 +276,7 @@ export class AuthService {
       });
 
       if (emailExists > 0) {
-        throw new ResponseError(400, "Email already exists");
+        throw new ResponseError(400, "Email sudah terdaftar");
       }
     }
 
@@ -291,7 +292,7 @@ export class AuthService {
       });
 
       if (usernameExists > 0) {
-        throw new ResponseError(400, "Username already exists");
+        throw new ResponseError(400, "Username sudah terdaftar");
       }
     }
 
@@ -362,7 +363,7 @@ export class AuthService {
 
     await enqueueEmail({
       to: email,
-      subject: "Reset Password Instructions",
+      subject: "Instruksi Reset Kata Sandi",
       text: plainText,
       template: "password-reset",
       context: {
@@ -381,7 +382,10 @@ export class AuthService {
     try {
       decoded = jwt.verify(requestData.token, env.jwtSecret) as JwtPayload;
     } catch {
-      throw new ResponseError(400, "Invalid or expired reset token");
+      throw new ResponseError(
+        400,
+        "Token reset kata sandi tidak valid atau kadaluarsa"
+      );
     }
 
     if (
@@ -389,7 +393,7 @@ export class AuthService {
       decoded.type !== "password_reset" ||
       typeof decoded.sub !== "string"
     ) {
-      throw new ResponseError(400, "Invalid reset token");
+      throw new ResponseError(400, "Token reset kata sandi tidak valid");
     }
 
     const user = await prisma.user.findUnique({
@@ -397,7 +401,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ResponseError(400, "Invalid reset token");
+      throw new ResponseError(400, "Token reset kata sandi tidak valid");
     }
 
     const hashedPassword = await bcrypt.hash(requestData.password, 10);
@@ -421,7 +425,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ResponseError(401, "Unauthenticated");
+      throw new ResponseError(401, "Tidak terautentikasi");
     }
 
     const isMatch = await bcrypt.compare(
@@ -430,13 +434,13 @@ export class AuthService {
     );
 
     if (!isMatch) {
-      throw new ResponseError(400, "Current password is incorrect");
+      throw new ResponseError(400, "Kata sandi saat ini salah");
     }
 
     if (requestData.current_password === requestData.new_password) {
       throw new ResponseError(
         400,
-        "New password must be different from the current password"
+        "Kata sandi baru harus berbeda dengan kata sandi saat ini"
       );
     }
 
@@ -467,10 +471,10 @@ export class AuthService {
     token: string
   ): string {
     if (url) {
-      return `We received a request to reset your password. Click this link to continue: ${url}`;
+      return `Kami menerima permintaan untuk reset kata sandi Anda. Klik link ini untuk melanjutkan: ${url}`;
     }
 
-    return `Use the following token to reset your password: ${token}`;
+    return `Gunakan token berikut untuk reset kata sandi Anda: ${token}`;
   }
 
   private static normalizeUsernameSource(source?: string): string {
