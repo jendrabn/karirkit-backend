@@ -827,7 +827,7 @@ export class CvService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    const templatePath = path.join(process.cwd(), template.path);
+    const templatePath = path.join(process.cwd(), "public", template.path);
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
     const additionalJsContext = cv.photo

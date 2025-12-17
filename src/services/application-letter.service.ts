@@ -563,7 +563,7 @@ export class ApplicationLetterService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    const templatePath = path.join(process.cwd(), template.path);
+    const templatePath = path.join(process.cwd(), "public", template.path);
     const templateBinary = await fs.readFile(templatePath);
     const additionalJsContext =
       ApplicationLetterService.buildAdditionalJsContext();
