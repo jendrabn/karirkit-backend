@@ -1772,6 +1772,38 @@ paths:
                     $ref: '#/components/responses/Forbidden'
                   '404':
                     $ref: '#/components/responses/NotFound'
+  /admin/blogs/uploads:
+   post:
+     tags: [Admin]
+     summary: Upload blog file
+     description: Upload files for blog posts (featured images, attachments, etc.) to the temp folder for later association with blog posts.
+     security:
+       - sessionCookie: []
+     requestBody:
+       required: true
+       content:
+         multipart/form-data:
+           schema:
+             type: object
+             properties:
+               file:
+                 type: string
+                 format: binary
+                 description: File to upload for blog post (image, document, etc.)
+             required: [file]
+     responses:
+       '201':
+         description: File uploaded successfully
+         content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/TempUploadResponse'
+       '400':
+         $ref: '#/components/responses/ValidationError'
+       '401':
+         $ref: '#/components/responses/Unauthorized'
+       '403':
+         $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     sessionCookie:

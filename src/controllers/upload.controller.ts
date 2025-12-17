@@ -17,4 +17,13 @@ export class UploadController {
       next(error);
     }
   }
+
+  static async uploadBlog(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await UploadService.uploadBlogFile(req.file);
+      sendSuccess(res, result, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -5,6 +5,7 @@ import path from "path";
 import { ResponseError } from "../utils/response-error.util";
 
 const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
+const BLOG_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "blogs");
 const DEFAULT_EXTENSION = ".bin";
 
 export type TempUploadResult = {
@@ -125,5 +126,35 @@ export class UploadService {
 
     // Return public path
     return path.posix.join("/uploads", destinationDir, finalFileName);
+  }
+
+  static async uploadBlogFile(
+    file?: Express.Multer.File
+  ): Promise<TempUploadResult> {
+    if (!file) {
+      throw new ResponseError(400, "File is required");
+    }
+
+    await fs.mkdir(BLOG_UPLOAD_DIR, { recursive: true });
+
+    const extension = UploadService.resolveExtension(file);
+    const fileName = UploadService.buildBlogFileName(extension);
+    const fullPath = path.join(BLOG_UPLOAD_DIR, fileName);
+
+    await fs.writeFile(fullPath, file.buffer);
+
+    const publicPath = path.posix.join("/uploads/blogs", fileName);
+
+    return {
+      path: publicPath,
+      original_name: file.originalname,
+      size: file.size,
+      mime_type: file.mimetype,
+    };
+  }
+
+  private static buildBlogFileName(extension: string): string {
+    const uniqueSuffix = crypto.randomUUID();
+    return `${Date.now()}-${uniqueSuffix}${extension}`;
   }
 }

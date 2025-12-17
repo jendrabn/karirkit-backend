@@ -72,16 +72,10 @@ const sortFieldMap = {
 
 const portfolioInclude = {
   medias: {
-    orderBy: [
-      { createdAt: "asc" as const },
-      { id: "asc" as const },
-    ],
+    orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
   tools: {
-    orderBy: [
-      { createdAt: "asc" as const },
-      { id: "asc" as const },
-    ],
+    orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
 } satisfies Prisma.PortfolioInclude;
 
@@ -384,8 +378,7 @@ export class PortfolioService {
   ): Promise<CoverChange> {
     const normalizedCurrent =
       PortfolioService.normalizePortfolioPublicPath(currentCover);
-    const existingValue =
-      normalizedCurrent ?? currentCover?.trim() ?? "";
+    const existingValue = normalizedCurrent ?? currentCover?.trim() ?? "";
 
     if (coverInput === undefined) {
       return {
@@ -492,9 +485,7 @@ export class PortfolioService {
     };
   }
 
-  private static normalizeCaption(
-    caption?: string | null
-  ): string | null {
+  private static normalizeCaption(caption?: string | null): string | null {
     if (caption === null || caption === undefined) {
       return null;
     }
@@ -542,10 +533,7 @@ export class PortfolioService {
     await fs.mkdir(PORTFOLIO_UPLOAD_DIR, { recursive: true });
 
     const extension = PortfolioService.extractExtension(resolved.absolute);
-    const fileName = PortfolioService.buildPortfolioFileName(
-      userId,
-      extension
-    );
+    const fileName = PortfolioService.buildPortfolioFileName(userId, extension);
     const destination = path.join(PORTFOLIO_UPLOAD_DIR, fileName);
 
     try {
@@ -643,13 +631,13 @@ export class PortfolioService {
 
     const unique = Array.from(new Set(paths));
     await Promise.all(
-      unique.map((publicPath) => PortfolioService.deletePortfolioFile(publicPath))
+      unique.map((publicPath) =>
+        PortfolioService.deletePortfolioFile(publicPath)
+      )
     );
   }
 
-  private static async deletePortfolioFile(
-    publicPath: string
-  ): Promise<void> {
+  private static async deletePortfolioFile(publicPath: string): Promise<void> {
     const resolved = PortfolioService.resolveUploadFile(
       publicPath,
       PORTFOLIO_PUBLIC_PREFIX,

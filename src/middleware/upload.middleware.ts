@@ -3,6 +3,7 @@ import multer, { MulterError } from "multer";
 import { ResponseError } from "../utils/response-error.util";
 
 const MAX_TEMP_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_BLOG_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
 const documentMimeTypes = new Set([
   "application/pdf",
   "application/msword",
@@ -39,11 +40,7 @@ const tempUpload = multer({
 }).single("file");
 
 const createUploadMiddleware = (
-  uploadFn: (
-    req: Request,
-    res: Response,
-    cb: (err?: unknown) => void
-  ) => void,
+  uploadFn: (req: Request, res: Response, cb: (err?: unknown) => void) => void,
   sizeLimitMessage: string
 ) => {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -73,7 +70,26 @@ const createUploadMiddleware = (
   };
 };
 
+const blogUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_BLOG_UPLOAD_SIZE,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedTempMime(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new ResponseError(400, "File must be an image, video, or document"));
+  },
+}).single("file");
+
 export const handleTempUpload = createUploadMiddleware(
   tempUpload,
   "File size must be less than or equal to 10 MB"
+);
+
+export const handleBlogUpload = createUploadMiddleware(
+  blogUpload,
+  "File size must be less than or equal to 5 MB"
 );

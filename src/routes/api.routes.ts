@@ -11,7 +11,10 @@ import {
 import { ApplicationController } from "../controllers/application.controller";
 import { ApplicationLetterController } from "../controllers/application-letter.controller";
 import { UploadController } from "../controllers/upload.controller";
-import { handleTempUpload } from "../middleware/upload.middleware";
+import {
+  handleTempUpload,
+  handleBlogUpload,
+} from "../middleware/upload.middleware";
 import { PortfolioController } from "../controllers/portfolio.controller";
 import { CvController } from "../controllers/cv.controller";
 import { PublicController } from "../controllers/public.controller";
@@ -145,7 +148,6 @@ router.put("/cvs/:id", authMiddleware, CvController.update);
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
 router.get("/cvs/:id/download", authMiddleware, CvController.download);
-router.get("/cvs/:id/preview", authMiddleware, CvController.preview);
 
 // Blogs API
 router.get("/blogs", BlogController.list);
@@ -261,6 +263,15 @@ router.delete(
   authMiddleware,
   adminMiddleware,
   AdminBlogController.delete
+);
+
+// Admin Blog Upload API
+router.post(
+  "/admin/blogs/uploads",
+  authMiddleware,
+  adminMiddleware,
+  handleBlogUpload,
+  UploadController.uploadBlog
 );
 
 // Admin Blog Categories API

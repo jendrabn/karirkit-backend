@@ -33,11 +33,7 @@ export class CvController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const cv = await CvService.update(
-        req.user!.id,
-        req.params.id,
-        req.body
-      );
+      const cv = await CvService.update(req.user!.id, req.params.id, req.body);
       sendSuccess(res, cv);
     } catch (error) {
       next(error);
@@ -83,10 +79,6 @@ export class CvController {
     } catch (error) {
       next(error);
     }
-  }
-
-  static preview(_req: Request, _res: Response, next: NextFunction) {
-    next(new ResponseError(501, "CV preview is not available yet"));
   }
 
   private static buildContentDisposition(fileName: string): string {

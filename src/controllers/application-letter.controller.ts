@@ -91,13 +91,6 @@ export class ApplicationLetterController {
     }
   }
 
-  static preview(req: Request, res: Response, next: NextFunction) {
-    try {
-    } catch (error) {
-      next(error);
-    }
-  }
-
   private static buildContentDisposition(fileName: string): string {
     const fallback = fileName
       .replace(/[\r\n]+/g, " ")
