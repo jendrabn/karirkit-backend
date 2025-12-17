@@ -1,125 +1,266 @@
-# Backend Service
+# KarirKit Backend
 
-Express.js API written in TypeScript with a modular architecture optimised for future growth.
+REST API untuk KarirKit yang mencakup autentikasi, aplikasi pekerjaan, surat lamaran, portfolio, dan CV builder.
 
-## Scripts
+## Fitur
 
-- `npm run dev` - start the server with hot-reload for local development.
-- `npm run build` - compile TypeScript sources into `dist`.
-- `npm start` - run the compiled JavaScript from the `dist` folder.
+- **Autentikasi dengan OTP**: Login dengan password dan verifikasi OTP opsional
+- **Manajemen Aplikasi**: Track aplikasi pekerjaan dengan status dan follow-up
+- **CV Builder**: Buat dan kelola CV dengan template
+- **Portfolio**: Kelola portfolio proyek
+- **Surat Lamaran**: Generate surat lamaran dengan template
+- **Blog System**: Manajemen konten blog dengan kategori dan tags
+- **Admin Dashboard**: Manajemen pengguna dan konten
 
-## Project Structure
+## Tech Stack
 
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MariaDB dengan Prisma ORM
+- **Authentication**: JWT dengan OTP opsional
+- **Queue**: Redis + Bull untuk email processing
+- **Validation**: Zod
+- **Language**: TypeScript
+
+## Prerequisites
+
+- Node.js 18+
+- MariaDB 10.6+
+- Redis 6+
+- npm atau yarn
+
+## Installation
+
+1. Clone repository
+```bash
+git clone <repository-url>
+cd karirkit-backend
 ```
-src/
-|-- config/         # Environment configuration
-|-- controllers/    # Route handlers
-|-- interfaces/     # Shared interfaces and types
-|-- middleware/     # Express middleware
-|-- models/         # Data access layer or ORM models
-|-- routes/         # Route definitions
-|-- services/       # Business logic
-|-- utils/          # Helper utilities
-|-- validators/     # Validation helpers
-|-- index.ts        # Express application bootstrap
-`-- server.ts       # HTTP server entry point
+
+2. Install dependencies
+```bash
+npm install
 ```
 
-Tests live under `tests/unit` and `tests/integration`.
+3. Setup environment variables
+```bash
+cp .env.example .env
+```
 
-## Environment
+Edit `.env` file dengan konfigurasi Anda:
+```env
+# Database
+DATABASE_URL="mysql://username:password@localhost:3306/karirkit"
 
-The `.env` file supports:
+# JWT
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_EXPIRES_IN="1d"
 
-- `PORT` - HTTP port for the server (default `3000`)
-- `NODE_ENV` - runtime environment label
-- `LOG_LEVEL` - Winston logging level (default `info`)
-- `LOG_FILE` - Path to the Winston log file (default `logs/app.log`)
+# Server
+PORT=3000
+NODE_ENV="development"
 
-## API Documentation
+# Email Configuration
+MAIL_MAILER="smtp"
+MAIL_HOST="smtp.gmail.com"
+MAIL_PORT=587
+MAIL_USERNAME="your-email@gmail.com"
+MAIL_PASSWORD="your-app-password"
+MAIL_FROM_ADDRESS="no-reply@karirkit.com"
+MAIL_FROM_NAME="KarirKit"
 
-The OpenAPI specification lives at `backend/openapi.yaml`. Run `npm run dev` and visit `/docs` to view the Swagger UI powered by that spec.
+# Redis
+REDIS_HOST="127.0.0.1"
+REDIS_PORT=6379
+REDIS_PASSWORD=""
+REDIS_DB=0
 
-## Deployment on Ubuntu Server
+# OTP Configuration
+OTP_ENABLED=true
+OTP_EXPIRES_IN=300
 
-1. **Install dependensi sistem**
-   ```bash
-   sudo apt update
-   sudo apt install -y curl build-essential mysql-client redis-server nginx
-   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-   sudo apt install -y nodejs
-   sudo npm install -g pm2
-   sudo systemctl enable --now redis-server
-   ```
-   Pastikan MySQL database dapat diakses dari server ini dan Redis diamankan dengan password yang sama seperti `REDIS_PASSWORD`.
+# Google OAuth (Optional)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
-2. **Clone repo & siapkan environment**
-   ```bash
-   sudo mkdir -p /var/www/karirkit
-   sudo chown -R $USER:$USER /var/www/karirkit
-   git clone <repo-url> /var/www/karirkit/backend
-   cd /var/www/karirkit/backend
-   cp .env.example .env
-   ```
-   Lengkapi `.env` dengan nilai produksi (`DATABASE_URL`, `DATABASE_*`, `REDIS_*`, secret JWT, konfigurasi mail, dsb). Variabel ini digunakan oleh Prisma saat migrasi dan oleh server saat boot.
+# Frontend URL
+FRONTEND_URL="http://localhost:3000"
 
-3. **Install dependencies Node.js**
-   ```bash
-   npm ci
-   ```
+# Password Reset
+PASSWORD_RESET_URL="http://localhost:3000/reset-password"
+```
 
-4. **Generate Prisma & deploy migrasi**
-   ```bash
-   npx prisma generate
-   npx prisma migrate deploy
-   ```
-   `prisma generate` membuat Prisma Client terbaru, sedangkan `prisma migrate deploy` mengeksekusi seluruh migrasi pada database produksi. Pastikan `DATABASE_URL` sudah menunjuk ke database yang benar sebelum menjalankan perintah ini.
+4. Generate JWT key
+```bash
+npm run key:generate
+```
 
-5. **Build dan jalankan aplikasi dengan PM2**
-   ```bash
-   npm run build  # output siap pakai berada di /var/www/karirkit/backend/dist
-   cat <<'EOF' > ecosystem.config.js
-   module.exports = {
-     apps: [{
-       name: 'karirkit-backend',
-       script: 'dist/server.js',
-       cwd: '/var/www/karirkit/backend',
-       env: { NODE_ENV: 'production', PORT: 3000 }
-     }]
-   };
-   EOF
-   pm2 start ecosystem.config.js
-   pm2 status
-   sudo pm2 startup systemd -u $USER --hp $HOME
-   pm2 save
-   ```
-   PM2 menjalankan `dist/server.js` langsung dari folder `/var/www/karirkit/backend/dist`. Gunakan `pm2 logs karirkit-backend` bila perlu melihat log, dan `pm2 restart karirkit-backend` setelah deploy berikutnya.
+5. Setup database
+```bash
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+```
 
-6. **Konfigurasi Nginx untuk api.karirkit.id**
-   ```bash
-   sudo tee /etc/nginx/sites-available/api.karirkit.id <<'EOF'
-   server {
-     listen 80;
-     server_name api.karirkit.id;
+## Development
 
-     location / {
-       proxy_pass http://127.0.0.1:3000;
-       proxy_http_version 1.1;
-       proxy_set_header Upgrade $http_upgrade;
-       proxy_set_header Connection 'upgrade';
-       proxy_set_header Host $host;
-       proxy_cache_bypass $http_upgrade;
-     }
-   }
-   EOF
-   sudo ln -s /etc/nginx/sites-available/api.karirkit.id /etc/nginx/sites-enabled/
-   sudo nginx -t
-   sudo systemctl reload nginx
-   ```
-   Sesuaikan port jika aplikasi berjalan di nilai `PORT` yang berbeda, dan jalankan `sudo certbot --nginx -d api.karirkit.id` untuk HTTPS.
+### Running in Development Mode
 
-7. **Service pendukung**
-   - Redis harus tetap aktif (`sudo systemctl status redis-server`). Sesuaikan `/etc/redis/redis.conf` bila perlu agar password cocok dengan `.env`.
-   - Setiap ada perubahan schema Prisma, ulangi langkah 4-5 untuk generate client dan deploy migrasi terbaru sebelum restart PM2 (`pm2 restart karirkit-backend`).
+```bash
+npm run dev
+```
 
-Dengan alur di atas backend siap berjalan di Ubuntu dengan domain `api.karirkit.id`, PM2 menjaga proses Node.js di `/var/www/karirkit/backend/dist`, dan Nginx mem-proxy traffic ke aplikasi.
+Server akan berjalan di `http://localhost:3000` dengan auto-reload saat file berubah.
+
+### Database Management
+
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Push schema changes to database
+npx prisma db push
+
+# Reset database
+npx prisma db push --force-reset
+
+# Seed database
+npx prisma db seed
+
+# View database in browser
+npx prisma studio
+```
+
+### Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+## Production Deployment dengan PM2
+
+### 1. Install PM2 globally
+
+```bash
+npm install -g pm2
+```
+
+### 2. Build Application
+
+```bash
+npm run build
+```
+
+### 3. Create PM2 Ecosystem File
+
+Buat file `ecosystem.config.js`:
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'karirkit-backend',
+      script: 'dist/server.js',
+      instances: 'max',
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000
+      },
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 3000
+      },
+      // Log configuration
+      log_file: 'logs/combined.log',
+      out_file: 'logs/out.log',
+      error_file: 'logs/error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      
+      // Restart configuration
+      max_restarts: 10,
+      min_uptime: '10s',
+      max_memory_restart: '1G',
+      
+      // Monitoring
+      watch: false,
+      ignore_watch: ['node_modules', 'logs'],
+      
+      // Other options
+      merge_logs: true,
+      kill_timeout: 5000
+    }
+  ],
+  
+  deploy: {
+    production: {
+      user: 'deploy',
+      host: 'your-server-ip',
+      ref: 'origin/main',
+      repo: 'git@github.com:username/karirkit-backend.git',
+      path: '/var/www/karirkit-backend',
+      'pre-deploy-local': '',
+      'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
+      'pre-setup': ''
+    }
+  }
+};
+```
+
+### 4. Setup Production Environment
+
+```bash
+# Create logs directory
+mkdir -p logs
+
+# Set production environment variables
+export NODE_ENV=production
+export DATABASE_URL="mysql://user:pass@prod-host:3306/karirkit_prod"
+export JWT_SECRET="your-production-jwt-secret"
+# ... set other production variables
+```
+
+### 5. Start Application dengan PM2
+
+```bash
+# Start application
+pm2 start ecosystem.config.js --env production
+
+# Save PM2 configuration
+pm2 save
+
+# Setup PM2 startup script
+pm2 startup
+```
+
+### 6. PM2 Commands
+
+```bash
+# List all processes
+pm2 list
+
+# View logs
+pm2 logs karirkit-backend
+
+# Monitor application
+pm2 monit
+
+# Restart application
+pm2 restart karirkit-backend
+
+# Reload application (zero downtime)
+pm2 reload karirkit-backend
+
+# Stop application
+pm2 stop karirkit-backend
+
+# Delete application
+pm2 delete karirkit-backend
+
+# View detailed information
+pm2 show karirkit-backend
+```
