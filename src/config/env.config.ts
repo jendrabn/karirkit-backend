@@ -73,6 +73,9 @@ const env = {
   port: parsePort(process.env.PORT),
   logLevel: process.env.LOG_LEVEL ?? "info",
   logFile: process.env.LOG_FILE ?? "logs/app.log",
+  appBaseUrl: removeTrailingSlash(
+    process.env.APP_BASE_URL ?? "http://localhost:3000"
+  ),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
   jwtSecret: requireEnv("JWT_SECRET"),
   jwtExpiresIn:

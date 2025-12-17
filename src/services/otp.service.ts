@@ -70,6 +70,7 @@ export class OtpService {
         name: user.name ?? user.email,
         otpCode,
         supportEmail: env.mail.fromAddress,
+        appBaseUrl: env.appBaseUrl,
       },
     });
   }
@@ -223,6 +224,7 @@ export class OtpService {
         name: user.name ?? user.email,
         otpCode,
         supportEmail: env.mail.fromAddress,
+        appBaseUrl: env.appBaseUrl,
       },
     });
   }

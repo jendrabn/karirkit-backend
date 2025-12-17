@@ -371,6 +371,7 @@ export class AuthService {
         resetUrl,
         token,
         supportEmail: env.mail.fromAddress,
+        appBaseUrl: env.appBaseUrl,
       },
     });
   }
