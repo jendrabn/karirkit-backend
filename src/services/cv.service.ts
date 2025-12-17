@@ -1143,7 +1143,7 @@ export class CvService {
         ? {
             id: template.id,
             name: template.name,
-            file_path: template.path,
+            path: template.path,
             type: template.type,
           }
         : null,

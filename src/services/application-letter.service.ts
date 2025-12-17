@@ -111,6 +111,16 @@ export class ApplicationLetterService {
         orderBy,
         skip: (page - 1) * perPage,
         take: perPage,
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              type: true,
+            },
+          },
+        },
       }),
     ]);
 
@@ -155,6 +165,16 @@ export class ApplicationLetterService {
         createdAt: now,
         updatedAt: now,
       },
+      include: {
+        template: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            type: true,
+          },
+        },
+      },
     });
 
     return ApplicationLetterService.toResponse(letter);
@@ -193,6 +213,16 @@ export class ApplicationLetterService {
       data: {
         ...data,
         updatedAt: new Date(),
+      },
+      include: {
+        template: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            type: true,
+          },
+        },
       },
     });
 
@@ -236,8 +266,19 @@ export class ApplicationLetterService {
         attachments: source.attachments,
         closingParagraph: source.closingParagraph,
         signature: source.signature,
+        templateId: (source as any).templateId,
         createdAt: now,
         updatedAt: now,
+      },
+      include: {
+        template: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            type: true,
+          },
+        },
       },
     });
 
@@ -261,11 +302,30 @@ export class ApplicationLetterService {
   private static async findOwnedLetter(
     userId: string,
     id: string
-  ): Promise<PrismaApplicationLetter> {
+  ): Promise<
+    PrismaApplicationLetter & {
+      template?: {
+        id: string;
+        name: string;
+        path: string;
+        type: string;
+      } | null;
+    }
+  > {
     const letter = await prisma.applicationLetter.findFirst({
       where: {
         id,
         userId,
+      },
+      include: {
+        template: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            type: true,
+          },
+        },
       },
     });
 
@@ -743,7 +803,7 @@ export class ApplicationLetterService {
   }
 
   private static toResponse(
-    letter: PrismaApplicationLetter
+    letter: PrismaApplicationLetter & { template?: any }
   ): ApplicationLetterResponse {
     return {
       id: letter.id,
@@ -769,6 +829,14 @@ export class ApplicationLetterService {
       closing_paragraph: letter.closingParagraph,
       signature: letter.signature,
       template_id: (letter as any).templateId ?? null,
+      template: letter.template
+        ? {
+            id: letter.template.id,
+            name: letter.template.name,
+            path: letter.template.path,
+            type: letter.template.type,
+          }
+        : null,
       created_at: letter.createdAt?.toISOString(),
       updated_at: letter.updatedAt?.toISOString(),
     };

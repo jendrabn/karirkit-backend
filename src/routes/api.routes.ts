@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getHealth } from "../controllers/health.controller";
 import { AuthController } from "../controllers/auth.controller";
 import authMiddleware from "../middleware/auth.middleware";
+import adminMiddleware from "../middleware/admin.middleware";
 import {
   loginRateLimiter,
   passwordResetRateLimiter,
@@ -15,6 +16,13 @@ import { CvController } from "../controllers/cv.controller";
 import { PublicController } from "../controllers/public.controller";
 import { StatsController } from "../controllers/stats.controller";
 import { BlogController } from "../controllers/blog.controller";
+// Admin controllers
+import { DashboardController } from "../controllers/admin/dashboard.controller";
+import { UserController } from "../controllers/admin/user.controller";
+import { TemplateController } from "../controllers/admin/template.controller";
+import { BlogController as AdminBlogController } from "../controllers/admin/blog.controller";
+import { BlogCategoryController } from "../controllers/admin/blog-category.controller";
+import { BlogTagController } from "../controllers/admin/blog-tag.controller";
 
 const router = Router();
 
@@ -140,5 +148,173 @@ router.post("/blogs", authMiddleware, BlogController.create);
 router.get("/blogs/admin/:id", authMiddleware, BlogController.get);
 router.put("/blogs/admin/:id", authMiddleware, BlogController.update);
 router.delete("/blogs/admin/:id", authMiddleware, BlogController.delete);
+
+// Admin API
+router.get(
+  "/admin/dashboard",
+  authMiddleware,
+  adminMiddleware,
+  DashboardController.getStats
+);
+
+// Admin Users API
+router.get(
+  "/admin/users",
+  authMiddleware,
+  adminMiddleware,
+  UserController.list
+);
+router.post(
+  "/admin/users",
+  authMiddleware,
+  adminMiddleware,
+  UserController.create
+);
+router.get(
+  "/admin/users/:id",
+  authMiddleware,
+  adminMiddleware,
+  UserController.get
+);
+router.put(
+  "/admin/users/:id",
+  authMiddleware,
+  adminMiddleware,
+  UserController.update
+);
+router.delete(
+  "/admin/users/:id",
+  authMiddleware,
+  adminMiddleware,
+  UserController.delete
+);
+
+// Admin Templates API
+router.get(
+  "/admin/templates",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.list
+);
+router.post(
+  "/admin/templates",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.create
+);
+router.get(
+  "/admin/templates/:id",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.get
+);
+router.put(
+  "/admin/templates/:id",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.update
+);
+router.delete(
+  "/admin/templates/:id",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.delete
+);
+
+// Admin Blogs API
+router.get(
+  "/admin/blogs",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.list
+);
+router.post(
+  "/admin/blogs",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.create
+);
+router.get(
+  "/admin/blogs/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.get
+);
+router.put(
+  "/admin/blogs/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.update
+);
+router.delete(
+  "/admin/blogs/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.delete
+);
+
+// Admin Blog Categories API
+router.get(
+  "/admin/blog-categories",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.list
+);
+router.post(
+  "/admin/blog-categories",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.create
+);
+router.get(
+  "/admin/blog-categories/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.get
+);
+router.put(
+  "/admin/blog-categories/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.update
+);
+router.delete(
+  "/admin/blog-categories/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.delete
+);
+
+// Admin Blog Tags API
+router.get(
+  "/admin/blog-tags",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.list
+);
+router.post(
+  "/admin/blog-tags",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.create
+);
+router.get(
+  "/admin/blog-tags/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.get
+);
+router.put(
+  "/admin/blog-tags/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.update
+);
+router.delete(
+  "/admin/blog-tags/:id",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.delete
+);
 
 export default router;

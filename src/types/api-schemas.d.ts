@@ -177,7 +177,7 @@ export interface ApplicationLetter {
   template?: {
     id?: string;
     name?: string;
-    file_path?: string;
+    path?: string;
     type?: string;
   } | null;
   created_at?: string;
@@ -407,7 +407,7 @@ export interface Cv {
   template?: {
     id?: string;
     name?: string;
-    file_path?: string;
+    path?: string;
     type?: string;
   } | null;
   created_at?: string;

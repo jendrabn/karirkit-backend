@@ -75,11 +75,14 @@ export class UploadService {
       "video/x-matroska": ".mkv",
       "application/pdf": ".pdf",
       "application/msword": ".doc",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        ".docx",
       "application/vnd.ms-excel": ".xls",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        ".xlsx",
       "application/vnd.ms-powerpoint": ".ppt",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        ".pptx",
       "text/plain": ".txt",
       "application/rtf": ".rtf",
     };
@@ -89,7 +92,38 @@ export class UploadService {
 
   private static buildFileName(userId: string, extension: string): string {
     const uniqueSuffix = crypto.randomUUID();
-    const userSegment = userId.replace(/[^a-zA-Z0-9]/g, "").slice(-12) || "anon";
+    const userSegment =
+      userId.replace(/[^a-zA-Z0-9]/g, "").slice(-12) || "anon";
     return `${Date.now()}-${userSegment}-${uniqueSuffix}${extension}`;
+  }
+
+  static async moveFromTemp(
+    tempPath: string,
+    destinationDir: string,
+    fileName: string
+  ): Promise<string> {
+    // Extract filename from temp path
+    const tempFileName = path.basename(tempPath);
+    const tempFilePath = path.join(TEMP_UPLOAD_DIR, tempFileName);
+
+    // Create destination directory if it doesn't exist
+    const destDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      destinationDir
+    );
+    await fs.mkdir(destDir, { recursive: true });
+
+    // Determine file extension
+    const extension = path.extname(tempFileName);
+    const finalFileName = `${fileName}${extension}`;
+    const finalPath = path.join(destDir, finalFileName);
+
+    // Move file from temp to destination
+    await fs.rename(tempFilePath, finalPath);
+
+    // Return public path
+    return path.posix.join("/uploads", destinationDir, finalFileName);
   }
 }

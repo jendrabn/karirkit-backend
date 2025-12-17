@@ -19,6 +19,8 @@ tags:
   - name: Stats
   - name: Blogs
     description: Frontend blog endpoints for displaying blog content, categories, and tags
+  - name: Admin
+    description: Admin management endpoints for dashboard, users, templates, blogs, categories, and tags
 paths:
   /auth/register:
     post:
@@ -1027,6 +1029,671 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/BlogTag'
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Get dashboard statistics
+      description: Retrieve comprehensive statistics for the admin dashboard
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users
+      description: List all users with search, filters, sorting, and pagination
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name, username, email, role]
+            default: created_at
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin]
+        - name: created_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create user
+      description: Create a new user account
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateUserRequest'
+      responses:
+        '201':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Get user detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update user
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete user
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/templates:
+    get:
+      tags: [Admin]
+      summary: List templates
+      description: List all templates with search, filters, sorting, and pagination
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name, type, language, is_premium]
+            default: created_at
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [cv, application_letter]
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [en, id]
+        - name: is_premium
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Templates list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTemplateListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create template
+      description: Create a new template
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateTemplateRequest'
+      responses:
+        '201':
+          description: Created template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/templates/{id}:
+    get:
+      tags: [Admin]
+      summary: Get template detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Template detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update template
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateTemplateRequest'
+      responses:
+        '200':
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete template
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/blogs:
+    get:
+      tags: [Admin]
+      summary: List blogs
+      description: List all blogs with search, filters, sorting, and pagination
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, published_at, title, views, status]
+            default: created_at
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: category_id
+          in: query
+          schema:
+            type: string
+        - name: author_id
+          in: query
+          schema:
+            type: string
+        - name: published_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: published_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Blogs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBlogListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create blog
+      description: Create a new blog post
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateBlogRequest'
+      responses:
+        '201':
+          description: Created blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/blogs/{id}:
+    get:
+      tags: [Admin]
+      summary: Get blog detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Blog detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update blog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateBlogRequest'
+      responses:
+        '200':
+          description: Updated blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete blog
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/blog-categories:
+    get:
+      tags: [Admin]
+      summary: List blog categories
+      description: List all blog categories with search, filters, sorting, and pagination
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+            default: name
+      responses:
+        '200':
+          description: Blog categories list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBlogCategoryListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create blog category
+      description: Create a new blog category
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateBlogCategoryRequest'
+      responses:
+        '201':
+          description: Created blog category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCategoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/blog-categories/{id}:
+    get:
+      tags: [Admin]
+      summary: Get blog category detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Blog category detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCategoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update blog category
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateBlogCategoryRequest'
+      responses:
+        '200':
+          description: Updated blog category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCategoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete blog category
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/blog-tags:
+    get:
+      tags: [Admin]
+      summary: List blog tags
+      description: List all blog tags with search, filters, sorting, and pagination
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+            default: name
+      responses:
+        '200':
+          description: Blog tags list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBlogTagListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create blog tag
+      description: Create a new blog tag
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateBlogTagRequest'
+      responses:
+        '201':
+          description: Created blog tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogTagResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/blog-tags/{id}:
+              get:
+                tags: [Admin]
+                summary: Get blog tag detail
+                security:
+                  - sessionCookie: []
+                parameters:
+                  - $ref: '#/components/parameters/ResourceId'
+                responses:
+                  '200':
+                    description: Blog tag detail
+                    content:
+                      application/json:
+                        schema:
+                          $ref: '#/components/schemas/BlogTagResponse'
+                  '401':
+                    $ref: '#/components/responses/Unauthorized'
+                  '403':
+                    $ref: '#/components/responses/Forbidden'
+                  '404':
+                    $ref: '#/components/responses/NotFound'
+              put:
+                tags: [Admin]
+                summary: Update blog tag
+                security:
+                  - sessionCookie: []
+                parameters:
+                  - $ref: '#/components/parameters/ResourceId'
+                requestBody:
+                  required: true
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/AdminUpdateBlogTagRequest'
+                responses:
+                  '200':
+                    description: Updated blog tag
+                    content:
+                      application/json:
+                        schema:
+                          $ref: '#/components/schemas/BlogTagResponse'
+                  '401':
+                    $ref: '#/components/responses/Unauthorized'
+                  '403':
+                    $ref: '#/components/responses/Forbidden'
+                  '404':
+                    $ref: '#/components/responses/NotFound'
+                  '400':
+                    $ref: '#/components/responses/ValidationError'
+              delete:
+                tags: [Admin]
+                summary: Delete blog tag
+                security:
+                  - sessionCookie: []
+                parameters:
+                  - $ref: '#/components/parameters/ResourceId'
+                responses:
+                  '204':
+                    description: Deleted
+                  '401':
+                    $ref: '#/components/responses/Unauthorized'
+                  '403':
+                    $ref: '#/components/responses/Forbidden'
+                  '404':
+                    $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     sessionCookie:
@@ -1082,6 +1749,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden - Admin access required
       content:
         application/json:
           schema:
@@ -1451,7 +2124,7 @@ components:
               type: string
             name:
               type: string
-            file_path:
+            path:
               type: string
             type:
               type: string
@@ -1784,7 +2457,7 @@ components:
               type: string
             name:
               type: string
-            file_path:
+            path:
               type: string
             type:
               type: string
@@ -2077,6 +2750,338 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Blog'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminDashboardResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total_users:
+              type: integer
+              description: Total number of users
+            total_admins:
+              type: integer
+              description: Total number of admin users
+            total_blogs:
+              type: integer
+              description: Total number of blog posts
+            total_published_blogs:
+              type: integer
+              description: Total number of published blog posts
+            total_draft_blogs:
+              type: integer
+              description: Total number of draft blog posts
+            total_categories:
+              type: integer
+              description: Total number of blog categories
+            total_tags:
+              type: integer
+              description: Total number of blog tags
+            total_templates:
+              type: integer
+              description: Total number of templates
+            total_cv_templates:
+              type: integer
+              description: Total number of CV templates
+            total_application_letter_templates:
+              type: integer
+              description: Total number of application letter templates
+            recent_users:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+              description: Recently registered users
+            recent_blogs:
+              type: array
+              items:
+                $ref: '#/components/schemas/Blog'
+              description: Recently created blog posts
+            blog_status_distribution:
+              type: object
+              properties:
+                draft:
+                  type: integer
+                published:
+                  type: integer
+                archived:
+                  type: integer
+              description: Distribution of blog posts by status
+            user_role_distribution:
+              type: object
+              properties:
+                user:
+                  type: integer
+                admin:
+                  type: integer
+              description: Distribution of users by role
+    AdminCreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+          default: user
+        avatar:
+          type: string
+          nullable: true
+      required: [name, username, email, password]
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+        avatar:
+          type: string
+          nullable: true
+    AdminUserListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        type:
+          type: string
+          enum: [cv, application_letter]
+        language:
+          type: string
+          enum: [en, id]
+          default: en
+        path:
+          type: string
+        is_premium:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TemplateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Template'
+    AdminCreateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        type:
+          type: string
+          enum: [cv, application_letter]
+        language:
+          type: string
+          enum: [en, id]
+          default: en
+        path:
+          type: string
+          description: Path to the template file (from temp upload)
+        is_premium:
+          type: boolean
+          default: false
+      required: [name, slug, type, path]
+    AdminUpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        type:
+          type: string
+          enum: [cv, application_letter]
+        language:
+          type: string
+          enum: [en, id]
+        path:
+          type: string
+          description: Path to the template file (from temp upload)
+        is_premium:
+          type: boolean
+    AdminTemplateListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Template'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateBlogRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+          nullable: true
+        content:
+          type: string
+        featured_image:
+          type: string
+          nullable: true
+          description: Path to the featured image (from temp upload)
+        status:
+          $ref: '#/components/schemas/BlogStatus'
+        read_time:
+          type: integer
+          nullable: true
+        category_id:
+          type: string
+        author_id:
+          type: string
+        tag_ids:
+          type: array
+          items:
+            type: string
+      required: [title, slug, content, status, category_id, author_id]
+    AdminUpdateBlogRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+          nullable: true
+        content:
+          type: string
+        featured_image:
+          type: string
+          nullable: true
+          description: Path to the featured image (from temp upload)
+        status:
+          $ref: '#/components/schemas/BlogStatus'
+        read_time:
+          type: integer
+          nullable: true
+        category_id:
+          type: string
+        author_id:
+          type: string
+        tag_ids:
+          type: array
+          items:
+            type: string
+    AdminBlogListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Blog'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateBlogCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required: [name, slug]
+    AdminUpdateBlogCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+    AdminBlogCategoryListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BlogCategory'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateBlogTagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+      required: [name, slug]
+    AdminUpdateBlogTagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+    AdminBlogTagListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BlogTag'
             pagination:
               $ref: '#/components/schemas/Pagination'
 
