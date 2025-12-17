@@ -77,6 +77,9 @@ const env = {
     process.env.APP_BASE_URL ?? "http://localhost:3000"
   ),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
+  corsOrigins: process.env.CORS_ORIGINS?.split(",").map((origin) =>
+    origin.trim()
+  ) || ["http://localhost:3000"],
   jwtSecret: requireEnv("JWT_SECRET"),
   jwtExpiresIn:
     (process.env.JWT_EXPIRES_IN as StringValue | undefined) ?? defaultJwtExpiry,
