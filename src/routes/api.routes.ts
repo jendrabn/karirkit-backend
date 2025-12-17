@@ -76,7 +76,6 @@ router.put(
 );
 
 // OTP API
-router.post("/auth/send-otp", passwordResetRateLimiter, OtpController.sendOtp);
 router.post("/auth/verify-otp", loginRateLimiter, OtpController.verifyOtp);
 router.post(
   "/auth/resend-otp",

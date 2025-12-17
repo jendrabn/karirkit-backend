@@ -46,7 +46,10 @@ paths:
     post:
       tags: [Auth]
       summary: Login with username or email
-      description: Log in using identifier (username or email) and password. Sets the karirkit_session cookie.
+      description: |
+        Log in using identifier (username or email) and password.
+        If OTP is enabled, this will send an OTP code to the user's email and require verification via /auth/verify-otp.
+        If OTP is disabled, this will authenticate the user directly and set the karirkit_session cookie.
       requestBody:
         required: true
         content:
@@ -55,11 +58,25 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Authenticated
+          description: Login initiated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthUserResponse'
+                oneOf:
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "OTP sent to your email. Please verify to complete login."
+                          requires_otp:
+                            type: boolean
+                            example: true
+                    description: Response when OTP is enabled
+                  - $ref: '#/components/schemas/AuthUserResponse'
+                    description: Response when OTP is disabled and user is authenticated
         '401':
           $ref: '#/components/responses/Unauthorized'
         '400':
@@ -214,37 +231,13 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '400':
           $ref: '#/components/responses/ValidationError'
-  /auth/send-otp:
-    post:
-      tags: [Auth]
-      summary: Send OTP for login verification
-      description: Send a one-time password (OTP) to the user's email for login verification. This endpoint is used when OTP is enabled.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SendOtpRequest'
-      responses:
-        '200':
-          description: OTP sent successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /auth/verify-otp:
     post:
       tags: [Auth]
       summary: Verify OTP for login
-      description: Verify the one-time password (OTP) sent to the user's email and complete the login process.
+      description: |
+        Verify the one-time password (OTP) sent to the user's email and complete the login process.
+        This endpoint is used after /auth/login when OTP is enabled. Sets the karirkit_session cookie on success.
       requestBody:
         required: true
         content:
@@ -2042,13 +2035,6 @@ components:
         new_password:
           type: string
       required: [current_password, new_password]
-    SendOtpRequest:
-      type: object
-      properties:
-        identifier:
-          type: string
-          description: Username or email of user
-      required: [identifier]
     VerifyOtpRequest:
       type: object
       properties:

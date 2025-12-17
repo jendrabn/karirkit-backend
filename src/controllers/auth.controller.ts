@@ -25,9 +25,23 @@ export class AuthController {
 
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token, user, expiresAt } = await AuthService.login(
-        req.body as LoginRequest
-      );
+      const result = await AuthService.login(req.body as LoginRequest);
+
+      // Check if OTP is required
+      if ("requiresOtp" in result && result.requiresOtp) {
+        sendSuccess(res, {
+          message: result.message,
+          requires_otp: true,
+        });
+        return;
+      }
+
+      // Normal login flow
+      const { token, user, expiresAt } = result as {
+        token: string;
+        user: any;
+        expiresAt?: number;
+      };
 
       const maxAge =
         typeof expiresAt === "number"

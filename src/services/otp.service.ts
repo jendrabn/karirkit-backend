@@ -78,7 +78,7 @@ export class OtpService {
     identifier: string;
     otp_code: string;
     password: string;
-  }): Promise<{ token: string; user: any }> {
+  }): Promise<{ token: string; user: any; expiresAt?: number }> {
     const requestData = validate(AuthValidation.VERIFY_OTP, request);
 
     // Find user by email or username
@@ -95,7 +95,7 @@ export class OtpService {
       throw new ResponseError(404, "User not found");
     }
 
-    // Verify password
+    // Verify password (still needed for security)
     const isPasswordValid = await bcrypt.compare(
       requestData.password,
       user.password
@@ -153,6 +153,7 @@ export class OtpService {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
+      expiresAt: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }
 

@@ -74,7 +74,9 @@ export class AuthService {
     return toSafeUser(user);
   }
 
-  static async login(request: LoginRequest): Promise<LoginResult> {
+  static async login(
+    request: LoginRequest
+  ): Promise<LoginResult | { requiresOtp: boolean; message: string }> {
     const requestData = validate(AuthValidation.LOGIN, request);
     const user = await prisma.user.findFirst({
       where: {
@@ -102,14 +104,21 @@ export class AuthService {
       throw new ResponseError(401, "Password is incorrect");
     }
 
-    // If OTP is enabled, don't complete login yet
+    // If OTP is enabled, send OTP and return different response
     if (env.otp.enabled) {
-      throw new ResponseError(
-        428,
-        "OTP verification required. Please use /auth/verify-otp endpoint to complete login."
-      );
+      // Import OtpService to send OTP
+      const { OtpService } = await import("./otp.service");
+
+      // Generate and send OTP
+      await OtpService.sendOtp({ identifier: requestData.identifier });
+
+      return {
+        requiresOtp: true,
+        message: "OTP sent to your email. Please verify to complete login.",
+      };
     }
 
+    // Normal login flow when OTP is disabled
     const token = jwt.sign(
       {
         sub: user.id,
