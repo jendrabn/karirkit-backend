@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getHealth } from "../controllers/health.controller";
 import { AuthController } from "../controllers/auth.controller";
+import { AccountController } from "../controllers/account.controller";
 import { OtpController } from "../controllers/otp.controller";
 import authMiddleware from "../middleware/auth.middleware";
 import adminMiddleware from "../middleware/admin.middleware";
@@ -67,12 +68,12 @@ router.post(
 );
 router.post("/auth/reset-password", AuthController.resetPassword);
 router.post("/auth/logout", authMiddleware, AuthController.logout);
-router.get("/auth/me", authMiddleware, AuthController.me);
-router.put("/auth/me", authMiddleware, AuthController.updateMe);
+router.get("/account/me", authMiddleware, AccountController.me);
+router.put("/account/me", authMiddleware, AccountController.updateMe);
 router.put(
-  "/auth/change-password",
+  "/account/change-password",
   authMiddleware,
-  AuthController.changePassword
+  AccountController.changePassword
 );
 
 // OTP API

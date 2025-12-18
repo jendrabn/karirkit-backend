@@ -2,13 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import env from "../config/env.config";
 import { AuthService } from "../services/auth.service";
 import {
-  ChangePasswordRequest,
   ForgotPasswordRequest,
   GoogleLoginRequest,
   LoginRequest,
   RegisterRequest,
   ResetPasswordRequest,
-  UpdateMeRequest,
 } from "../types/api-schemas";
 import { sendSuccess } from "../utils/response-builder.util";
 
@@ -103,26 +101,6 @@ export class AuthController {
     }
   }
 
-  static async me(req: Request, res: Response, next: NextFunction) {
-    try {
-      const user = await AuthService.me(req.user!.id);
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async updateMe(req: Request, res: Response, next: NextFunction) {
-    try {
-      const payload = (req.body ?? {}) as UpdateMeRequest;
-      const user = await AuthService.updateMe(req.user!.id, payload);
-
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async sendPasswordResetLink(
     req: Request,
     res: Response,
@@ -147,21 +125,6 @@ export class AuthController {
 
       sendSuccess(res, {
         message: "Password has been reset",
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async changePassword(req: Request, res: Response, next: NextFunction) {
-    try {
-      await AuthService.changePassword(
-        req.user!.id,
-        req.body as ChangePasswordRequest
-      );
-
-      sendSuccess(res, {
-        message: "Password updated successfully",
       });
     } catch (error) {
       next(error);
