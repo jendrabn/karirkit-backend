@@ -3046,6 +3046,10 @@ components:
           default: en
         path:
           type: string
+        preview:
+          type: string
+          nullable: true
+          description: Path to the preview image for the template
         is_premium:
           type: boolean
           default: false
@@ -3077,6 +3081,10 @@ components:
         path:
           type: string
           description: Path to the template file (from temp upload)
+        preview:
+          type: string
+          nullable: true
+          description: Path to the preview image (from temp upload)
         is_premium:
           type: boolean
           default: false
@@ -3097,6 +3105,10 @@ components:
         path:
           type: string
           description: Path to the template file (from temp upload)
+        preview:
+          type: string
+          nullable: true
+          description: Path to the preview image (from temp upload)
         is_premium:
           type: boolean
     AdminTemplateListResponse:
@@ -3258,6 +3270,10 @@ components:
           type: string
           enum: [en, id]
           default: en
+        preview:
+          type: string
+          nullable: true
+          description: Path to the preview image for the template
         is_premium:
           type: boolean
           default: false

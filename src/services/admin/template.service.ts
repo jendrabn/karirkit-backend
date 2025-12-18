@@ -21,6 +21,7 @@ type CreateTemplateRequest = {
   type: "cv" | "application_letter";
   language?: "en" | "id";
   path: string;
+  preview?: string;
   is_premium?: boolean;
 };
 
@@ -30,6 +31,7 @@ type UpdateTemplateRequest = {
   type?: "cv" | "application_letter";
   language?: "en" | "id";
   path?: string;
+  preview?: string;
   is_premium?: boolean;
 };
 
@@ -61,6 +63,7 @@ const TemplatePayload = z.object({
   type: z.enum(["cv", "application_letter"]),
   language: z.enum(["en", "id"]).default("en"),
   path: z.string().min(1),
+  preview: z.string().optional(),
   is_premium: z.boolean().default(false),
 });
 
@@ -175,6 +178,20 @@ export class TemplateService {
       }
     }
 
+    // Move preview file from temp to permanent location if preview is provided
+    let finalPreviewPath = requestData.preview;
+    if (requestData.preview) {
+      try {
+        finalPreviewPath = await UploadService.moveFromTemp(
+          requestData.preview,
+          "templates",
+          requestData.slug
+        );
+      } catch (error) {
+        throw new ResponseError(400, "Gagal memproses file preview");
+      }
+    }
+
     const template = await prisma.template.create({
       data: {
         name: requestData.name,
@@ -182,6 +199,7 @@ export class TemplateService {
         type: requestData.type,
         language: requestData.language ?? "en",
         path: finalPath,
+        preview: finalPreviewPath,
         isPremium: requestData.is_premium ?? false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -234,6 +252,20 @@ export class TemplateService {
       }
     }
 
+    // Move preview file from temp to permanent location if preview is provided
+    let finalPreviewPath = requestData.preview;
+    if (requestData.preview) {
+      try {
+        finalPreviewPath = await UploadService.moveFromTemp(
+          requestData.preview,
+          "templates",
+          requestData.slug || existingTemplate.slug
+        );
+      } catch (error) {
+        throw new ResponseError(400, "Gagal memproses file preview");
+      }
+    }
+
     const updateData: Prisma.TemplateUpdateInput = {
       updatedAt: new Date(),
     };
@@ -256,6 +288,10 @@ export class TemplateService {
 
     if (requestData.path !== undefined) {
       updateData.path = finalPath;
+    }
+
+    if (requestData.preview !== undefined) {
+      updateData.preview = finalPreviewPath;
     }
 
     if (requestData.is_premium !== undefined) {
