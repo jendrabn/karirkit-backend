@@ -10,7 +10,7 @@ export const validateUserIdParam = (
   const parsed = Number(id);
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    sendError(res, "ID user harus berupa angka positif", 400);
+    sendError(res, "ID user harus angka positif", 400);
     return;
   }
 

@@ -11,7 +11,7 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const dateOnlySchema = z
   .string()
   .trim()
-  .regex(dateRegex, "Format tanggal harus YYYY-MM-DD")
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
   .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
@@ -25,13 +25,13 @@ const payloadSchema = z
       .string()
       .trim()
       .min(1, "Nama perusahaan wajib diisi")
-      .max(255, "Nama perusahaan maksimal 255 karakter"),
+      .max(255, "Maksimal 255 karakter"),
     company_url: nullableString(2000),
     position: z
       .string()
       .trim()
       .min(1, "Posisi wajib diisi")
-      .max(255, "Posisi maksimal 255 karakter"),
+      .max(255, "Maksimal 255 karakter"),
     job_source: nullableString(),
     job_type: z.nativeEnum(JobType),
     work_system: z.nativeEnum(WorkSystem),
@@ -48,14 +48,14 @@ const payloadSchema = z
     follow_up_note: z
       .string()
       .trim()
-      .max(2000, "Catatan follow-up maksimal 2000 karakter")
+      .max(2000, "Maksimal 2000 karakter")
       .nullable()
       .optional(),
     job_url: nullableString(2000),
     notes: z
       .string()
       .trim()
-      .max(5000, "Catatan maksimal 5000 karakter")
+      .max(5000, "Maksimal 5000 karakter")
       .nullable()
       .optional(),
   })
@@ -67,8 +67,7 @@ const payloadSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message:
-          "Gaji maksimal harus lebih besar atau sama dengan gaji minimal",
+        message: "Gaji maksimal harus ≥ gaji minimal",
         path: ["salary_max"],
       });
     }
@@ -76,8 +75,13 @@ const payloadSchema = z
 
 const listQuerySchema = z
   .object({
-    page: z.coerce.number().int().min(1).default(1),
-    per_page: z.coerce.number().int().min(1).max(100).default(20),
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z.coerce
+      .number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(100, "Per halaman maksimal 100")
+      .default(20),
     q: optionalString(255).optional(),
     sort_order: z.enum(["asc", "desc"]).default("desc"),
     sort_by: z

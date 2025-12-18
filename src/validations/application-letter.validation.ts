@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { Gender, Language, MaritalStatus } from "../generated/prisma/client";
 
-const stringField = (max = 255) => z.string().trim().min(1).max(max);
+const stringField = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(1, "Field ini wajib diisi")
+    .max(max, `Maksimal ${max} karakter`);
 
 const optionalNullableString = (max = 255) =>
   stringField(max).nullable().optional();
@@ -13,7 +18,11 @@ const payloadSchema = z.object({
   marital_status: z.nativeEnum(MaritalStatus),
   education: stringField(),
   phone: stringField(50),
-  email: z.string().trim().email().max(255, "Email maksimal 255 karakter"),
+  email: z
+    .string()
+    .trim()
+    .email("Format email tidak valid")
+    .max(255, "Email maksimal 255 karakter"),
   address: stringField(500),
   subject: stringField(255),
   applicant_city: stringField(255),
@@ -27,12 +36,17 @@ const payloadSchema = z.object({
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
   signature: z.union([stringField(255), z.null()]).optional(),
-  template_id: z.string().uuid("ID Template harus UUID yang valid"),
+  template_id: z.string().uuid("ID template tidak valid"),
 });
 
 const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  per_page: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+  per_page: z.coerce
+    .number()
+    .int()
+    .min(1, "Per halaman minimal 1")
+    .max(100, "Per halaman maksimal 100")
+    .default(20),
   q: stringField(255).optional(),
   sort_order: z.enum(["asc", "desc"]).default("desc"),
   sort_by: z

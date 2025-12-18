@@ -11,7 +11,7 @@ export class AuthValidation {
       .min(3, "Username minimal 3 karakter")
       .max(100, "Username maksimal 100 karakter"),
     email: z
-      .email()
+      .email("Format email tidak valid")
       .min(5, "Email minimal 5 karakter")
       .max(100, "Email maksimal 100 karakter"),
     password: z
@@ -20,17 +20,14 @@ export class AuthValidation {
       .max(100, "Password maksimal 100 karakter"),
     phone: z
       .string()
-      .regex(
-        /^(?:\+62|62|0)\d{8,13}$/,
-        "Nomor HP harus dimulai 08, 62, atau +62"
-      )
+      .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format: 08xxx, 62xxx, atau +62xxx")
       .or(z.literal(""))
       .nullable()
       .optional(),
   });
 
   static readonly LOGIN = z.object({
-    identifier: z.string().min(1, "Username atau email wajib diisi"),
+    identifier: z.string().min(1, "Username/email wajib diisi"),
     password: z.string().min(1, "Password wajib diisi"),
   });
 
@@ -51,16 +48,13 @@ export class AuthValidation {
         .max(100, "Username maksimal 100 karakter")
         .optional(),
       email: z
-        .email()
+        .email("Format email tidak valid")
         .min(5, "Email minimal 5 karakter")
         .max(100, "Email maksimal 100 karakter")
         .optional(),
       phone: z
         .string()
-        .regex(
-          /^(?:\+62|62|0)\d{8,13}$/,
-          "Nomor HP harus dimulai 08, 62, atau +62"
-        )
+        .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format: 08xxx, 62xxx, atau +62xxx")
         .or(z.literal(""))
         .nullable()
         .optional(),
@@ -81,7 +75,7 @@ export class AuthValidation {
 
   static readonly FORGOT_PASSWORD = z.object({
     email: z
-      .email()
+      .email("Format email tidak valid")
       .min(5, "Email minimal 5 karakter")
       .max(100, "Email maksimal 100 karakter"),
   });

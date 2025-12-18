@@ -6,7 +6,12 @@ import {
   OrganizationType,
 } from "../generated/prisma/client";
 
-const trimmedString = (max = 255) => z.string().trim().min(1).max(max);
+const trimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(1, "Field ini wajib diisi")
+    .max(max, `Maksimal ${max} karakter`);
 
 const optionalTrimmedString = (max = 255) => trimmedString(max).optional();
 
@@ -102,7 +107,7 @@ const payloadSchema = z.object({
   address: trimmedString(),
   about: trimmedString(5000),
   photo: trimmedString().nullable().optional(),
-  template_id: z.string().uuid("ID Template harus UUID yang valid"),
+  template_id: z.string().uuid("ID template tidak valid"),
   educations: z.array(educationSchema).optional(),
   certificates: z.array(certificateSchema).optional(),
   experiences: z.array(experienceSchema).optional(),
@@ -113,13 +118,18 @@ const payloadSchema = z.object({
 });
 
 const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  per_page: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+  per_page: z.coerce
+    .number()
+    .int()
+    .min(1, "Per halaman minimal 1")
+    .max(100, "Per halaman maksimal 100")
+    .default(20),
   q: trimmedString(255).optional(),
   sort_order: z.enum(["asc", "desc"]).default("desc"),
   sort_by: z.enum(["created_at", "updated_at", "name"]).default("created_at"),
   name: optionalTrimmedString(),
-  email: z.string().trim().email().optional(),
+  email: z.string().trim().email("Format email tidak valid").optional(),
 });
 
 export class CvValidation {

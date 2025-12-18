@@ -6,7 +6,7 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const dateOnlySchema = z
   .string()
   .trim()
-  .regex(dateRegex, "Format tanggal harus YYYY-MM-DD")
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
   .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
@@ -19,12 +19,12 @@ const payloadSchema = z.object({
     .string()
     .trim()
     .min(1, "Judul wajib diisi")
-    .max(255, "Judul maksimal 255 karakter"),
+    .max(255, "Maksimal 255 karakter"),
   slug: z
     .string()
     .trim()
     .min(1, "Slug wajib diisi")
-    .max(255, "Slug maksimal 255 karakter"),
+    .max(255, "Maksimal 255 karakter"),
   excerpt: nullableString(500),
   content: z.string().trim().min(1, "Konten wajib diisi"),
   featured_image: nullableString(500),
@@ -36,8 +36,13 @@ const payloadSchema = z.object({
 
 const listQuerySchema = z
   .object({
-    page: z.coerce.number().int().min(1).default(1),
-    per_page: z.coerce.number().int().min(1).max(100).default(20),
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z.coerce
+      .number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(100, "Per halaman maksimal 100")
+      .default(20),
     q: optionalString(255).optional(),
     sort_order: z.enum(["asc", "desc"]).default("desc"),
     sort_by: z
@@ -59,8 +64,7 @@ const listQuerySchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["published_from"],
-        message:
-          "Tanggal publish mulai tidak boleh setelah tanggal publish selesai",
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
       });
     }
   });
