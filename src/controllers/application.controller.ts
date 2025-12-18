@@ -14,7 +14,10 @@ export class ApplicationController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const application = await ApplicationService.create(req.user!.id, req.body);
+      const application = await ApplicationService.create(
+        req.user!.id,
+        req.body
+      );
       sendSuccess(res, application, 201);
     } catch (error) {
       next(error);
@@ -62,6 +65,15 @@ export class ApplicationController {
         req.params.id
       );
       sendSuccess(res, application, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const stats = await ApplicationService.getStats(req.user!.id);
+      sendSuccess(res, stats);
     } catch (error) {
       next(error);
     }

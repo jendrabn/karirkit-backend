@@ -87,6 +87,11 @@ router.post(
 // Applications API
 router.get("/applications", authMiddleware, ApplicationController.list);
 router.post("/applications", authMiddleware, ApplicationController.create);
+router.get(
+  "/applications/stats",
+  authMiddleware,
+  ApplicationController.getStats
+);
 router.get("/applications/:id", authMiddleware, ApplicationController.get);
 router.put("/applications/:id", authMiddleware, ApplicationController.update);
 router.delete(

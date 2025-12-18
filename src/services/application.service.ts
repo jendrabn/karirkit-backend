@@ -222,6 +222,117 @@ export class ApplicationService {
     return ApplicationService.toResponse(duplicate);
   }
 
+  static async getStats(userId: string): Promise<{
+    total_applications: number;
+    active_applications: number;
+    interview: number;
+    offer: number;
+    rejected: number;
+    needs_followup: number;
+    overdue: number;
+    no_followup: number;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    const [
+      totalApplications,
+      activeApplications,
+      interviewApplications,
+      offerApplications,
+      rejectedApplications,
+      needsFollowupApplications,
+      overdueApplications,
+      noFollowupApplications,
+    ] = await Promise.all([
+      // Total applications
+      prisma.application.count({
+        where: { userId },
+      }),
+
+      // Active applications (not rejected or accepted)
+      prisma.application.count({
+        where: {
+          userId,
+          status: {
+            notIn: ["rejected", "accepted"],
+          },
+        },
+      }),
+
+      // Interview stage applications
+      prisma.application.count({
+        where: {
+          userId,
+          status: {
+            in: ["hr_interview", "user_interview", "final_interview"],
+          },
+        },
+      }),
+
+      // Offer stage applications
+      prisma.application.count({
+        where: {
+          userId,
+          status: "offering",
+        },
+      }),
+
+      // Rejected applications
+      prisma.application.count({
+        where: {
+          userId,
+          status: "rejected",
+        },
+      }),
+
+      // Applications that need follow-up (have follow-up date set)
+      prisma.application.count({
+        where: {
+          userId,
+          followUpDate: {
+            not: null,
+          },
+        },
+      }),
+
+      // Overdue applications (follow-up date is in the past)
+      prisma.application.count({
+        where: {
+          userId,
+          followUpDate: {
+            lt: today,
+          },
+          status: {
+            notIn: ["rejected", "accepted"],
+          },
+        },
+      }),
+
+      // Applications without follow-up
+      prisma.application.count({
+        where: {
+          userId,
+          followUpDate: null,
+          status: {
+            notIn: ["rejected", "accepted"],
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total_applications: totalApplications,
+      active_applications: activeApplications,
+      interview: interviewApplications,
+      offer: offerApplications,
+      rejected: rejectedApplications,
+      needs_followup: needsFollowupApplications,
+      overdue: overdueApplications,
+      no_followup: noFollowupApplications,
+    };
+  }
+
   private static async findOwnedApplication(
     userId: string,
     id: string

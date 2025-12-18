@@ -366,6 +366,22 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '400':
           $ref: '#/components/responses/ValidationError'
+  /applications/stats:
+    get:
+      tags: [Applications]
+      summary: Get application statistics
+      description: Retrieve comprehensive statistics about job applications for authenticated user
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Application statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /applications/{id}:
     get:
       tags: [Applications]
@@ -2731,6 +2747,36 @@ components:
             total_application_letter_templates:
               type: integer
               description: Total number of available application letter templates
+    ApplicationStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total_applications:
+              type: integer
+              description: Total number of job applications
+            active_applications:
+              type: integer
+              description: Number of active applications
+            interview:
+              type: integer
+              description: Number of applications in interview stage
+            offer:
+              type: integer
+              description: Number of applications with offer
+            rejected:
+              type: integer
+              description: Number of rejected applications
+            needs_followup:
+              type: integer
+              description: Number of applications that need follow-up
+            overdue:
+              type: integer
+              description: Number of overdue applications
+            no_followup:
+              type: integer
+              description: Number of applications without follow-up
     BlogStatus:
       type: string
       enum: [draft, published, archived]
