@@ -60,7 +60,7 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Login initiated
+          description: Login successful or OTP sent
           content:
             application/json:
               schema:
@@ -72,13 +72,13 @@ paths:
                         properties:
                           message:
                             type: string
-                            example: "OTP sent to your email. Please verify to complete login."
+                            example: "OTP telah dikirim ke email Anda. Silakan verifikasi untuk menyelesaikan login."
                           requires_otp:
                             type: boolean
                             example: true
-                    description: Response when OTP is enabled
+                    description: Response when OTP is enabled and sent to user's email
                   - $ref: '#/components/schemas/AuthUserResponse'
-                    description: Response when OTP is disabled and user is authenticated
+                    description: Response when OTP is disabled and user is authenticated directly
         '401':
           $ref: '#/components/responses/Unauthorized'
         '400':
