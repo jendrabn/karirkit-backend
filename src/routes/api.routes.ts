@@ -19,11 +19,10 @@ import {
 import { PortfolioController } from "../controllers/portfolio.controller";
 import { CvController } from "../controllers/cv.controller";
 import { PublicController } from "../controllers/public.controller";
-import { StatsController } from "../controllers/stats.controller";
+import { DashboardController } from "../controllers/dashboard.controller";
 import { BlogController } from "../controllers/blog.controller";
-import { TemplateController as PublicTemplateController } from "../controllers/template.controller";
 // Admin controllers
-import { DashboardController } from "../controllers/admin/dashboard.controller";
+import { DashboardController as AdminDashboardController } from "../controllers/admin/dashboard.controller";
 import { UserController } from "../controllers/admin/user.controller";
 import { TemplateController } from "../controllers/admin/template.controller";
 import { BlogController as AdminBlogController } from "../controllers/admin/blog.controller";
@@ -42,20 +41,17 @@ router.post(
 );
 
 // Public API
-router.get(
-  "/public/portfolios/@:username",
-  PublicController.getPortfolioListing
-);
-router.get(
-  "/public/portfolios/@:username/:id",
-  PublicController.getPortfolioDetail
-);
+router.get("/u/@:username", PublicController.getPortfolioListing);
+router.get("/u/@:username/:id", PublicController.getPortfolioDetail);
 
 // Stats API (public, no authentication required)
-router.get("/stats", StatsController.getStats);
+router.get("/stats", PublicController.getStats);
+
+// Dashboard API (authenticated users)
+router.get("/dashboard", authMiddleware, DashboardController.getStats);
 
 // Templates API (public, no authentication required)
-router.get("/templates", PublicTemplateController.getTemplates);
+router.get("/templates", PublicController.getTemplates);
 
 // Auth API
 router.post("/auth/register", AuthController.register);
@@ -175,7 +171,7 @@ router.get(
   "/admin/dashboard",
   authMiddleware,
   adminMiddleware,
-  DashboardController.getStats
+  AdminDashboardController.getStats
 );
 
 // Admin Users API

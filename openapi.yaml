@@ -11,18 +11,15 @@ servers:
 tags:
   - name: Auth
   - name: Account
-    description: User account management endpoints
+  - name: Dashboard
   - name: Applications
   - name: Application Letters
   - name: Portfolios
   - name: CVs
   - name: Public
   - name: Uploads
-  - name: Stats
   - name: Blogs
-    description: Frontend blog endpoints for displaying blog content, categories, and tags
   - name: Admin
-    description: Admin management endpoints for dashboard, users, templates, blogs, categories, and tags
 paths:
   /auth/register:
     post:
@@ -778,7 +775,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /public/portfolios/@{username}:
+  /u/@{username}:
     get:
       tags: [Public]
       summary: Public portfolio page by username
@@ -797,7 +794,7 @@ paths:
                 $ref: '#/components/schemas/PublicPortfolioResponse'
         '404':
           $ref: '#/components/responses/NotFound'
-  /public/portfolios/@{username}/{id}:
+  /u/@{username}/{id}:
     get:
       tags: [Public]
       summary: Public portfolio detail by username and id
@@ -995,9 +992,25 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get user dashboard statistics
+      description: Retrieve comprehensive statistics about user's job applications, CVs, portfolios, and application letters for the dashboard.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: User dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /stats:
     get:
-      tags: [Stats]
+      tags: [Public]
       summary: Get platform statistics
       description: Retrieve platform statistics for display on the home page.
       responses:
@@ -2777,6 +2790,30 @@ components:
             no_followup:
               type: integer
               description: Number of applications without follow-up
+    DashboardResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total_applications:
+              type: integer
+              description: Total number of job applications
+            active_applications:
+              type: integer
+              description: Number of active applications (not rejected or accepted)
+            inactive_applications:
+              type: integer
+              description: Number of inactive applications (rejected or accepted)
+            total_application_letters:
+              type: integer
+              description: Total number of application letters
+            total_cvs:
+              type: integer
+              description: Total number of CVs
+            total_portfolios:
+              type: integer
+              description: Total number of portfolios
     BlogStatus:
       type: string
       enum: [draft, published, archived]
