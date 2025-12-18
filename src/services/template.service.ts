@@ -23,6 +23,7 @@ export class TemplateService {
       type: "cv" | "application_letter";
       language: "en" | "id";
       isPremium: boolean;
+      preview: string | null;
       createdAt: Date | null;
       updatedAt: Date | null;
     }[]
@@ -50,6 +51,7 @@ export class TemplateService {
         type: true,
         language: true,
         isPremium: true,
+        preview: true,
         createdAt: true,
         updatedAt: true,
       },
