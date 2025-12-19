@@ -27,9 +27,16 @@ export const sendSuccess = <T>(
 export const sendError = (
   res: Response,
   errors: ErrorPayload | string,
-  statusCode = 400
-): Response<{ errors: ErrorPayload }> => {
-  return res.status(statusCode).json({
+  statusCode = 400,
+  additionalData?: Record<string, any>
+): Response<{ errors: ErrorPayload } & Record<string, any>> => {
+  const response: any = {
     errors: normalizeErrors(errors),
-  });
+  };
+
+  if (additionalData) {
+    Object.assign(response, additionalData);
+  }
+
+  return res.status(statusCode).json(response);
 };

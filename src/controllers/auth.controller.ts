@@ -8,7 +8,8 @@ import {
   RegisterRequest,
   ResetPasswordRequest,
 } from "../types/api-schemas";
-import { sendSuccess } from "../utils/response-builder.util";
+import { sendError, sendSuccess } from "../utils/response-builder.util";
+import { OtpService } from "../services/otp.service";
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -30,6 +31,9 @@ export class AuthController {
         sendSuccess(res, {
           message: result.message,
           requires_otp: true,
+          expiresAt: result.expiresAt,
+          expiresIn: result.expiresIn,
+          resendAvailableAt: result.resendAvailableAt,
         });
         return;
       }
@@ -128,6 +132,68 @@ export class AuthController {
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  static async verifyOtp(req: Request, res: Response) {
+    try {
+      const result = await OtpService.verifyOtp(req.body);
+
+      // Set session cookie when OTP verification is successful
+      const maxAge = result.expiresAt
+        ? Math.max(result.expiresAt - Date.now(), 0)
+        : 24 * 60 * 60 * 1000;
+
+      res.cookie(env.sessionCookieName, result.token, {
+        httpOnly: true,
+        secure: env.nodeEnv === "production",
+        sameSite: env.nodeEnv === "production" ? "none" : "lax",
+        maxAge,
+      });
+
+      return sendSuccess(res, { user: result.user });
+    } catch (error: any) {
+      return sendError(
+        res,
+        error.message || "Failed to verify OTP",
+        error.statusCode || 500
+      );
+    }
+  }
+
+  static async resendOtp(req: Request, res: Response) {
+    try {
+      const result = await OtpService.resendOtp(req.body);
+      return sendSuccess(res, result);
+    } catch (error: any) {
+      // Handle rate limit error with additional data
+      if (error.statusCode === 429 && error.data) {
+        return sendError(
+          res,
+          error.message || "Failed to resend OTP",
+          error.statusCode,
+          error.data
+        );
+      }
+
+      return sendError(
+        res,
+        error.message || "Failed to resend OTP",
+        error.statusCode || 500
+      );
+    }
+  }
+
+  static async checkOtpStatus(req: Request, res: Response) {
+    try {
+      const result = await OtpService.checkOtpStatus(req.body);
+      return sendSuccess(res, result);
+    } catch (error: any) {
+      return sendError(
+        res,
+        error.message || "Failed to check OTP status",
+        error.statusCode || 500
+      );
     }
   }
 }

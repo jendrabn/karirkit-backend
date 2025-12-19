@@ -73,6 +73,20 @@ paths:
                           requires_otp:
                             type: boolean
                             example: true
+                          expiresAt:
+                            type: integer
+                            format: int64
+                            description: Timestamp when OTP expires (Unix timestamp in milliseconds)
+                            example: 1703123456789
+                          expiresIn:
+                            type: integer
+                            description: Time in seconds until OTP expires
+                            example: 300
+                          resendAvailableAt:
+                            type: integer
+                            format: int64
+                            description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
+                            example: 1703123456789
                     description: Response when OTP is enabled and sent to user's email
                   - $ref: '#/components/schemas/AuthUserResponse'
                     description: Response when OTP is disabled and user is authenticated directly
@@ -275,7 +289,49 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/OtpResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests - OTP already sent and still valid
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      remainingTime:
+                        type: integer
+                        description: Remaining time in seconds until user can request a new OTP
+                      resendAvailableAt:
+                        type: integer
+                        format: int64
+                        description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
+  /auth/check-otp-status:
+    post:
+      tags: [Auth]
+      summary: Check OTP status
+      description: Check if there's an active OTP for the user and get remaining time information.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckOtpStatusRequest'
+      responses:
+        '200':
+          description: OTP status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtpStatusResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -2086,6 +2142,60 @@ components:
           type: string
           description: Username or email of user
       required: [identifier]
+    CheckOtpStatusRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Username or email of user
+      required: [identifier]
+    OtpResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "OTP telah dikirim ke email Anda."
+            expiresAt:
+              type: integer
+              format: int64
+              description: Timestamp when OTP expires (Unix timestamp in milliseconds)
+              example: 1703123456789
+            expiresIn:
+              type: integer
+              description: Time in seconds until OTP expires
+              example: 300
+            resendAvailableAt:
+              type: integer
+              format: int64
+              description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
+              example: 1703123456789
+    OtpStatusResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            hasActiveOtp:
+              type: boolean
+              description: Whether the user has an active OTP
+              example: true
+            expiresAt:
+              type: integer
+              format: int64
+              description: Timestamp when OTP expires (Unix timestamp in milliseconds)
+              example: 1703123456789
+            expiresIn:
+              type: integer
+              description: Time in seconds until OTP expires
+              example: 300
+            resendAvailableAt:
+              type: integer
+              format: int64
+              description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
+              example: 1703123456789
     JobType:
       type: string
       enum: [full_time, contract, internship, freelance, part_time]

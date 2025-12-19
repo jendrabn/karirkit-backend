@@ -5,7 +5,7 @@ import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
 import { validate } from "../utils/validate.util";
-import { AuthValidation } from "../validations/auth.validation";
+import { AccountValidation } from "../validations/account.validation";
 
 export type SafeUser = Omit<User, "password">;
 
@@ -31,7 +31,7 @@ export class AccountService {
     userId: string,
     request: UpdateMeRequest
   ): Promise<SafeUser> {
-    const requestData = validate(AuthValidation.UPDATE_ME, request);
+    const requestData = validate(AccountValidation.UPDATE_ME, request);
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -129,7 +129,7 @@ export class AccountService {
     userId: string,
     request: ChangePasswordRequest
   ): Promise<void> {
-    const requestData = validate(AuthValidation.CHANGE_PASSWORD, request);
+    const requestData = validate(AccountValidation.CHANGE_PASSWORD, request);
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });

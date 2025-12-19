@@ -15,7 +15,12 @@ export class OtpService {
     return randomBytes(3).toString("hex").toUpperCase();
   }
 
-  static async sendOtp(request: { identifier: string }): Promise<void> {
+  static async sendOtp(request: { identifier: string }): Promise<{
+    message: string;
+    expiresAt: number;
+    expiresIn: number;
+    resendAvailableAt: number;
+  }> {
     const requestData = validate(AuthValidation.SEND_OTP, request);
 
     // Find user by email or username
@@ -73,6 +78,16 @@ export class OtpService {
         appBaseUrl: env.appBaseUrl,
       },
     });
+
+    // Calculate when user can request a new OTP (after current OTP expires)
+    const resendAvailableAt = expiresAt.getTime();
+
+    return {
+      message: "OTP telah dikirim ke email Anda",
+      expiresAt: expiresAt.getTime(),
+      expiresIn: env.otp.expiresInSeconds,
+      resendAvailableAt,
+    };
   }
 
   static async verifyOtp(request: {
@@ -158,7 +173,12 @@ export class OtpService {
     };
   }
 
-  static async resendOtp(request: { identifier: string }): Promise<void> {
+  static async resendOtp(request: { identifier: string }): Promise<{
+    message: string;
+    expiresAt: number;
+    expiresIn: number;
+    resendAvailableAt: number;
+  }> {
     const requestData = validate(AuthValidation.RESEND_OTP, request);
 
     // Find user by email or username
@@ -187,9 +207,17 @@ export class OtpService {
     });
 
     if (existingOtp) {
+      const remainingTime = Math.ceil(
+        (existingOtp.expiresAt.getTime() - Date.now()) / 1000
+      );
+
       throw new ResponseError(
-        400,
-        "OTP sudah dikirim. Silakan tunggu hingga kadaluarsa sebelum meminta yang baru."
+        429,
+        "OTP sudah dikirim. Silakan tunggu sebelum meminta yang baru.",
+        {
+          remainingTime,
+          resendAvailableAt: existingOtp.expiresAt.getTime(),
+        }
       );
     }
 
@@ -227,6 +255,67 @@ export class OtpService {
         appBaseUrl: env.appBaseUrl,
       },
     });
+
+    // Calculate when user can request a new OTP (after current OTP expires)
+    const resendAvailableAt = expiresAt.getTime();
+
+    return {
+      message: "OTP telah dikirim ulang ke email Anda",
+      expiresAt: expiresAt.getTime(),
+      expiresIn: env.otp.expiresInSeconds,
+      resendAvailableAt,
+    };
+  }
+
+  static async checkOtpStatus(request: { identifier: string }): Promise<{
+    hasActiveOtp: boolean;
+    expiresAt?: number;
+    expiresIn?: number;
+    resendAvailableAt?: number;
+  }> {
+    const requestData = validate(AuthValidation.CHECK_OTP_STATUS, request);
+
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: requestData.identifier },
+          { username: requestData.identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    // Check if there's an active OTP for this user
+    const activeOtp = await prisma.otp.findFirst({
+      where: {
+        userId: user.id,
+        purpose: "login_verification",
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!activeOtp) {
+      return {
+        hasActiveOtp: false,
+      };
+    }
+
+    const now = Date.now();
+    const expiresAt = activeOtp.expiresAt.getTime();
+    const expiresIn = Math.ceil((expiresAt - now) / 1000);
+
+    return {
+      hasActiveOtp: true,
+      expiresAt,
+      expiresIn,
+      resendAvailableAt: expiresAt,
+    };
   }
 
   static async cleanupExpiredOtps(): Promise<void> {

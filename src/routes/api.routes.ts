@@ -2,7 +2,6 @@ import { Router } from "express";
 import { getHealth } from "../controllers/health.controller";
 import { AuthController } from "../controllers/auth.controller";
 import { AccountController } from "../controllers/account.controller";
-import { OtpController } from "../controllers/otp.controller";
 import authMiddleware from "../middleware/auth.middleware";
 import adminMiddleware from "../middleware/admin.middleware";
 import {
@@ -78,12 +77,13 @@ router.put(
 );
 
 // OTP API
-router.post("/auth/verify-otp", loginRateLimiter, OtpController.verifyOtp);
+router.post("/auth/verify-otp", loginRateLimiter, AuthController.verifyOtp);
 router.post(
   "/auth/resend-otp",
   passwordResetRateLimiter,
-  OtpController.resendOtp
+  AuthController.resendOtp
 );
+router.post("/auth/check-otp-status", AuthController.checkOtpStatus);
 
 // Applications API
 router.get("/applications", authMiddleware, ApplicationController.list);
