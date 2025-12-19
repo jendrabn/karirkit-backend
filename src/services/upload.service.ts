@@ -2,11 +2,28 @@ import type { Express } from "express";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { ResponseError } from "../utils/response-error.util";
 
 const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 const BLOG_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "blogs");
+const AVATAR_UPLOAD_DIR = path.join(
+  process.cwd(),
+  "public",
+  "uploads",
+  "avatars"
+);
 const DEFAULT_EXTENSION = ".bin";
+
+// Image MIME types that should be compressed
+const IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/tiff",
+  "image/webp",
+];
 
 export type TempUploadResult = {
   path: string;
@@ -16,6 +33,44 @@ export type TempUploadResult = {
 };
 
 export class UploadService {
+  /**
+   * Compress image to WebP format with 50% quality using Sharp
+   */
+  private static async compressImageToWebp(
+    buffer: Buffer,
+    originalMimeType: string
+  ): Promise<{ buffer: Buffer; mimeType: string; extension: string }> {
+    try {
+      // Only compress if it's an image
+      if (!IMAGE_MIME_TYPES.includes(originalMimeType.toLowerCase())) {
+        return {
+          buffer,
+          mimeType: originalMimeType,
+          extension: path.extname(`file.${originalMimeType.split("/")[1]}`),
+        };
+      }
+
+      // Compress to WebP with 50% quality
+      const compressedBuffer = await sharp(buffer)
+        .webp({ quality: 50 })
+        .toBuffer();
+
+      return {
+        buffer: compressedBuffer,
+        mimeType: "image/webp",
+        extension: ".webp",
+      };
+    } catch (error) {
+      // If compression fails, return original buffer
+      console.error("Error compressing image:", error);
+      return {
+        buffer,
+        mimeType: originalMimeType,
+        extension: path.extname(`file.${originalMimeType.split("/")[1]}`),
+      };
+    }
+  }
+
   static async uploadTempFile(
     userId: string,
     file?: Express.Multer.File
@@ -26,19 +81,22 @@ export class UploadService {
 
     await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true });
 
-    const extension = UploadService.resolveExtension(file);
+    // Compress image if it's an image file
+    const { buffer, mimeType, extension } =
+      await UploadService.compressImageToWebp(file.buffer, file.mimetype);
+
     const fileName = UploadService.buildFileName(userId, extension);
     const fullPath = path.join(TEMP_UPLOAD_DIR, fileName);
 
-    await fs.writeFile(fullPath, file.buffer);
+    await fs.writeFile(fullPath, buffer);
 
     const publicPath = path.posix.join("/uploads/temp", fileName);
 
     return {
       path: publicPath,
       original_name: file.originalname,
-      size: file.size,
-      mime_type: file.mimetype,
+      size: buffer.length,
+      mime_type: mimeType,
     };
   }
 
@@ -128,6 +186,29 @@ export class UploadService {
     return path.posix.join("/uploads", destinationDir, finalFileName);
   }
 
+  static async moveFromTempToAvatar(
+    tempPath: string,
+    userId: string
+  ): Promise<string> {
+    // Extract filename from temp path
+    const tempFileName = path.basename(tempPath);
+    const tempFilePath = path.join(TEMP_UPLOAD_DIR, tempFileName);
+
+    // Create avatars directory if it doesn't exist
+    await fs.mkdir(AVATAR_UPLOAD_DIR, { recursive: true });
+
+    // Determine file extension
+    const extension = path.extname(tempFileName);
+    const finalFileName = `avatar-${userId}-${Date.now()}${extension}`;
+    const finalPath = path.join(AVATAR_UPLOAD_DIR, finalFileName);
+
+    // Move file from temp to avatars
+    await fs.rename(tempFilePath, finalPath);
+
+    // Return public path
+    return path.posix.join("/uploads/avatars", finalFileName);
+  }
+
   static async uploadBlogFile(
     file?: Express.Multer.File
   ): Promise<TempUploadResult> {
@@ -137,19 +218,22 @@ export class UploadService {
 
     await fs.mkdir(BLOG_UPLOAD_DIR, { recursive: true });
 
-    const extension = UploadService.resolveExtension(file);
+    // Compress image if it's an image file
+    const { buffer, mimeType, extension } =
+      await UploadService.compressImageToWebp(file.buffer, file.mimetype);
+
     const fileName = UploadService.buildBlogFileName(extension);
     const fullPath = path.join(BLOG_UPLOAD_DIR, fileName);
 
-    await fs.writeFile(fullPath, file.buffer);
+    await fs.writeFile(fullPath, buffer);
 
     const publicPath = path.posix.join("/uploads/blogs", fileName);
 
     return {
       path: publicPath,
       original_name: file.originalname,
-      size: file.size,
-      mime_type: file.mimetype,
+      size: buffer.length,
+      mime_type: mimeType,
     };
   }
 

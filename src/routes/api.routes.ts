@@ -65,7 +65,12 @@ router.post(
 router.post("/auth/reset-password", AuthController.resetPassword);
 router.post("/auth/logout", authMiddleware, AuthController.logout);
 router.get("/account/me", authMiddleware, AccountController.me);
-router.put("/account/me", authMiddleware, AccountController.updateMe);
+router.put(
+  "/account/me",
+  authMiddleware,
+  handleTempUpload,
+  AccountController.updateMe
+);
 router.put(
   "/account/change-password",
   authMiddleware,

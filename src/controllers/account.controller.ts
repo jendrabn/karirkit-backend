@@ -1,7 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { AccountService } from "../services/account.service";
+import { UploadService } from "../services/upload.service";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { sendSuccess } from "../utils/response-builder.util";
+import { ResponseError } from "../utils/response-error.util";
 
 export class AccountController {
   static async me(req: Request, res: Response, next: NextFunction) {
@@ -15,8 +17,25 @@ export class AccountController {
 
   static async updateMe(req: Request, res: Response, next: NextFunction) {
     try {
-      const payload = (req.body ?? {}) as UpdateMeRequest;
-      const user = await AccountService.updateMe(req.user!.id, payload);
+      const userId = req.user!.id;
+      let avatarPath: string | null = null;
+
+      // Handle avatar file upload if provided
+      if (req.file) {
+        const uploadResult = await UploadService.uploadTempFile(
+          userId,
+          req.file
+        );
+        avatarPath = uploadResult.path;
+      }
+
+      // Prepare payload with avatar path if uploaded
+      const payload = { ...req.body } as UpdateMeRequest;
+      if (avatarPath) {
+        payload.avatar = avatarPath;
+      }
+
+      const user = await AccountService.updateMe(userId, payload);
 
       sendSuccess(res, user);
     } catch (error) {

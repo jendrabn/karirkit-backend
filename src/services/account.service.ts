@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma.config";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
+import { UploadService } from "../services/upload.service";
 import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validations/auth.validation";
 
@@ -95,7 +96,23 @@ export class AccountService {
     }
 
     if (requestData.avatar !== undefined) {
-      updateData.avatar = requestData.avatar;
+      // If avatar is provided and it's a temp path, move it to the avatars folder
+      if (
+        requestData.avatar &&
+        requestData.avatar.startsWith("/uploads/temp/")
+      ) {
+        try {
+          const avatarPath = await UploadService.moveFromTempToAvatar(
+            requestData.avatar,
+            userId
+          );
+          updateData.avatar = avatarPath;
+        } catch (error) {
+          throw new ResponseError(400, "Gagal memindahkan avatar");
+        }
+      } else {
+        updateData.avatar = requestData.avatar;
+      }
     }
 
     updateData.updatedAt = new Date();
