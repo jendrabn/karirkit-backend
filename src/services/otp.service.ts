@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt } from "crypto";
 import type { User, Otp, PrismaClient } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
@@ -12,7 +12,7 @@ import { enqueueEmail } from "../queues/email.queue";
 export class OtpService {
   static async generateOtpCode(): Promise<string> {
     // Generate a 6-digit OTP code
-    return randomBytes(3).toString("hex").toUpperCase();
+    return randomInt(100000, 1000000).toString();
   }
 
   static async sendOtp(request: { identifier: string }): Promise<{
@@ -79,14 +79,17 @@ export class OtpService {
       },
     });
 
-    // Calculate when user can request a new OTP (after current OTP expires)
-    const resendAvailableAt = expiresAt.getTime();
+    // Calculate when user can request a new OTP (using cooldown time)
+    const now = new Date();
+    const resendAvailableAt = new Date(
+      now.getTime() + env.otp.resendCooldownInSeconds * 1000
+    );
 
     return {
       message: "OTP telah dikirim ke email Anda",
       expiresAt: expiresAt.getTime(),
       expiresIn: env.otp.expiresInSeconds,
-      resendAvailableAt,
+      resendAvailableAt: resendAvailableAt.getTime(),
     };
   }
 
@@ -206,20 +209,36 @@ export class OtpService {
       },
     });
 
-    if (existingOtp) {
-      const remainingTime = Math.ceil(
-        (existingOtp.expiresAt.getTime() - Date.now()) / 1000
-      );
+    if (existingOtp && existingOtp.expiresAt) {
+      // Check if the resend cooldown has passed
+      const now = Date.now();
+      const otpCreatedAt = existingOtp.createdAt?.getTime() || now;
+      const timeSinceCreation = now - otpCreatedAt;
 
-      throw new ResponseError(
-        429,
-        "OTP sudah dikirim. Silakan tunggu sebelum meminta yang baru.",
-        {
-          remainingTime,
-          resendAvailableAt: existingOtp.expiresAt.getTime(),
-        }
-      );
+      if (timeSinceCreation < env.otp.resendCooldownInSeconds * 1000) {
+        const remainingCooldown = Math.ceil(
+          (env.otp.resendCooldownInSeconds * 1000 - timeSinceCreation) / 1000
+        );
+
+        throw new ResponseError(
+          429,
+          "OTP sudah dikirim. Silakan tunggu sebelum meminta yang baru.",
+          {
+            remainingTime: [remainingCooldown.toString()],
+            resendAvailableAt: [
+              String(otpCreatedAt + env.otp.resendCooldownInSeconds * 1000),
+            ],
+          }
+        );
+      }
     }
+
+    // Delete any existing OTP codes for this user
+    await prisma.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
 
     // Generate new OTP code
     const otpCode = await OtpService.generateOtpCode();
@@ -256,14 +275,17 @@ export class OtpService {
       },
     });
 
-    // Calculate when user can request a new OTP (after current OTP expires)
-    const resendAvailableAt = expiresAt.getTime();
+    // Calculate when user can request a new OTP (using cooldown time)
+    const now = new Date();
+    const resendAvailableAt = new Date(
+      now.getTime() + env.otp.resendCooldownInSeconds * 1000
+    );
 
     return {
       message: "OTP telah dikirim ulang ke email Anda",
       expiresAt: expiresAt.getTime(),
       expiresIn: env.otp.expiresInSeconds,
-      resendAvailableAt,
+      resendAvailableAt: resendAvailableAt.getTime(),
     };
   }
 
@@ -307,14 +329,16 @@ export class OtpService {
     }
 
     const now = Date.now();
-    const expiresAt = activeOtp.expiresAt.getTime();
+    const expiresAt = activeOtp.expiresAt?.getTime() || 0;
     const expiresIn = Math.ceil((expiresAt - now) / 1000);
 
     return {
       hasActiveOtp: true,
       expiresAt,
       expiresIn,
-      resendAvailableAt: expiresAt,
+      resendAvailableAt: activeOtp.createdAt
+        ? activeOtp.createdAt.getTime() + env.otp.resendCooldownInSeconds * 1000
+        : expiresAt,
     };
   }
 

@@ -161,9 +161,9 @@ router.get("/cvs/:id/download", authMiddleware, CvController.download);
 
 // Blogs API
 router.get("/blogs", BlogController.list);
-router.get("/blogs/:slug", BlogController.getBySlug);
 router.get("/blogs/categories", BlogController.getCategories);
 router.get("/blogs/tags", BlogController.getTags);
+router.get("/blogs/:slug", BlogController.getBySlug);
 
 // Blogs API
 router.post("/blogs", authMiddleware, BlogController.create);

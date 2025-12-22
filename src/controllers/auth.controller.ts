@@ -151,7 +151,7 @@ export class AuthController {
         maxAge,
       });
 
-      return sendSuccess(res, { user: result.user });
+      return sendSuccess(res, result.user);
     } catch (error: any) {
       return sendError(
         res,

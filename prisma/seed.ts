@@ -92,6 +92,8 @@ async function main() {
         type: "cv",
         language: "en",
         path: "/templates/cv/modern.docx",
+        preview:
+          "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=400",
         isPremium: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -104,6 +106,8 @@ async function main() {
         type: "application_letter",
         language: "en",
         path: "/templates/letter/classic.docx",
+        preview:
+          "https://images.unsplash.com/photo-1635350736475-c8cef4b21906?auto=format&fit=crop&q=80&w=400",
         isPremium: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -116,6 +120,8 @@ async function main() {
         type: "cv",
         language: "id",
         path: "/templates/cv/creative.docx",
+        preview:
+          "https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?auto=format&fit=crop&q=80&w=400",
         isPremium: true,
         createdAt: new Date(),
         updatedAt: new Date(),

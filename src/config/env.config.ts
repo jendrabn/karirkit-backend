@@ -110,6 +110,7 @@ const env = {
   otp: {
     enabled: process.env.OTP_ENABLED === "true",
     expiresInSeconds: parseNumber(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
+    resendCooldownInSeconds: parseNumber(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
   },
 };
 
