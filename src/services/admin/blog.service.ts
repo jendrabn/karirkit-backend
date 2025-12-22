@@ -15,6 +15,7 @@ import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
+import { BlogValidation } from "../../validations/admin/blog.validation";
 
 type BlogListResult = {
   items: BlogResponse[];
@@ -47,42 +48,7 @@ type UpdateBlogRequest = {
   tag_ids?: string[];
 };
 
-// Add validation schema for admin blog list
-const AdminBlogListQuery = z.object({
-  page: z.coerce.number().min(1).default(1),
-  per_page: z.coerce.number().min(1).max(100).default(20),
-  q: z.string().optional(),
-  sort_by: z
-    .enum([
-      "created_at",
-      "updated_at",
-      "published_at",
-      "title",
-      "views",
-      "status",
-    ])
-    .default("created_at"),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  status: z.enum(["draft", "published", "archived"]).optional(),
-  category_id: z.string().optional(),
-  author_id: z.string().optional(),
-  published_from: z.string().optional(),
-  published_to: z.string().optional(),
-});
-
-// Add validation schema for create/update blog
-const BlogPayload = z.object({
-  title: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255),
-  excerpt: z.string().nullable().optional(),
-  content: z.string().min(1),
-  featured_image: z.string().nullable().optional(),
-  status: z.enum(["draft", "published", "archived"]),
-  read_time: z.coerce.number().nullable().optional(),
-  category_id: z.string().min(1),
-  author_id: z.string().min(1),
-  tag_ids: z.array(z.string()).optional(),
-});
+// Schemas moved to BlogValidation
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -95,7 +61,7 @@ const sortFieldMap = {
 
 export class BlogService {
   static async list(query: unknown): Promise<BlogListResult> {
-    const requestData = validate(AdminBlogListQuery, query);
+    const requestData = validate(BlogValidation.LIST_QUERY, query);
     const page = requestData.page;
     const perPage = requestData.per_page;
 
@@ -219,7 +185,7 @@ export class BlogService {
   }
 
   static async create(request: CreateBlogRequest): Promise<BlogResponse> {
-    const requestData = validate(BlogPayload, request);
+    const requestData = validate(BlogValidation.PAYLOAD, request);
 
     // Check if slug is unique
     const existingBlog = await prisma.blog.findFirst({
@@ -330,7 +296,7 @@ export class BlogService {
     request: UpdateBlogRequest
   ): Promise<BlogResponse> {
     await BlogService.findBlog(id);
-    const requestData = validate(BlogPayload.partial(), request);
+    const requestData = validate(BlogValidation.PAYLOAD.partial(), request);
 
     // Check if slug is unique (excluding current blog)
     if (requestData.slug) {

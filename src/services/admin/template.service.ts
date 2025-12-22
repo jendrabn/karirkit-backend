@@ -4,6 +4,7 @@ import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { UploadService } from "../upload.service";
+import { TemplateValidation } from "../../validations/admin/template.validation";
 
 type TemplateListResult = {
   items: Template[];
@@ -35,37 +36,7 @@ type UpdateTemplateRequest = {
   is_premium?: boolean;
 };
 
-// Add validation schema for admin template list
-const AdminTemplateListQuery = z.object({
-  page: z.coerce.number().min(1).default(1),
-  per_page: z.coerce.number().min(1).max(100).default(20),
-  q: z.string().optional(),
-  sort_by: z
-    .enum([
-      "created_at",
-      "updated_at",
-      "name",
-      "type",
-      "language",
-      "is_premium",
-    ])
-    .default("created_at"),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  type: z.enum(["cv", "application_letter"]).optional(),
-  language: z.enum(["en", "id"]).optional(),
-  is_premium: z.coerce.boolean().optional(),
-});
-
-// Add validation schema for create/update template
-const TemplatePayload = z.object({
-  name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255),
-  type: z.enum(["cv", "application_letter"]),
-  language: z.enum(["en", "id"]).default("en"),
-  path: z.string().min(1),
-  preview: z.string().optional(),
-  is_premium: z.boolean().default(false),
-});
+// Schemas moved to TemplateValidation
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -78,7 +49,7 @@ const sortFieldMap = {
 
 export class TemplateService {
   static async list(query: unknown): Promise<TemplateListResult> {
-    const requestData = validate(AdminTemplateListQuery, query);
+    const requestData = validate(TemplateValidation.LIST_QUERY, query);
     const page = requestData.page;
     const perPage = requestData.per_page;
 
@@ -153,7 +124,7 @@ export class TemplateService {
   }
 
   static async create(request: CreateTemplateRequest): Promise<Template> {
-    const requestData = validate(TemplatePayload, request);
+    const requestData = validate(TemplateValidation.PAYLOAD, request);
 
     // Check if slug is unique
     const existingTemplate = await prisma.template.findFirst({
@@ -222,7 +193,7 @@ export class TemplateService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    const requestData = validate(TemplatePayload.partial(), request);
+    const requestData = validate(TemplateValidation.PAYLOAD.partial(), request);
 
     // Check if slug is unique (excluding current template)
     if (requestData.slug && requestData.slug !== existingTemplate.slug) {

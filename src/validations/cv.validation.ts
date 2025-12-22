@@ -13,10 +13,22 @@ const trimmedString = (max = 255) =>
     .min(1, "Field ini wajib diisi")
     .max(max, `Maksimal ${max} karakter`);
 
-const optionalTrimmedString = (max = 255) => trimmedString(max).optional();
+const optionalTrimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .optional();
 
 const nullableTrimmedString = (max = 255) =>
-  trimmedString(max).nullable().optional();
+  z
+    .string()
+    .trim()
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .nullable()
+    .optional();
 
 const yearSchema = z
   .number()

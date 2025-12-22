@@ -9,7 +9,13 @@ const stringField = (max = 255) =>
     .max(max, `Maksimal ${max} karakter`);
 
 const optionalNullableString = (max = 255) =>
-  stringField(max).nullable().optional();
+  z
+    .string()
+    .trim()
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .nullable()
+    .optional();
 
 const payloadSchema = z.object({
   name: stringField(),
@@ -35,7 +41,7 @@ const payloadSchema = z.object({
   body_paragraph: stringField(5000),
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
-  signature: z.union([stringField(255), z.null()]).optional(),
+  signature: z.union([stringField(255), z.literal(""), z.null()]).optional(),
   template_id: z.string().uuid("ID template tidak valid"),
 });
 
@@ -47,7 +53,7 @@ const listQuerySchema = z.object({
     .min(1, "Per halaman minimal 1")
     .max(100, "Per halaman maksimal 100")
     .default(20),
-  q: stringField(255).optional(),
+  q: z.string().trim().max(255).or(z.literal("")).optional(),
   sort_order: z.enum(["asc", "desc"]).default("desc"),
   sort_by: z
     .enum([
@@ -58,7 +64,7 @@ const listQuerySchema = z.object({
       "subject",
     ])
     .default("created_at"),
-  company_name: stringField(255).optional(),
+  company_name: z.string().trim().max(255).or(z.literal("")).optional(),
   application_date: stringField(50).optional(),
 });
 

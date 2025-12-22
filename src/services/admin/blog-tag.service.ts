@@ -7,6 +7,7 @@ import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
+import { BlogTagValidation } from "../../validations/admin/blog-tag.validation";
 
 type BlogTagListResult = {
   items: BlogTag[];
@@ -28,20 +29,7 @@ type UpdateBlogTagRequest = {
   slug?: string;
 };
 
-// Add validation schema for admin blog tag list
-const AdminBlogTagListQuery = z.object({
-  page: z.coerce.number().min(1).default(1),
-  per_page: z.coerce.number().min(1).max(100).default(20),
-  q: z.string().optional(),
-  sort_by: z.enum(["created_at", "updated_at", "name"]).default("name"),
-  sort_order: z.enum(["asc", "desc"]).default("asc"),
-});
-
-// Add validation schema for create/update blog tag
-const BlogTagPayload = z.object({
-  name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255),
-});
+// Schemas moved to BlogTagValidation
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -51,7 +39,7 @@ const sortFieldMap = {
 
 export class BlogTagService {
   static async list(query: unknown): Promise<BlogTagListResult> {
-    const requestData = validate(AdminBlogTagListQuery, query);
+    const requestData = validate(BlogTagValidation.LIST_QUERY, query);
     const page = requestData.page;
     const perPage = requestData.per_page;
 
@@ -113,7 +101,7 @@ export class BlogTagService {
   }
 
   static async create(request: CreateBlogTagRequest): Promise<BlogTag> {
-    const requestData = validate(BlogTagPayload, request);
+    const requestData = validate(BlogTagValidation.PAYLOAD, request);
 
     // Check if name is unique
     const existingName = await prisma.blogTag.findFirst({
@@ -158,7 +146,7 @@ export class BlogTagService {
       throw new ResponseError(404, "Tag blog tidak ditemukan");
     }
 
-    const requestData = validate(BlogTagPayload.partial(), request);
+    const requestData = validate(BlogTagValidation.PAYLOAD.partial(), request);
 
     // Check if name is unique (excluding current tag)
     if (requestData.name && requestData.name !== existingTag.name) {

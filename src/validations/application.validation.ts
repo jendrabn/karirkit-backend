@@ -15,7 +15,7 @@ const dateOnlySchema = z
   .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
-  z.string().trim().min(1).max(max).nullable().optional();
+  z.string().trim().max(max).or(z.literal("")).nullable().optional();
 
 const optionalString = (max = 255) => z.string().trim().min(1).max(max);
 
@@ -42,7 +42,13 @@ const payloadSchema = z
     status: z.nativeEnum(ApplicationStatus),
     result_status: z.nativeEnum(ApplicationResultStatus),
     contact_name: nullableString(),
-    contact_email: z.string().trim().email().nullable().optional(),
+    contact_email: z
+      .string()
+      .trim()
+      .email()
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
     contact_phone: nullableString(),
     follow_up_date: dateOnlySchema.nullable().optional(),
     follow_up_note: z
@@ -82,7 +88,7 @@ const listQuerySchema = z
       .min(1, "Per halaman minimal 1")
       .max(100, "Per halaman maksimal 100")
       .default(20),
-    q: optionalString(255).optional(),
+    q: optionalString(255).or(z.literal("")).optional(),
     sort_order: z.enum(["asc", "desc"]).default("desc"),
     sort_by: z
       .enum([
@@ -101,7 +107,7 @@ const listQuerySchema = z
     work_system: z.nativeEnum(WorkSystem).optional(),
     date_from: dateOnlySchema.optional(),
     date_to: dateOnlySchema.optional(),
-    location: optionalString().optional(),
+    location: optionalString().or(z.literal("")).optional(),
   })
   .superRefine((data, ctx) => {
     if (

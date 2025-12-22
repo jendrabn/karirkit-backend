@@ -3,8 +3,8 @@ import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma.config";
 import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
-import { AuthValidation } from "../../validations/auth.validation";
 import { z } from "zod";
+import { UserValidation } from "../../validations/admin/user.validation";
 
 type SafeUser = {
   id: string;
@@ -47,19 +47,7 @@ type UpdateUserRequest = {
   avatar?: string | null;
 };
 
-// Add validation schema for admin user list
-const AdminUserListQuery = z.object({
-  page: z.coerce.number().min(1).default(1),
-  per_page: z.coerce.number().min(1).max(100).default(20),
-  q: z.string().optional(),
-  sort_by: z
-    .enum(["created_at", "updated_at", "name", "username", "email", "role"])
-    .default("created_at"),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  role: z.enum(["user", "admin"]).optional(),
-  created_from: z.string().optional(),
-  created_to: z.string().optional(),
-});
+// Schemas moved to UserValidation
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -72,7 +60,7 @@ const sortFieldMap = {
 
 export class UserService {
   static async list(query: unknown): Promise<UserListResult> {
-    const requestData = validate(AdminUserListQuery, query);
+    const requestData = validate(UserValidation.LIST_QUERY, query);
     const page = requestData.page;
     const perPage = requestData.per_page;
 
@@ -198,7 +186,7 @@ export class UserService {
   }
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
-    const requestData = validate(AuthValidation.REGISTER, request);
+    const requestData = validate(UserValidation.CREATE, request);
 
     // Check if email already exists
     const existingEmail = await prisma.user.count({
@@ -227,8 +215,8 @@ export class UserService {
         email: requestData.email,
         password: hashedPassword,
         phone: requestData.phone ?? null,
-        role: (requestData as any).role ?? "user",
-        avatar: (requestData as any).avatar ?? null,
+        role: requestData.role,
+        avatar: requestData.avatar ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -271,11 +259,13 @@ export class UserService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
+    const requestData = validate(UserValidation.UPDATE, request);
+
     // Check if email already exists (excluding current user)
-    if (request.email && request.email !== existingUser.email) {
+    if (requestData.email && requestData.email !== existingUser.email) {
       const emailExists = await prisma.user.count({
         where: {
-          email: request.email,
+          email: requestData.email,
           NOT: { id },
         },
       });
@@ -286,10 +276,13 @@ export class UserService {
     }
 
     // Check if username already exists (excluding current user)
-    if (request.username && request.username !== existingUser.username) {
+    if (
+      requestData.username &&
+      requestData.username !== existingUser.username
+    ) {
       const usernameExists = await prisma.user.count({
         where: {
-          username: request.username,
+          username: requestData.username,
           NOT: { id },
         },
       });
@@ -303,28 +296,28 @@ export class UserService {
       updatedAt: new Date(),
     };
 
-    if (request.name !== undefined) {
-      updateData.name = request.name;
+    if (requestData.name !== undefined) {
+      updateData.name = requestData.name;
     }
 
-    if (request.username !== undefined) {
-      updateData.username = request.username;
+    if (requestData.username !== undefined) {
+      updateData.username = requestData.username;
     }
 
-    if (request.email !== undefined) {
-      updateData.email = request.email;
+    if (requestData.email !== undefined) {
+      updateData.email = requestData.email;
     }
 
-    if (request.phone !== undefined) {
-      updateData.phone = request.phone;
+    if (requestData.phone !== undefined) {
+      updateData.phone = requestData.phone;
     }
 
-    if (request.role !== undefined) {
-      updateData.role = request.role;
+    if (requestData.role !== undefined) {
+      updateData.role = requestData.role;
     }
 
-    if (request.avatar !== undefined) {
-      updateData.avatar = request.avatar;
+    if (requestData.avatar !== undefined) {
+      updateData.avatar = requestData.avatar;
     }
 
     const user = await prisma.user.update({

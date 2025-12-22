@@ -10,7 +10,7 @@ const dateOnlySchema = z
   .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
-  z.string().trim().min(1).max(max).nullable().optional();
+  z.string().trim().max(max).or(z.literal("")).nullable().optional();
 
 const optionalString = (max = 255) => z.string().trim().min(1).max(max);
 
@@ -43,15 +43,15 @@ const listQuerySchema = z
       .min(1, "Per halaman minimal 1")
       .max(100, "Per halaman maksimal 100")
       .default(20),
-    q: optionalString(255).optional(),
+    q: optionalString(255).or(z.literal("")).optional(),
     sort_order: z.enum(["asc", "desc"]).default("desc"),
     sort_by: z
       .enum(["created_at", "updated_at", "published_at", "title", "views"])
       .default("published_at"),
     status: z.enum(["published"]).default("published"),
-    category_id: optionalString().optional(),
-    tag_id: optionalString().optional(),
-    author_id: optionalString().optional(),
+    category_id: optionalString().or(z.literal("")).optional(),
+    tag_id: optionalString().or(z.literal("")).optional(),
+    author_id: optionalString().or(z.literal("")).optional(),
     published_from: dateOnlySchema.optional(),
     published_to: dateOnlySchema.optional(),
   })

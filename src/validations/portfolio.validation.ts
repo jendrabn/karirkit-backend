@@ -5,8 +5,8 @@ const nullableString = (max = 255) =>
   z
     .string()
     .trim()
-    .min(1, "Field ini wajib diisi")
     .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
     .nullable()
     .optional();
 
@@ -14,8 +14,8 @@ const optionalString = (max = 255) =>
   z
     .string()
     .trim()
-    .min(1, "Field ini wajib diisi")
     .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
     .optional();
 
 const slugSchema = z

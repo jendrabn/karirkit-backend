@@ -5,8 +5,8 @@ import type {
 import type { BlogCategory } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
-import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
+import { BlogCategoryValidation } from "../../validations/admin/blog-category.validation";
 
 type BlogCategoryListResult = {
   items: BlogCategory[];
@@ -30,21 +30,7 @@ type UpdateBlogCategoryRequest = {
   description?: string | null;
 };
 
-// Add validation schema for admin blog category list
-const AdminBlogCategoryListQuery = z.object({
-  page: z.coerce.number().min(1).default(1),
-  per_page: z.coerce.number().min(1).max(100).default(20),
-  q: z.string().optional(),
-  sort_by: z.enum(["created_at", "updated_at", "name"]).default("name"),
-  sort_order: z.enum(["asc", "desc"]).default("asc"),
-});
-
-// Add validation schema for create/update blog category
-const BlogCategoryPayload = z.object({
-  name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255),
-  description: z.string().nullable().optional(),
-});
+// Schemas moved to BlogCategoryValidation
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -54,7 +40,7 @@ const sortFieldMap = {
 
 export class BlogCategoryService {
   static async list(query: unknown): Promise<BlogCategoryListResult> {
-    const requestData = validate(AdminBlogCategoryListQuery, query);
+    const requestData = validate(BlogCategoryValidation.LIST_QUERY, query);
     const page = requestData.page;
     const perPage = requestData.per_page;
 
@@ -119,7 +105,7 @@ export class BlogCategoryService {
   static async create(
     request: CreateBlogCategoryRequest
   ): Promise<BlogCategory> {
-    const requestData = validate(BlogCategoryPayload, request);
+    const requestData = validate(BlogCategoryValidation.PAYLOAD, request);
 
     // Check if name is unique
     const existingName = await prisma.blogCategory.findFirst({
@@ -165,7 +151,10 @@ export class BlogCategoryService {
       throw new ResponseError(404, "Kategori blog tidak ditemukan");
     }
 
-    const requestData = validate(BlogCategoryPayload.partial(), request);
+    const requestData = validate(
+      BlogCategoryValidation.PAYLOAD.partial(),
+      request
+    );
 
     // Check if name is unique (excluding current category)
     if (requestData.name && requestData.name !== existingCategory.name) {

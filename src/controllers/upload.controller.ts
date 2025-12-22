@@ -11,7 +11,27 @@ export class UploadController {
         throw new ResponseError(401, "Tidak terautentikasi");
       }
 
-      const result = await UploadService.uploadTempFile(userId, req.file);
+      const qualityQuery = req.query.quality as string;
+      const webpQuery = req.query.webp as string;
+      const formatQuery = req.query.format as string;
+
+      let quality = 50;
+      if (qualityQuery && qualityQuery !== "") {
+        const parsed = parseInt(qualityQuery);
+        if (!isNaN(parsed)) {
+          quality = Math.max(25, Math.min(75, parsed));
+        }
+      }
+
+      const toWebp = webpQuery !== "false";
+      const allowedFormats =
+        formatQuery && formatQuery !== "" ? formatQuery.split(",") : undefined;
+
+      const result = await UploadService.uploadTempFile(userId, req.file, {
+        quality,
+        toWebp,
+        allowedFormats,
+      });
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);
@@ -20,7 +40,27 @@ export class UploadController {
 
   static async uploadBlog(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await UploadService.uploadBlogFile(req.file);
+      const qualityQuery = req.query.quality as string;
+      const webpQuery = req.query.webp as string;
+      const formatQuery = req.query.format as string;
+
+      let quality = 50;
+      if (qualityQuery && qualityQuery !== "") {
+        const parsed = parseInt(qualityQuery);
+        if (!isNaN(parsed)) {
+          quality = Math.max(25, Math.min(75, parsed));
+        }
+      }
+
+      const toWebp = webpQuery !== "false";
+      const allowedFormats =
+        formatQuery && formatQuery !== "" ? formatQuery.split(",") : undefined;
+
+      const result = await UploadService.uploadBlogFile(req.file, {
+        quality,
+        toWebp,
+        allowedFormats,
+      });
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);
