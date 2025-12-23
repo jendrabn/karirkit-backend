@@ -327,6 +327,62 @@ export class PortfolioService {
     await PortfolioService.deletePortfolioFiles(filesToDelete);
   }
 
+  static async massDelete(
+    userId: string,
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(PortfolioValidation.MASS_DELETE, request);
+
+    // Verify all portfolios belong to the user
+    const portfolios = await prisma.portfolio.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+      include: portfolioInclude,
+    });
+
+    if (portfolios.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih portfolio tidak ditemukan");
+    }
+
+    // Collect all files to delete
+    const filesToDelete: string[] = [];
+    for (const portfolio of portfolios) {
+      const coverPath = PortfolioService.normalizePortfolioPublicPath(
+        portfolio.cover
+      );
+      if (coverPath) {
+        filesToDelete.push(coverPath);
+      }
+
+      for (const media of portfolio.medias) {
+        const mediaPath = PortfolioService.normalizePortfolioPublicPath(
+          media.path
+        );
+        if (mediaPath) {
+          filesToDelete.push(mediaPath);
+        }
+      }
+    }
+
+    // Delete portfolios
+    const result = await prisma.portfolio.deleteMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+
+    // Delete associated files
+    await PortfolioService.deletePortfolioFiles(filesToDelete);
+
+    return {
+      message: `${result.count} portfolio berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
+
   private static async findOwnedPortfolio(
     userId: string,
     id: string

@@ -50,4 +50,13 @@ export class BlogCategoryController {
       next(error);
     }
   }
+
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await BlogCategoryService.massDelete(req.body);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

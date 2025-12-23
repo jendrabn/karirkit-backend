@@ -78,4 +78,16 @@ export class ApplicationController {
       next(error);
     }
   }
+
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await ApplicationService.massDelete(
+        req.user!.id,
+        req.body
+      );
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

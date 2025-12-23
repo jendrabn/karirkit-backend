@@ -47,4 +47,13 @@ export class TemplateController {
       next(error);
     }
   }
+
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await TemplateService.massDelete(req.body);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

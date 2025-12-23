@@ -49,6 +49,15 @@ export class CvController {
     }
   }
 
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await CvService.massDelete(req.user!.id, req.body);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async duplicate(req: Request, res: Response, next: NextFunction) {
     try {
       const cv = await CvService.duplicate(req.user!.id, req.params.id);

@@ -30,4 +30,8 @@ export class TemplateValidation {
     preview: z.string().or(z.literal("")).optional(),
     is_premium: z.boolean().default(false),
   });
+
+  static readonly MASS_DELETE = z.object({
+    ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+  });
 }

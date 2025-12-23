@@ -240,6 +240,58 @@ export class BlogCategoryService {
     });
   }
 
+  static async massDelete(
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(BlogCategoryValidation.MASS_DELETE, request);
+
+    // Verify all categories exist
+    const categories = await prisma.blogCategory.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (categories.length !== ids.length) {
+      throw new ResponseError(
+        404,
+        "Satu atau lebih kategori blog tidak ditemukan"
+      );
+    }
+
+    // Check if any categories are being used by blogs
+    const blogsUsingCategories = await prisma.blog.count({
+      where: {
+        categoryId: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (blogsUsingCategories > 0) {
+      throw new ResponseError(
+        400,
+        "Tidak dapat menghapus kategori yang sedang digunakan oleh blog"
+      );
+    }
+
+    // Soft delete categories
+    const result = await prisma.blogCategory.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `${result.count} kategori blog berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
+
   private static toResponse(category: PrismaBlogCategory): BlogCategory {
     return {
       id: category.id,

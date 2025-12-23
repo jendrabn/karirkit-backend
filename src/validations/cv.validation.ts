@@ -144,9 +144,14 @@ const listQuerySchema = z.object({
   email: z.string().trim().email("Format email tidak valid").optional(),
 });
 
+const massDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+});
+
 export class CvValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
+  static readonly MASS_DELETE = massDeleteSchema;
 }
 
 export type CvPayloadInput = z.infer<typeof payloadSchema>;
@@ -158,3 +163,4 @@ export type CvSkillPayloadInput = z.infer<typeof skillSchema>;
 export type CvAwardPayloadInput = z.infer<typeof awardSchema>;
 export type CvSocialLinkPayloadInput = z.infer<typeof socialLinkSchema>;
 export type CvOrganizationPayloadInput = z.infer<typeof organizationSchema>;
+export type MassDeleteInput = z.infer<typeof CvValidation.MASS_DELETE>;

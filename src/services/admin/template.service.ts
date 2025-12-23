@@ -293,4 +293,38 @@ export class TemplateService {
       data: { deletedAt: new Date() },
     });
   }
+
+  static async massDelete(
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(TemplateValidation.MASS_DELETE, request);
+
+    // Verify all templates exist
+    const templates = await prisma.template.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (templates.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih template tidak ditemukan");
+    }
+
+    // Soft delete templates
+    const result = await prisma.template.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `${result.count} template berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
 }

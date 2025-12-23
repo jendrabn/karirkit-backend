@@ -105,4 +105,16 @@ export class ApplicationLetterController {
 
     return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
   }
+
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await ApplicationLetterService.massDelete(
+        req.user!.id,
+        req.body
+      );
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

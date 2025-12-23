@@ -123,9 +123,14 @@ const listQuerySchema = z
     }
   });
 
+const massDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+});
+
 export class ApplicationValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
+  static readonly MASS_DELETE = massDeleteSchema;
 }
 
 export type ApplicationPayloadInput = z.infer<
@@ -135,3 +140,5 @@ export type ApplicationPayloadInput = z.infer<
 export type ApplicationListQuery = z.infer<
   typeof ApplicationValidation.LIST_QUERY
 >;
+
+export type MassDeleteInput = z.infer<typeof ApplicationValidation.MASS_DELETE>;

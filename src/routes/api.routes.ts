@@ -93,6 +93,11 @@ router.get(
   authMiddleware,
   ApplicationController.getStats
 );
+router.delete(
+  "/applications/mass-delete",
+  authMiddleware,
+  ApplicationController.massDelete
+);
 router.get("/applications/:id", authMiddleware, ApplicationController.get);
 router.put("/applications/:id", authMiddleware, ApplicationController.update);
 router.delete(
@@ -116,6 +121,11 @@ router.post(
   "/application-letters",
   authMiddleware,
   ApplicationLetterController.create
+);
+router.delete(
+  "/application-letters/mass-delete",
+  authMiddleware,
+  ApplicationLetterController.massDelete
 );
 router.get(
   "/application-letters/:id",
@@ -146,6 +156,11 @@ router.get(
 // Portfolios API
 router.get("/portfolios", authMiddleware, PortfolioController.list);
 router.post("/portfolios", authMiddleware, PortfolioController.create);
+router.delete(
+  "/portfolios/mass-delete",
+  authMiddleware,
+  PortfolioController.massDelete
+);
 router.get("/portfolios/:id", authMiddleware, PortfolioController.get);
 router.put("/portfolios/:id", authMiddleware, PortfolioController.update);
 router.delete("/portfolios/:id", authMiddleware, PortfolioController.delete);
@@ -153,6 +168,7 @@ router.delete("/portfolios/:id", authMiddleware, PortfolioController.delete);
 // CVs API
 router.get("/cvs", authMiddleware, CvController.list);
 router.post("/cvs", authMiddleware, CvController.create);
+router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
 router.get("/cvs/:id", authMiddleware, CvController.get);
 router.put("/cvs/:id", authMiddleware, CvController.update);
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
@@ -192,6 +208,12 @@ router.post(
   adminMiddleware,
   UserController.create
 );
+router.delete(
+  "/admin/users/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  UserController.massDelete
+);
 router.get(
   "/admin/users/:id",
   authMiddleware,
@@ -224,6 +246,12 @@ router.post(
   adminMiddleware,
   TemplateController.create
 );
+router.delete(
+  "/admin/templates/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  TemplateController.massDelete
+);
 router.get(
   "/admin/templates/:id",
   authMiddleware,
@@ -255,6 +283,12 @@ router.post(
   authMiddleware,
   adminMiddleware,
   AdminBlogController.create
+);
+router.delete(
+  "/admin/blogs/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  AdminBlogController.massDelete
 );
 router.get(
   "/admin/blogs/:id",
@@ -297,6 +331,12 @@ router.post(
   adminMiddleware,
   BlogCategoryController.create
 );
+router.delete(
+  "/admin/blog-categories/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  BlogCategoryController.massDelete
+);
 router.get(
   "/admin/blog-categories/:id",
   authMiddleware,
@@ -328,6 +368,12 @@ router.post(
   authMiddleware,
   adminMiddleware,
   BlogTagController.create
+);
+router.delete(
+  "/admin/blog-tags/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  BlogTagController.massDelete
 );
 router.get(
   "/admin/blog-tags/:id",

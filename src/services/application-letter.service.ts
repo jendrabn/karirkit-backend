@@ -16,6 +16,7 @@ import {
   ApplicationLetterValidation,
   type ApplicationLetterListQuery,
   type ApplicationLetterPayloadInput,
+  type MassDeleteInput,
 } from "../validations/application-letter.validation";
 import { ResponseError } from "../utils/response-error.util";
 
@@ -842,6 +843,42 @@ export class ApplicationLetterService {
         : null,
       created_at: letter.createdAt?.toISOString(),
       updated_at: letter.updatedAt?.toISOString(),
+    };
+  }
+
+  static async massDelete(
+    userId: string,
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(ApplicationLetterValidation.MASS_DELETE, request);
+
+    // Verify all application letters belong to the user
+    const letters = await prisma.applicationLetter.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+      select: { id: true },
+    });
+
+    if (letters.length !== ids.length) {
+      throw new ResponseError(
+        404,
+        "Beberapa surat lamaran tidak ditemukan atau bukan milik Anda"
+      );
+    }
+
+    // Delete all application letters
+    const result = await prisma.applicationLetter.deleteMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+
+    return {
+      message: `${result.count} surat lamaran berhasil dihapus`,
+      deleted_count: result.count,
     };
   }
 }

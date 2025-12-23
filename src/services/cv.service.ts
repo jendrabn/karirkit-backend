@@ -383,6 +383,50 @@ export class CvService {
     }
   }
 
+  static async massDelete(
+    userId: string,
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(CvValidation.MASS_DELETE, request);
+
+    // Verify all CVs belong to user
+    const cvs = await prisma.cv.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+      include: relationInclude,
+    });
+
+    if (cvs.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih CV tidak ditemukan");
+    }
+
+    // Collect all photo files to delete
+    const filesToDelete: string[] = [];
+    for (const cv of cvs) {
+      if (cv.photo) {
+        filesToDelete.push(cv.photo);
+      }
+    }
+
+    // Delete CVs
+    const result = await prisma.cv.deleteMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+
+    // Delete associated files
+    await CvService.deleteFiles(filesToDelete);
+
+    return {
+      message: `${result.count} CV berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
+
   static async duplicate(userId: string, id: string): Promise<CvResponse> {
     const source = await CvService.findOwnedCv(userId, id);
     const now = new Date();

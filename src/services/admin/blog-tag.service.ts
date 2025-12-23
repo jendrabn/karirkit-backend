@@ -227,6 +227,54 @@ export class BlogTagService {
     });
   }
 
+  static async massDelete(
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(BlogTagValidation.MASS_DELETE, request);
+
+    // Verify all tags exist
+    const tags = await prisma.blogTag.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (tags.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih tag blog tidak ditemukan");
+    }
+
+    // Check if any tags are being used by blogs
+    const blogsUsingTags = await prisma.blogTagRelation.count({
+      where: {
+        tagId: { in: ids },
+      },
+    });
+
+    if (blogsUsingTags > 0) {
+      throw new ResponseError(
+        400,
+        "Tidak dapat menghapus tag yang sedang digunakan oleh blog"
+      );
+    }
+
+    // Soft delete tags
+    const result = await prisma.blogTag.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `${result.count} tag blog berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
+
   private static toResponse(tag: PrismaBlogTag): BlogTag {
     return {
       id: tag.id,

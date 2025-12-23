@@ -365,4 +365,38 @@ export class UserService {
       data: { deletedAt: new Date() },
     });
   }
+
+  static async massDelete(
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(UserValidation.MASS_DELETE, request);
+
+    // Verify all users exist
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (users.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih pengguna tidak ditemukan");
+    }
+
+    // Soft delete users
+    const result = await prisma.user.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `${result.count} pengguna berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
 }

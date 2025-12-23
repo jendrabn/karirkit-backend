@@ -68,9 +68,14 @@ const listQuerySchema = z.object({
   application_date: stringField(50).optional(),
 });
 
+const massDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+});
+
 export class ApplicationLetterValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
+  static readonly MASS_DELETE = massDeleteSchema;
 }
 
 export type ApplicationLetterPayloadInput = z.infer<
@@ -79,4 +84,8 @@ export type ApplicationLetterPayloadInput = z.infer<
 
 export type ApplicationLetterListQuery = z.infer<
   typeof ApplicationLetterValidation.LIST_QUERY
+>;
+
+export type MassDeleteInput = z.infer<
+  typeof ApplicationLetterValidation.MASS_DELETE
 >;

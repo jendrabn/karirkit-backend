@@ -457,6 +457,40 @@ export class BlogService {
     });
   }
 
+  static async massDelete(
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(BlogValidation.MASS_DELETE, request);
+
+    // Verify all blogs exist
+    const blogs = await prisma.blog.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    if (blogs.length !== ids.length) {
+      throw new ResponseError(404, "Satu atau lebih blog tidak ditemukan");
+    }
+
+    // Soft delete blogs
+    const result = await prisma.blog.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `${result.count} blog berhasil dihapus`,
+      deleted_count: result.count,
+    };
+  }
+
   private static async findBlog(id: string): Promise<PrismaBlog> {
     const blog = await prisma.blog.findFirst({
       where: {

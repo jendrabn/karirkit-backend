@@ -492,6 +492,45 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /applications/mass-delete:
+    delete:
+      tags: [Applications]
+      summary: Mass delete applications
+      description: Delete multiple applications belonging to the authenticated user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of application IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Applications deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /applications/{id}/duplicate:
     post:
       tags: [Applications]
@@ -623,6 +662,45 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /application-letters/mass-delete:
+    delete:
+      tags: [Application Letters]
+      summary: Mass delete application letters
+      description: Delete multiple application letters belonging to the authenticated user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of application letter IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Application letters deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /application-letters/{id}/duplicate:
     post:
       tags: [Application Letters]
@@ -831,6 +909,45 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /portfolios/mass-delete:
+    delete:
+      tags: [Portfolios]
+      summary: Mass delete portfolios
+      description: Delete multiple portfolios belonging to the authenticated user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of portfolio IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Portfolios deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /u/@{username}:
     get:
       tags: [Public]
@@ -995,6 +1112,45 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /cvs/mass-delete:
+    delete:
+      tags: [CVs]
+      summary: Mass delete CVs
+      description: Delete multiple CVs belonging to the authenticated user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of CV IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: CVs deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /cvs/{id}/duplicate:
     post:
       tags: [CVs]
@@ -1339,6 +1495,47 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/users/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete users
+      description: Delete multiple users (admin only)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of user IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Users deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /templates:
     get:
       tags: [Public]
@@ -1505,6 +1702,47 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/templates/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete templates
+      description: Delete multiple templates (admin only)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of template IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Templates deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /admin/blogs:
     get:
       tags: [Admin]
@@ -1647,6 +1885,47 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/blogs/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete blogs
+      description: Delete multiple blog posts (admin only)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blog IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Blogs deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /admin/blog-categories:
     get:
       tags: [Admin]
@@ -1766,6 +2045,47 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/blog-categories/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete blog categories
+      description: Delete multiple blog categories (admin only)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blog category IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Blog categories deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /admin/blog-tags:
     get:
       tags: [Admin]
@@ -1821,102 +2141,143 @@ paths:
         '400':
           $ref: '#/components/responses/ValidationError'
   /admin/blog-tags/{id}:
-              get:
-                tags: [Admin]
-                summary: Get blog tag detail
-                security:
-                  - sessionCookie: []
-                parameters:
-                  - $ref: '#/components/parameters/ResourceId'
-                responses:
-                  '200':
-                    description: Blog tag detail
-                    content:
-                      application/json:
-                        schema:
-                          $ref: '#/components/schemas/BlogTagResponse'
-                  '401':
-                    $ref: '#/components/responses/Unauthorized'
-                  '403':
-                    $ref: '#/components/responses/Forbidden'
-                  '404':
-                    $ref: '#/components/responses/NotFound'
-              put:
-                tags: [Admin]
-                summary: Update blog tag
-                security:
-                  - sessionCookie: []
-                parameters:
-                  - $ref: '#/components/parameters/ResourceId'
-                requestBody:
-                  required: true
-                  content:
-                    application/json:
-                      schema:
-                        $ref: '#/components/schemas/AdminUpdateBlogTagRequest'
-                responses:
-                  '200':
-                    description: Updated blog tag
-                    content:
-                      application/json:
-                        schema:
-                          $ref: '#/components/schemas/BlogTagResponse'
-                  '401':
-                    $ref: '#/components/responses/Unauthorized'
-                  '403':
-                    $ref: '#/components/responses/Forbidden'
-                  '404':
-                    $ref: '#/components/responses/NotFound'
-                  '400':
-                    $ref: '#/components/responses/ValidationError'
-              delete:
-                tags: [Admin]
-                summary: Delete blog tag
-                security:
-                  - sessionCookie: []
-                parameters:
-                  - $ref: '#/components/parameters/ResourceId'
-                responses:
-                  '204':
-                    description: Deleted
-                  '401':
-                    $ref: '#/components/responses/Unauthorized'
-                  '403':
-                    $ref: '#/components/responses/Forbidden'
-                  '404':
-                    $ref: '#/components/responses/NotFound'
+    get:
+      tags: [Admin]
+      summary: Get blog tag detail
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Blog tag detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogTagResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update blog tag
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateBlogTagRequest'
+      responses:
+        '200':
+          description: Updated blog tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogTagResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete blog tag
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/blog-tags/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete blog tags
+      description: Delete multiple blog tags (admin only)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of blog tag IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Blog tags deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /admin/blogs/uploads:
-   post:
-     tags: [Admin]
-     summary: Upload blog file
-     description: Upload files for blog posts (featured images, attachments, etc.) to the temp folder for later association with blog posts.
-     security:
-       - sessionCookie: []
-     requestBody:
-       required: true
-       content:
-         multipart/form-data:
-           schema:
-             type: object
-             properties:
-               file:
-                 type: string
-                 format: binary
-                 description: File to upload for blog post (image, document, etc.)
-             required: [file]
-     responses:
-       '201':
-         description: File uploaded successfully
-         content:
-           application/json:
-             schema:
-               $ref: '#/components/schemas/TempUploadResponse'
-       '400':
-         $ref: '#/components/responses/ValidationError'
-       '401':
-         $ref: '#/components/responses/Unauthorized'
-       '403':
-         $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Upload blog file
+      description: Upload files for blog posts (featured images, attachments, etc.) to the temp folder for later association with blog posts.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload for blog post (image, document, etc.)
+              required: [file]
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TempUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     sessionCookie:

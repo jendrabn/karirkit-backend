@@ -123,11 +123,17 @@ const listQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
 });
 
+const massDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+});
+
 export class PortfolioValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
+  static readonly MASS_DELETE = massDeleteSchema;
 }
 
 export type PortfolioPayloadInput = z.infer<typeof PortfolioValidation.PAYLOAD>;
 export type PortfolioListQuery = z.infer<typeof PortfolioValidation.LIST_QUERY>;
 export type PortfolioMediaPayloadInput = z.infer<typeof mediaSchema>;
+export type MassDeleteInput = z.infer<typeof PortfolioValidation.MASS_DELETE>;

@@ -47,4 +47,13 @@ export class BlogTagController {
       next(error);
     }
   }
+
+  static async massDelete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await BlogTagService.massDelete(req.body);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

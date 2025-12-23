@@ -12,6 +12,7 @@ import {
   ApplicationValidation,
   type ApplicationListQuery,
   type ApplicationPayloadInput,
+  type MassDeleteInput,
 } from "../validations/application.validation";
 import { ResponseError } from "../utils/response-error.util";
 
@@ -440,6 +441,42 @@ export class ApplicationService {
       notes: application.notes ?? null,
       created_at: application.createdAt?.toISOString(),
       updated_at: application.updatedAt?.toISOString(),
+    };
+  }
+
+  static async massDelete(
+    userId: string,
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const { ids } = validate(ApplicationValidation.MASS_DELETE, request);
+
+    // Verify all applications belong to user
+    const applications = await prisma.application.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+      select: { id: true },
+    });
+
+    if (applications.length !== ids.length) {
+      throw new ResponseError(
+        404,
+        "Beberapa lamaran tidak ditemukan atau bukan milik Anda"
+      );
+    }
+
+    // Delete all applications
+    const result = await prisma.application.deleteMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+
+    return {
+      message: `${result.count} lamaran berhasil dihapus`,
+      deleted_count: result.count,
     };
   }
 }

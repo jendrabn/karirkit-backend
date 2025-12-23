@@ -71,4 +71,8 @@ export class UserValidation {
     role: z.enum(["user", "admin"]).optional(),
     avatar: z.string().or(z.literal("")).nullable().optional(),
   });
+
+  static readonly MASS_DELETE = z.object({
+    ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+  });
 }

@@ -35,4 +35,8 @@ export class BlogValidation {
     author_id: z.string().min(1),
     tag_ids: z.array(z.string()).optional(),
   });
+
+  static readonly MASS_DELETE = z.object({
+    ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
+  });
 }
