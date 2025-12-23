@@ -53,9 +53,7 @@ export class TemplateService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.TemplateWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.TemplateWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -112,7 +110,6 @@ export class TemplateService {
     const template = await prisma.template.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
     });
 
@@ -186,7 +183,7 @@ export class TemplateService {
   ): Promise<Template> {
     // Check if template exists
     const existingTemplate = await prisma.template.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingTemplate) {
@@ -280,7 +277,7 @@ export class TemplateService {
   static async delete(id: string): Promise<void> {
     // Check if template exists
     const existingTemplate = await prisma.template.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingTemplate) {

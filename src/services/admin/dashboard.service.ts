@@ -74,58 +74,47 @@ export class DashboardService {
       userRoleDistribution,
     ] = await Promise.all([
       // Total users
-      prisma.user.count({
-        where: { deletedAt: null },
-      }),
+      prisma.user.count(),
 
       // Total admins
       prisma.user.count({
-        where: { role: "admin", deletedAt: null },
+        where: { role: "admin" },
       }),
 
       // Total blogs
-      prisma.blog.count({
-        where: { deletedAt: null },
-      }),
+      prisma.blog.count(),
 
       // Total published blogs
       prisma.blog.count({
-        where: { status: "published", deletedAt: null },
+        where: { status: "published" },
       }),
 
       // Total draft blogs
       prisma.blog.count({
-        where: { status: "draft", deletedAt: null },
+        where: { status: "draft" },
       }),
 
       // Total categories
-      prisma.blogCategory.count({
-        where: { deletedAt: null },
-      }),
+      prisma.blogCategory.count(),
 
       // Total tags
-      prisma.blogTag.count({
-        where: { deletedAt: null },
-      }),
+      prisma.blogTag.count(),
 
       // Total templates
-      prisma.template.count({
-        where: { deletedAt: null },
-      }),
+      prisma.template.count(),
 
       // Total CV templates
       prisma.template.count({
-        where: { type: "cv", deletedAt: null },
+        where: { type: "cv" },
       }),
 
       // Total application letter templates
       prisma.template.count({
-        where: { type: "application_letter", deletedAt: null },
+        where: { type: "application_letter" },
       }),
 
       // Recent users (last 5)
       prisma.user.findMany({
-        where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -142,7 +131,6 @@ export class DashboardService {
 
       // Recent blogs (last 5)
       prisma.blog.findMany({
-        where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
         include: {
@@ -166,14 +154,12 @@ export class DashboardService {
       // Blog status distribution
       prisma.blog.groupBy({
         by: ["status"],
-        where: { deletedAt: null },
         _count: { status: true },
       }),
 
       // User role distribution
       prisma.user.groupBy({
         by: ["role"],
-        where: { deletedAt: null },
         _count: { role: true },
       }),
     ]);

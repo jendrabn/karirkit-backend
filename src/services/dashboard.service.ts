@@ -24,7 +24,6 @@ export class DashboardService {
       prisma.application.count({
         where: {
           userId,
-          deletedAt: null,
         },
       }),
 
@@ -32,7 +31,6 @@ export class DashboardService {
       prisma.application.count({
         where: {
           userId,
-          deletedAt: null,
           status: {
             notIn: ["rejected", "accepted"],
           },
@@ -43,7 +41,6 @@ export class DashboardService {
       prisma.application.count({
         where: {
           userId,
-          deletedAt: null,
           status: {
             in: ["rejected", "accepted"],
           },
@@ -54,7 +51,6 @@ export class DashboardService {
       prisma.applicationLetter.count({
         where: {
           userId,
-          deletedAt: null,
         },
       }),
 
@@ -62,7 +58,6 @@ export class DashboardService {
       prisma.cv.count({
         where: {
           userId,
-          deletedAt: null,
         },
       }),
 
@@ -70,7 +65,6 @@ export class DashboardService {
       prisma.portfolio.count({
         where: {
           userId,
-          deletedAt: null,
         },
       }),
     ]);

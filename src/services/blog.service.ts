@@ -45,7 +45,6 @@ export class BlogService {
 
     const where: Prisma.BlogWhereInput = {
       status: filters.status,
-      deletedAt: null,
     };
 
     if (filters.q) {
@@ -139,7 +138,6 @@ export class BlogService {
       where: {
         slug,
         status: "published",
-        deletedAt: null,
       },
       include: {
         user: {
@@ -365,30 +363,55 @@ export class BlogService {
 
   static async delete(userId: string, id: string): Promise<void> {
     await BlogService.findOwnedBlog(userId, id);
-    await prisma.blog.update({
+    await prisma.blog.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
   static async getCategories(): Promise<BlogCategory[]> {
     const categories = await prisma.blogCategory.findMany({
-      where: { deletedAt: null },
+      where: {},
       orderBy: { name: "asc" },
+      include: {
+        _count: {
+          select: {
+            blogs: {},
+          },
+        },
+      },
     });
 
     return categories.map((category) =>
-      BlogService.toCategoryResponse(category)
+      BlogService.toCategoryResponse(category, category._count?.blogs ?? 0)
     );
   }
 
   static async getTags(): Promise<BlogTag[]> {
     const tags = await prisma.blogTag.findMany({
-      where: { deletedAt: null },
+      where: {},
       orderBy: { name: "asc" },
     });
 
-    return tags.map((tag) => BlogService.toTagResponse(tag));
+    // Get blog counts for each tag
+    const tagIds = tags.map((tag) => tag.id);
+    const blogCounts = await prisma.blogTagRelation.groupBy({
+      by: ["tagId"],
+      where: {
+        tagId: { in: tagIds },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const blogCountMap = blogCounts.reduce((acc, item) => {
+      acc[item.tagId] = item._count._all;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return tags.map((tag) =>
+      BlogService.toTagResponse(tag, blogCountMap[tag.id] ?? 0)
+    );
   }
 
   private static async findOwnedBlog(
@@ -400,7 +423,6 @@ export class BlogService {
       where: {
         id,
         userId,
-        deletedAt: null,
       },
       include,
     });
@@ -429,23 +451,29 @@ export class BlogService {
   }
 
   private static toCategoryResponse(
-    category: PrismaBlogCategory
+    category: PrismaBlogCategory & { _count?: { blogs?: number } },
+    blogCount: number = 0
   ): BlogCategory {
     return {
       id: category.id,
       name: category.name,
       slug: category.slug,
       description: category.description ?? null,
+      blog_count: blogCount,
       created_at: category.createdAt?.toISOString(),
       updated_at: category.updatedAt?.toISOString(),
     };
   }
 
-  private static toTagResponse(tag: PrismaBlogTag): BlogTag {
+  private static toTagResponse(
+    tag: PrismaBlogTag,
+    blogCount: number = 0
+  ): BlogTag {
     return {
       id: tag.id,
       name: tag.name,
       slug: tag.slug,
+      blog_count: blogCount,
       created_at: tag.createdAt?.toISOString(),
       updated_at: tag.updatedAt?.toISOString(),
     };
@@ -475,11 +503,11 @@ export class BlogService {
       published_at: blog.publishedAt?.toISOString() ?? null,
       user: blog.user ?? null,
       category: blog.category
-        ? BlogService.toCategoryResponse(blog.category)
+        ? BlogService.toCategoryResponse(blog.category, 0)
         : null,
       tags: blog.tags
         ? blog.tags.map((tagRelation) =>
-            BlogService.toTagResponse(tagRelation.tag)
+            BlogService.toTagResponse(tagRelation.tag, 0)
           )
         : [],
     };

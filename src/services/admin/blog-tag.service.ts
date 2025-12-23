@@ -43,9 +43,7 @@ export class BlogTagService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogTagWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.BlogTagWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -71,11 +69,31 @@ export class BlogTagService {
       }),
     ]);
 
+    // Get blog counts for each tag
+    const tagIds = records.map((tag) => tag.id);
+    const blogCounts = await prisma.blogTagRelation.groupBy({
+      by: ["tagId"],
+      where: {
+        tagId: { in: tagIds },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    // Create a map of tagId to blog count
+    const blogCountMap = blogCounts.reduce((acc, item) => {
+      acc[item.tagId] = item._count._all;
+      return acc;
+    }, {} as Record<string, number>);
+
     const totalPages =
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
     return {
-      items: records.map((record) => BlogTagService.toResponse(record)),
+      items: records.map((record) =>
+        BlogTagService.toResponse(record, blogCountMap[record.id] || 0)
+      ),
       pagination: {
         page,
         per_page: perPage,
@@ -89,7 +107,6 @@ export class BlogTagService {
     const tag = await prisma.blogTag.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
     });
 
@@ -97,7 +114,7 @@ export class BlogTagService {
       throw new ResponseError(404, "Tag blog tidak ditemukan");
     }
 
-    return BlogTagService.toResponse(tag);
+    return BlogTagService.toResponse(tag, 0);
   }
 
   static async create(request: CreateBlogTagRequest): Promise<BlogTag> {
@@ -130,7 +147,7 @@ export class BlogTagService {
       },
     });
 
-    return BlogTagService.toResponse(tag);
+    return BlogTagService.toResponse(tag, 0);
   }
 
   static async update(
@@ -139,7 +156,7 @@ export class BlogTagService {
   ): Promise<BlogTag> {
     // Check if tag exists
     const existingTag = await prisma.blogTag.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingTag) {
@@ -193,13 +210,13 @@ export class BlogTagService {
       data: updateData,
     });
 
-    return BlogTagService.toResponse(tag);
+    return BlogTagService.toResponse(tag, 0);
   }
 
   static async delete(id: string): Promise<void> {
     // Check if tag exists
     const existingTag = await prisma.blogTag.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingTag) {
@@ -235,7 +252,6 @@ export class BlogTagService {
     const tags = await prisma.blogTag.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -270,11 +286,12 @@ export class BlogTagService {
     };
   }
 
-  private static toResponse(tag: PrismaBlogTag): BlogTag {
+  private static toResponse(tag: PrismaBlogTag, blogCount: number): BlogTag {
     return {
       id: tag.id,
       name: tag.name,
       slug: tag.slug,
+      blog_count: blogCount,
       created_at: tag.createdAt?.toISOString(),
       updated_at: tag.updatedAt?.toISOString(),
     };

@@ -119,18 +119,17 @@ enum OtpPurpose {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.VarChar(255)
-  name      String    @db.VarChar(255)
-  username  String    @unique @db.VarChar(255)
-  email     String    @unique @db.VarChar(255)
-  password  String    @db.VarChar(255)
-  role      UserRole  @default(user)
-  phone     String?   @db.VarChar(255)
-  googleId  String?   @map("google_id") @db.VarChar(255)
-  avatar    String?   @db.VarChar(255)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  name      String   @db.VarChar(255)
+  username  String   @unique @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  role      UserRole @default(user)
+  phone     String?  @db.VarChar(255)
+  googleId  String?  @map("google_id") @db.VarChar(255)
+  avatar    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cvs                Cv[]
   portfolios         Portfolio[]
@@ -143,19 +142,18 @@ model User {
 }
 
 model Cv {
-  id         String    @id @default(uuid()) @db.VarChar(255)
-  userId     String    @map("user_id") @db.VarChar(255)
-  templateId String?   @map("template_id") @db.VarChar(255)
-  name       String    @db.VarChar(255)
-  headline   String    @db.VarChar(255)
-  email      String    @db.VarChar(255)
-  phone      String    @db.VarChar(255)
-  address    String    @db.VarChar(255)
-  about      String    @db.Text
-  photo      String?   @db.VarChar(255)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt  DateTime? @map("deleted_at") @db.Timestamp(0)
+  id         String   @id @default(uuid()) @db.VarChar(255)
+  userId     String   @map("user_id") @db.VarChar(255)
+  templateId String?  @map("template_id") @db.VarChar(255)
+  name       String   @db.VarChar(255)
+  headline   String   @db.VarChar(255)
+  email      String   @db.VarChar(255)
+  phone      String   @db.VarChar(255)
+  address    String   @db.VarChar(255)
+  about      String   @db.Text
+  photo      String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   educations    CvEducation[]
@@ -188,7 +186,6 @@ model Portfolio {
   cover           String      @db.VarChar(255)
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt       DateTime?   @map("deleted_at") @db.Timestamp(0)
 
   user   User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   medias PortfolioMedia[]
@@ -222,7 +219,6 @@ model Application {
   notes        String?                 @db.Text
   createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt    DateTime                @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt    DateTime?               @map("deleted_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -258,7 +254,6 @@ model ApplicationLetter {
   signature        String        @db.VarChar(255)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt        DateTime?     @map("deleted_at") @db.Timestamp(0)
 
   user     User      @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   template Template? @relation(fields: [templateId], references: [id])
@@ -268,22 +263,21 @@ model ApplicationLetter {
 }
 
 model CvEducation {
-  id             String    @id @default(uuid()) @db.VarChar(255)
-  cvId           String    @map("cv_id") @db.VarChar(255)
+  id             String   @id @default(uuid()) @db.VarChar(255)
+  cvId           String   @map("cv_id") @db.VarChar(255)
   degree         Degree
-  schoolName     String    @map("school_name") @db.VarChar(255)
-  schoolLocation String    @map("school_location") @db.VarChar(255)
-  major          String    @db.VarChar(255)
-  startMonth     Int       @map("start_month") @db.TinyInt
-  startYear      Int       @map("start_year") @db.Year
-  endMonth       Int?      @map("end_month") @db.TinyInt
-  endYear        Int?      @map("end_year") @db.Year
-  isCurrent      Boolean   @default(false) @map("is_current")
-  gpa            Float?    @db.Float
-  description    String?   @db.Text
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt      DateTime? @map("deleted_at") @db.Timestamp(0)
+  schoolName     String   @map("school_name") @db.VarChar(255)
+  schoolLocation String   @map("school_location") @db.VarChar(255)
+  major          String   @db.VarChar(255)
+  startMonth     Int      @map("start_month") @db.TinyInt
+  startYear      Int      @map("start_year") @db.Year
+  endMonth       Int?     @map("end_month") @db.TinyInt
+  endYear        Int?     @map("end_year") @db.Year
+  isCurrent      Boolean  @default(false) @map("is_current")
+  gpa            Float?   @db.Float
+  description    String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -292,21 +286,20 @@ model CvEducation {
 }
 
 model CvCertificate {
-  id            String    @id @default(uuid()) @db.VarChar(255)
-  cvId          String    @map("cv_id") @db.VarChar(255)
-  title         String    @db.VarChar(255)
-  issuer        String    @db.VarChar(255)
-  issueMonth    Int       @map("issue_month") @db.TinyInt
-  issueYear     Int       @map("issue_year") @db.Year
-  expiryMonth   Int?      @map("expiry_month") @db.TinyInt
-  expiryYear    Int?      @map("expiry_year") @db.Year
-  noExpiry      Boolean   @default(false) @map("no_expiry")
-  credentialId  String?   @map("credential_id") @db.VarChar(255)
-  credentialUrl String?   @map("credential_url") @db.VarChar(255)
-  description   String?   @db.Text
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamp(0)
+  id            String   @id @default(uuid()) @db.VarChar(255)
+  cvId          String   @map("cv_id") @db.VarChar(255)
+  title         String   @db.VarChar(255)
+  issuer        String   @db.VarChar(255)
+  issueMonth    Int      @map("issue_month") @db.TinyInt
+  issueYear     Int      @map("issue_year") @db.Year
+  expiryMonth   Int?     @map("expiry_month") @db.TinyInt
+  expiryYear    Int?     @map("expiry_year") @db.Year
+  noExpiry      Boolean  @default(false) @map("no_expiry")
+  credentialId  String?  @map("credential_id") @db.VarChar(255)
+  credentialUrl String?  @map("credential_url") @db.VarChar(255)
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -315,21 +308,20 @@ model CvCertificate {
 }
 
 model CvExperience {
-  id              String    @id @default(uuid()) @db.VarChar(255)
-  cvId            String    @map("cv_id") @db.VarChar(255)
-  jobTitle        String    @map("job_title") @db.VarChar(255)
-  companyName     String    @map("company_name") @db.VarChar(255)
-  companyLocation String    @map("company_location") @db.VarChar(255)
-  jobType         JobType   @map("job_type")
-  startMonth      Int       @map("start_month") @db.TinyInt
-  startYear       Int       @map("start_year") @db.Year
-  endMonth        Int?      @map("end_month") @db.TinyInt
-  endYear         Int?      @map("end_year") @db.Year
-  isCurrent       Boolean   @default(false) @map("is_current")
-  description     String?   @db.Text
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamp(0)
+  id              String   @id @default(uuid()) @db.VarChar(255)
+  cvId            String   @map("cv_id") @db.VarChar(255)
+  jobTitle        String   @map("job_title") @db.VarChar(255)
+  companyName     String   @map("company_name") @db.VarChar(255)
+  companyLocation String   @map("company_location") @db.VarChar(255)
+  jobType         JobType  @map("job_type")
+  startMonth      Int      @map("start_month") @db.TinyInt
+  startYear       Int      @map("start_year") @db.Year
+  endMonth        Int?     @map("end_month") @db.TinyInt
+  endYear         Int?     @map("end_year") @db.Year
+  isCurrent       Boolean  @default(false) @map("is_current")
+  description     String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -345,7 +337,6 @@ model CvSkill {
   level     SkillLevel
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -354,15 +345,14 @@ model CvSkill {
 }
 
 model CvAward {
-  id          String    @id @default(uuid()) @db.VarChar(255)
-  cvId        String    @map("cv_id") @db.VarChar(255)
-  title       String    @db.VarChar(255)
-  issuer      String    @db.VarChar(255)
-  description String?   @db.Text
-  year        Int       @db.Year
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  cvId        String   @map("cv_id") @db.VarChar(255)
+  title       String   @db.VarChar(255)
+  issuer      String   @db.VarChar(255)
+  description String?  @db.Text
+  year        Int      @db.Year
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -371,13 +361,12 @@ model CvAward {
 }
 
 model CvSocialLink {
-  id        String    @id @default(uuid()) @db.VarChar(255)
-  cvId      String    @map("cv_id") @db.VarChar(255)
-  platform  String    @db.VarChar(255)
-  url       String    @db.VarChar(255)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  cvId      String   @map("cv_id") @db.VarChar(255)
+  platform  String   @db.VarChar(255)
+  url       String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -400,7 +389,6 @@ model CvOrganization {
   description      String?          @db.Text
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt        DateTime?        @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -409,13 +397,12 @@ model CvOrganization {
 }
 
 model PortfolioMedia {
-  id          String    @id @default(uuid()) @db.VarChar(255)
-  portfolioId String    @map("portfolio_id") @db.VarChar(255)
-  path        String    @db.VarChar(255)
-  caption     String?   @db.VarChar(255)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  portfolioId String   @map("portfolio_id") @db.VarChar(255)
+  path        String   @db.VarChar(255)
+  caption     String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -424,12 +411,11 @@ model PortfolioMedia {
 }
 
 model PortfolioTool {
-  id          String    @id @default(uuid()) @db.VarChar(255)
-  portfolioId String    @map("portfolio_id") @db.VarChar(255)
-  name        String    @db.VarChar(255)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  portfolioId String   @map("portfolio_id") @db.VarChar(255)
+  name        String   @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -438,13 +424,12 @@ model PortfolioTool {
 }
 
 model BlogCategory {
-  id          String    @id @default(uuid()) @db.VarChar(255)
-  name        String    @unique @db.VarChar(255)
-  slug        String    @unique @db.VarChar(255)
-  description String?   @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  name        String   @unique @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   blogs Blog[]
 
@@ -452,12 +437,11 @@ model BlogCategory {
 }
 
 model BlogTag {
-  id        String    @id @default(uuid()) @db.VarChar(255)
-  name      String    @unique @db.VarChar(255)
-  slug      String    @unique @db.VarChar(255)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  name      String   @unique @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   blogs BlogTagRelation[]
 
@@ -479,7 +463,6 @@ model Blog {
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
   publishedAt   DateTime?  @map("published_at") @db.Timestamp(0)
-  deletedAt     DateTime?  @map("deleted_at") @db.Timestamp(0)
 
   user     User              @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   category BlogCategory      @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -517,7 +500,6 @@ model Template {
   isPremium Boolean      @default(false) @map("is_premium")
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime?    @map("deleted_at") @db.Timestamp(0)
 
   cvs                Cv[]
   applicationLetters ApplicationLetter[]
@@ -533,7 +515,6 @@ model Otp {
   expiresAt DateTime?  @map("expires_at") @db.Timestamp(0)
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt DateTime?  @map("deleted_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 

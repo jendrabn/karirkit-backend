@@ -3300,6 +3300,9 @@ components:
         description:
           type: string
           nullable: true
+        blog_count:
+          type: integer
+          description: Number of blogs in this category
         created_at:
           type: string
           format: date-time
@@ -3343,6 +3346,9 @@ components:
           type: string
         slug:
           type: string
+        blog_count:
+          type: integer
+          description: Number of blogs with this tag
         created_at:
           type: string
           format: date-time

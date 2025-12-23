@@ -42,29 +42,22 @@ export class PublicController {
       const totalUsers = await prisma.user.count({
         where: {
           role: "user",
-          deletedAt: null,
         },
       });
 
       // Get total CVs
       const totalCvs = await prisma.cv.count({
-        where: {
-          deletedAt: null,
-        },
+        where: {},
       });
 
       // Get total application letters
       const totalApplicationLetters = await prisma.applicationLetter.count({
-        where: {
-          deletedAt: null,
-        },
+        where: {},
       });
 
       // Get total applications
       const totalApplications = await prisma.application.count({
-        where: {
-          deletedAt: null,
-        },
+        where: {},
       });
 
       // Dummy values for now

@@ -465,6 +465,7 @@ export interface BlogCategory {
   name?: string;
   slug?: string;
   description?: string | null;
+  blog_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -490,6 +491,7 @@ export interface BlogTag {
   id?: string;
   name?: string;
   slug?: string;
+  blog_count?: number;
   created_at?: string;
   updated_at?: string;
 }

@@ -64,9 +64,7 @@ export class UserService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.UserWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.UserWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -153,7 +151,6 @@ export class UserService {
     const user = await prisma.user.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
       select: {
         id: true,
@@ -252,7 +249,7 @@ export class UserService {
   ): Promise<SafeUser> {
     // Check if user exists
     const existingUser = await prisma.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingUser) {
@@ -352,7 +349,7 @@ export class UserService {
   static async delete(id: string): Promise<void> {
     // Check if user exists
     const existingUser = await prisma.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingUser) {

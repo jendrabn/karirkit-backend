@@ -65,9 +65,7 @@ export class BlogService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.BlogWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -157,7 +155,6 @@ export class BlogService {
     const blog = await prisma.blog.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
       include: {
         user: {
@@ -198,7 +195,7 @@ export class BlogService {
 
     // Check if category exists
     const category = await prisma.blogCategory.findFirst({
-      where: { id: requestData.category_id, deletedAt: null },
+      where: { id: requestData.category_id },
     });
 
     if (!category) {
@@ -207,7 +204,7 @@ export class BlogService {
 
     // Check if author exists
     const author = await prisma.user.findFirst({
-      where: { id: requestData.author_id, deletedAt: null },
+      where: { id: requestData.author_id },
     });
 
     if (!author) {
@@ -217,7 +214,7 @@ export class BlogService {
     // Validate tags if provided
     if (requestData.tag_ids && requestData.tag_ids.length > 0) {
       const tags = await prisma.blogTag.findMany({
-        where: { id: { in: requestData.tag_ids }, deletedAt: null },
+        where: { id: { in: requestData.tag_ids } },
       });
 
       if (tags.length !== requestData.tag_ids.length) {
@@ -315,7 +312,7 @@ export class BlogService {
     // Check if category exists if provided
     if (requestData.category_id) {
       const category = await prisma.blogCategory.findFirst({
-        where: { id: requestData.category_id, deletedAt: null },
+        where: { id: requestData.category_id },
       });
 
       if (!category) {
@@ -326,7 +323,7 @@ export class BlogService {
     // Check if author exists if provided
     if (requestData.author_id) {
       const author = await prisma.user.findFirst({
-        where: { id: requestData.author_id, deletedAt: null },
+        where: { id: requestData.author_id },
       });
 
       if (!author) {
@@ -337,7 +334,7 @@ export class BlogService {
     // Validate tags if provided
     if (requestData.tag_ids && requestData.tag_ids.length > 0) {
       const tags = await prisma.blogTag.findMany({
-        where: { id: { in: requestData.tag_ids }, deletedAt: null },
+        where: { id: { in: requestData.tag_ids } },
       });
 
       if (tags.length !== requestData.tag_ids.length) {
@@ -489,7 +486,6 @@ export class BlogService {
     const blog = await prisma.blog.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
     });
 

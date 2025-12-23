@@ -28,7 +28,7 @@ type PortfolioListResult = {
 
 type PortfolioMutableFields = Omit<
   Prisma.PortfolioUncheckedCreateInput,
-  "id" | "userId" | "createdAt" | "updatedAt" | "deletedAt"
+  "id" | "userId" | "createdAt" | "updatedAt"
 >;
 
 type PreparedMediaRecord = {

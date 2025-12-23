@@ -44,9 +44,7 @@ export class BlogCategoryService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogCategoryWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.BlogCategoryWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -70,6 +68,13 @@ export class BlogCategoryService {
         orderBy,
         skip: (page - 1) * perPage,
         take: perPage,
+        include: {
+          _count: {
+            select: {
+              blogs: {},
+            },
+          },
+        },
       }),
     ]);
 
@@ -91,7 +96,6 @@ export class BlogCategoryService {
     const category = await prisma.blogCategory.findFirst({
       where: {
         id,
-        deletedAt: null,
       },
     });
 
@@ -144,7 +148,7 @@ export class BlogCategoryService {
   ): Promise<BlogCategory> {
     // Check if category exists
     const existingCategory = await prisma.blogCategory.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingCategory) {
@@ -211,7 +215,7 @@ export class BlogCategoryService {
   static async delete(id: string): Promise<void> {
     // Check if category exists
     const existingCategory = await prisma.blogCategory.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existingCategory) {
@@ -222,7 +226,6 @@ export class BlogCategoryService {
     const blogsUsingCategory = await prisma.blog.count({
       where: {
         categoryId: id,
-        deletedAt: null,
       },
     });
 
@@ -248,7 +251,6 @@ export class BlogCategoryService {
     const categories = await prisma.blogCategory.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -263,7 +265,6 @@ export class BlogCategoryService {
     const blogsUsingCategories = await prisma.blog.count({
       where: {
         categoryId: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -287,12 +288,15 @@ export class BlogCategoryService {
     };
   }
 
-  private static toResponse(category: PrismaBlogCategory): BlogCategory {
+  private static toResponse(
+    category: PrismaBlogCategory & { _count?: { blogs?: number } }
+  ): BlogCategory {
     return {
       id: category.id,
       name: category.name,
       slug: category.slug,
       description: category.description ?? null,
+      blog_count: category._count?.blogs ?? 0,
       created_at: category.createdAt?.toISOString(),
       updated_at: category.updatedAt?.toISOString(),
     };

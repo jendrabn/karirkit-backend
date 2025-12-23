@@ -80,7 +80,6 @@ export class PublicPortfolioService {
     const user = await prisma.user.findFirst({
       where: {
         username,
-        deletedAt: null,
       },
     });
 

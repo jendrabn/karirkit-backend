@@ -30,9 +30,7 @@ export class TemplateService {
   > {
     const requestData = validate(GetTemplatesQuery, query);
 
-    const where: Prisma.TemplateWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.TemplateWhereInput = {};
 
     if (requestData.type) {
       where.type = requestData.type;
