@@ -102,9 +102,9 @@ export class AccountService {
         requestData.avatar.startsWith("/uploads/temp/")
       ) {
         try {
-          const avatarPath = await UploadService.moveFromTempToAvatar(
-            requestData.avatar,
-            userId
+          const avatarPath = await UploadService.moveFromTemp(
+            "avatars",
+            requestData.avatar
           );
           updateData.avatar = avatarPath;
         } catch (error) {

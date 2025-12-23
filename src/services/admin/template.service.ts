@@ -137,9 +137,8 @@ export class TemplateService {
     if (requestData.path) {
       try {
         finalPath = await UploadService.moveFromTemp(
-          requestData.path,
           "templates",
-          requestData.slug
+          requestData.path
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file template");
@@ -151,9 +150,8 @@ export class TemplateService {
     if (requestData.preview) {
       try {
         finalPreviewPath = await UploadService.moveFromTemp(
-          requestData.preview,
           "templates",
-          requestData.slug
+          requestData.preview
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file preview");
@@ -211,9 +209,8 @@ export class TemplateService {
     if (requestData.path) {
       try {
         finalPath = await UploadService.moveFromTemp(
-          requestData.path,
           "templates",
-          requestData.slug || existingTemplate.slug
+          requestData.path
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file template");
@@ -225,9 +222,8 @@ export class TemplateService {
     if (requestData.preview) {
       try {
         finalPreviewPath = await UploadService.moveFromTemp(
-          requestData.preview,
           "templates",
-          requestData.slug || existingTemplate.slug
+          requestData.preview
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file preview");

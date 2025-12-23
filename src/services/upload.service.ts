@@ -1,50 +1,64 @@
-import type { Express } from "express";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { ResponseError } from "../utils/response-error.util";
 
-const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
-const BLOG_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "blogs");
-const AVATAR_UPLOAD_DIR = path.join(
-  process.cwd(),
-  "public",
-  "uploads",
-  "avatars"
-);
-const DEFAULT_EXTENSION = ".bin";
-
-// Image MIME types that should be compressed
-const IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/gif",
-  "image/tiff",
-  "image/webp",
-];
-
-const MIME_TYPE_MAP: Record<string, string[]> = {
-  png: ["image/png"],
-  jpg: ["image/jpeg", "image/jpg"],
-  jpeg: ["image/jpeg", "image/jpg"],
-  webp: ["image/webp"],
-  gif: ["image/gif"],
-  pdf: ["application/pdf"],
-  doc: ["application/msword"],
-  docx: [
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+// Allowed file types
+const ALLOWED_MIME_TYPES = {
+  image: [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
   ],
-  xls: ["application/vnd.ms-excel"],
-  xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
-  ppt: ["application/vnd.ms-powerpoint"],
-  pptx: [
+  video: [
+    "video/mp4",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/x-matroska",
+  ],
+  document: [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "application/rtf",
   ],
 };
 
-export type TempUploadResult = {
+// MIME type to extension mapping
+const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "image/svg+xml": ".svg",
+  "video/mp4": ".mp4",
+  "video/quicktime": ".mov",
+  "video/x-msvideo": ".avi",
+  "video/x-matroska": ".mkv",
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    ".docx",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "application/vnd.ms-powerpoint": ".ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    ".pptx",
+  "text/plain": ".txt",
+  "application/rtf": ".rtf",
+};
+
+export type UploadFileResult = {
   path: string;
   original_name: string;
   size: number;
@@ -52,297 +66,178 @@ export type TempUploadResult = {
 };
 
 export class UploadService {
-  /**
-   * Process image with optional WebP conversion and quality setting
-   */
-  private static async processImage(
-    buffer: Buffer,
-    originalMimeType: string,
-    options: { quality: number; toWebp: boolean } = {
-      quality: 50,
-      toWebp: true,
-    }
-  ): Promise<{ buffer: Buffer; mimeType: string; extension: string }> {
-    try {
-      // Only compress if it's an image
-      if (!IMAGE_MIME_TYPES.includes(originalMimeType.toLowerCase())) {
-        return {
-          buffer,
-          mimeType: originalMimeType,
-          extension: path.extname(`file.${originalMimeType.split("/")[1]}`),
-        };
-      }
-
-      let pipeline = sharp(buffer);
-
-      if (options.toWebp) {
-        pipeline = pipeline.webp({ quality: options.quality });
-        const compressedBuffer = await pipeline.toBuffer();
-        return {
-          buffer: compressedBuffer,
-          mimeType: "image/webp",
-          extension: ".webp",
-        };
-      } else {
-        // If not converting to WebP, try to apply quality to original format if possible
-        // For simplicity, we just return the original buffer if not converting to WebP
-        // OR we could re-encode in original format with quality.
-        // Given the requirement "quality = ...", we should probably try to apply it.
-        // However, determining the correct output method for original format is complex (jpeg(), png(), etc).
-        // Let's assume the user primarily wants WebP control.
-        // If webp=false, strictly speaking, we just honor the "don't convert" part.
-        // Since we can't easily dynamic invoke .jpeg() or .png() without mapping,
-        // and sharp defaults handling original format input->output by default without format specifier implies strict input reuse or need explicit format.
-        // Actually, sharp(buffer).toBuffer() re-encodes.
-        // Let's stick to simplest interpretation: If webp=false, return original buffer (no processing).
-        // This is safer than accidental quality degradation or format issues.
-
-        // Wait, if I want to support quality on JPEG when webp=false?
-        // "query string khusus untuk image saja yakni quality = ..."
-        // It implies quality setting is desired.
-        // But implementing dynamic format re-encoding properly requires more code.
-        // Let's stick to: if toWebp is false, we just return the original file to avoid side effects.
-        return {
-          buffer,
-          mimeType: originalMimeType,
-          extension: path.extname(`file.${originalMimeType.split("/")[1]}`),
-        };
-      }
-    } catch (error) {
-      // If compression fails, return original buffer
-      console.error("Error processing image:", error);
-      return {
-        buffer,
-        mimeType: originalMimeType,
-        extension: path.extname(`file.${originalMimeType.split("/")[1]}`),
-      };
-    }
-  }
-
-  private static validateAllowedFormats(
+  static async uploadFile(
     file: Express.Multer.File,
-    allowedFormats?: string[]
-  ) {
-    if (!allowedFormats || allowedFormats.length === 0) {
-      return;
-    }
-
-    const fileMime = file.mimetype.toLowerCase();
-    const isValid = allowedFormats.some((format) => {
-      const cleanFormat = format.trim().toLowerCase();
-      const allowedMimes = MIME_TYPE_MAP[cleanFormat];
-      if (allowedMimes) {
-        return allowedMimes.includes(fileMime);
-      }
-      // If format is not in map, try to compare extension directly just in case (e.g. "mp4" is not in MIME_TYPE_MAP above but might be valid if extended)
-      // But for security, stick to MIME type check based on map.
-      return false;
-    });
-
-    if (!isValid) {
-      throw new ResponseError(
-        400,
-        `Format file tidak sesuai. Format yang diperbolehkan: ${allowedFormats.join(
-          ", "
-        )}`
-      );
-    }
-  }
-
-  static async uploadTempFile(
-    userId: string,
-    file?: Express.Multer.File,
+    directory: string = "uploads/temp",
     options: {
-      quality: number;
-      toWebp: boolean;
-      allowedFormats?: string[];
-    } = {
-      quality: 50,
-      toWebp: true,
-    }
-  ): Promise<TempUploadResult> {
+      quality?: number; // 25-100, default: 50
+      webp?: boolean; // true/false, default: true
+      format?: string; // e.g. "jpg,png,docx"
+    } = {}
+  ): Promise<UploadFileResult> {
+    // Validate file exists
     if (!file) {
       throw new ResponseError(400, "File diperlukan");
     }
 
-    UploadService.validateAllowedFormats(file, options.allowedFormats);
+    // Set default options
+    const quality = Math.min(100, Math.max(25, options.quality || 50));
+    const webp = options.webp !== undefined ? options.webp : true;
 
-    await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true });
+    // Validation 1: Check if file type is allowed (image, video, document)
+    const allAllowedMimeTypes = [
+      ...ALLOWED_MIME_TYPES.image,
+      ...ALLOWED_MIME_TYPES.video,
+      ...ALLOWED_MIME_TYPES.document,
+    ];
 
-    // Compress image if it's an image file
-    const { buffer, mimeType, extension } = await UploadService.processImage(
-      file.buffer,
-      file.mimetype,
-      options
-    );
+    if (!allAllowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+      throw new ResponseError(
+        400,
+        "Jenis file tidak diperbolehkan. Hanya file gambar, video, dan dokumen yang diperbolehkan."
+      );
+    }
 
-    const fileName = UploadService.buildFileName(userId, extension);
-    const fullPath = path.join(TEMP_UPLOAD_DIR, fileName);
+    // Validation 2: Check if file format matches the requested format
+    if (options.format) {
+      const allowedFormats = options.format
+        .split(",")
+        .map((f) => f.trim().toLowerCase());
+      const fileExtension = path
+        .extname(file.originalname)
+        .toLowerCase()
+        .substring(1);
 
-    await fs.writeFile(fullPath, buffer);
+      if (!allowedFormats.includes(fileExtension)) {
+        throw new ResponseError(
+          400,
+          `Format file tidak sesuai. Format yang diperbolehkan: ${allowedFormats.join(
+            ", "
+          )}`
+        );
+      }
+    }
 
-    const publicPath = path.posix.join("/uploads/temp", fileName);
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      throw new ResponseError(400, "Ukuran file tidak boleh lebih dari 10MB");
+    }
+
+    // Process the file
+    let processedBuffer = file.buffer;
+    let finalMimeType = file.mimetype;
+    let extension =
+      MIME_TYPE_TO_EXTENSION[file.mimetype] || path.extname(file.originalname);
+
+    // Process image if applicable
+    if (ALLOWED_MIME_TYPES.image.includes(file.mimetype.toLowerCase())) {
+      try {
+        if (webp) {
+          processedBuffer = await sharp(file.buffer)
+            .webp({ quality })
+            .toBuffer();
+          finalMimeType = "image/webp";
+          extension = ".webp";
+        } else if (
+          file.mimetype.toLowerCase() === "image/jpeg" ||
+          file.mimetype.toLowerCase() === "image/jpg"
+        ) {
+          processedBuffer = await sharp(file.buffer)
+            .jpeg({ quality })
+            .toBuffer();
+        }
+      } catch (error) {
+        console.error("Error processing image:", error);
+        // If processing fails, use the original buffer
+      }
+    }
+
+    // Create directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), "public", directory);
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    // Generate filename with timestamp + UUID
+    const timestamp = Date.now();
+    const uuid = crypto.randomUUID();
+    const filename = `${timestamp}-${uuid}${extension}`;
+    const filePath = path.join(uploadDir, filename);
+
+    // Write file to disk
+    await fs.writeFile(filePath, processedBuffer);
+
+    // Return public path
+    const publicPath = path.posix.join("/", directory, filename);
 
     return {
       path: publicPath,
       original_name: file.originalname,
-      size: buffer.length,
-      mime_type: mimeType,
+      size: processedBuffer.length,
+      mime_type: finalMimeType,
     };
-  }
-
-  private static resolveExtension(file: Express.Multer.File): string {
-    const originalExt = path.extname(file.originalname || "").toLowerCase();
-
-    if (UploadService.isSafeExtension(originalExt)) {
-      return originalExt;
-    }
-
-    const fallback = UploadService.extensionFromMime(file.mimetype);
-    return fallback ?? DEFAULT_EXTENSION;
-  }
-
-  private static isSafeExtension(extension: string): boolean {
-    if (!extension) {
-      return false;
-    }
-    // limit to reasonable characters to avoid path confusion
-    return /^\.[a-z0-9]{1,8}$/i.test(extension);
-  }
-
-  private static extensionFromMime(mime: string): string | null {
-    const normalized = mime.toLowerCase();
-    const map: Record<string, string> = {
-      "image/jpeg": ".jpg",
-      "image/jpg": ".jpg",
-      "image/png": ".png",
-      "image/gif": ".gif",
-      "image/webp": ".webp",
-      "image/svg+xml": ".svg",
-      "video/mp4": ".mp4",
-      "video/quicktime": ".mov",
-      "video/x-msvideo": ".avi",
-      "video/x-matroska": ".mkv",
-      "application/pdf": ".pdf",
-      "application/msword": ".doc",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        ".docx",
-      "application/vnd.ms-excel": ".xls",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        ".xlsx",
-      "application/vnd.ms-powerpoint": ".ppt",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        ".pptx",
-      "text/plain": ".txt",
-      "application/rtf": ".rtf",
-    };
-
-    return map[normalized] ?? null;
-  }
-
-  private static buildFileName(userId: string, extension: string): string {
-    const uniqueSuffix = crypto.randomUUID();
-    const userSegment =
-      userId.replace(/[^a-zA-Z0-9]/g, "").slice(-12) || "anon";
-    return `${Date.now()}-${userSegment}-${uniqueSuffix}${extension}`;
   }
 
   static async moveFromTemp(
-    tempPath: string,
-    destinationDir: string,
-    fileName: string
+    destinationDirectory: string,
+    filename?: string
   ): Promise<string> {
-    // Extract filename from temp path
-    const tempFileName = path.basename(tempPath);
-    const tempFilePath = path.join(TEMP_UPLOAD_DIR, tempFileName);
+    // Get temp directory
+    const tempDir = path.join(process.cwd(), "public", "uploads", "temp");
+
+    // Check if temp directory exists
+    try {
+      await fs.access(tempDir);
+    } catch (error) {
+      throw new ResponseError(400, "Direktori temp tidak ditemukan");
+    }
+
+    // Get files in temp directory
+    const tempFiles = await fs.readdir(tempDir);
+
+    if (tempFiles.length === 0) {
+      throw new ResponseError(400, "Tidak ada file di direktori temp");
+    }
+
+    const tempFileName = tempFiles.sort().pop();
+    if (!tempFileName) {
+      throw new ResponseError(
+        400,
+        "Tidak ada file yang valid di direktori temp"
+      );
+    }
+
+    const tempFilePath = path.join(tempDir, tempFileName);
 
     // Create destination directory if it doesn't exist
     const destDir = path.join(
       process.cwd(),
       "public",
       "uploads",
-      destinationDir
+      destinationDirectory
     );
     await fs.mkdir(destDir, { recursive: true });
 
-    // Determine file extension
-    const extension = path.extname(tempFileName);
-    const finalFileName = `${fileName}${extension}`;
-    const finalPath = path.join(destDir, finalFileName);
+    // Determine filename
+    let finalFileName = filename;
+    if (!finalFileName) {
+      const timestamp = Date.now();
+      const uuid = crypto.randomUUID();
+      finalFileName = `${timestamp}-${uuid}`;
+    }
 
-    // Move file from temp to destination
+    // Get file extension from temp file
+    const extension = path.extname(tempFileName);
+    const finalFileNameWithExt = `${finalFileName}${extension}`;
+    const finalPath = path.join(destDir, finalFileNameWithExt);
+
+    // Move file
     await fs.rename(tempFilePath, finalPath);
 
     // Return public path
-    return path.posix.join("/uploads", destinationDir, finalFileName);
-  }
-
-  static async moveFromTempToAvatar(
-    tempPath: string,
-    userId: string
-  ): Promise<string> {
-    // Extract filename from temp path
-    const tempFileName = path.basename(tempPath);
-    const tempFilePath = path.join(TEMP_UPLOAD_DIR, tempFileName);
-
-    // Create avatars directory if it doesn't exist
-    await fs.mkdir(AVATAR_UPLOAD_DIR, { recursive: true });
-
-    // Determine file extension
-    const extension = path.extname(tempFileName);
-    const finalFileName = `avatar-${userId}-${Date.now()}${extension}`;
-    const finalPath = path.join(AVATAR_UPLOAD_DIR, finalFileName);
-
-    // Move file from temp to avatars
-    await fs.rename(tempFilePath, finalPath);
-
-    // Return public path
-    return path.posix.join("/uploads/avatars", finalFileName);
-  }
-
-  static async uploadBlogFile(
-    file?: Express.Multer.File,
-    options: {
-      quality: number;
-      toWebp: boolean;
-      allowedFormats?: string[];
-    } = {
-      quality: 50,
-      toWebp: true,
-    }
-  ): Promise<TempUploadResult> {
-    if (!file) {
-      throw new ResponseError(400, "File diperlukan");
-    }
-
-    UploadService.validateAllowedFormats(file, options.allowedFormats);
-
-    await fs.mkdir(BLOG_UPLOAD_DIR, { recursive: true });
-
-    // Compress image if it's an image file
-    const { buffer, mimeType, extension } = await UploadService.processImage(
-      file.buffer,
-      file.mimetype,
-      options
+    return path.posix.join(
+      "/uploads",
+      destinationDirectory,
+      finalFileNameWithExt
     );
-
-    const fileName = UploadService.buildBlogFileName(extension);
-    const fullPath = path.join(BLOG_UPLOAD_DIR, fileName);
-
-    await fs.writeFile(fullPath, buffer);
-
-    const publicPath = path.posix.join("/uploads/blogs", fileName);
-
-    return {
-      path: publicPath,
-      original_name: file.originalname,
-      size: buffer.length,
-      mime_type: mimeType,
-    };
-  }
-
-  private static buildBlogFileName(extension: string): string {
-    const uniqueSuffix = crypto.randomUUID();
-    return `${Date.now()}-${uniqueSuffix}${extension}`;
   }
 }

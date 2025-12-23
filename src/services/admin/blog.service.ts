@@ -227,9 +227,8 @@ export class BlogService {
     if (requestData.featured_image) {
       try {
         finalFeaturedImage = await UploadService.moveFromTemp(
-          requestData.featured_image,
           "blogs",
-          requestData.slug
+          requestData.featured_image
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses gambar utama");
@@ -352,9 +351,8 @@ export class BlogService {
     if (requestData.featured_image) {
       try {
         finalFeaturedImage = await UploadService.moveFromTemp(
-          requestData.featured_image,
           "blogs",
-          requestData.slug || currentBlog?.slug || id
+          requestData.featured_image
         );
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses gambar utama");

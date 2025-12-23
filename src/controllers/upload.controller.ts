@@ -19,18 +19,22 @@ export class UploadController {
       if (qualityQuery && qualityQuery !== "") {
         const parsed = parseInt(qualityQuery);
         if (!isNaN(parsed)) {
-          quality = Math.max(25, Math.min(75, parsed));
+          quality = Math.max(25, Math.min(100, parsed));
         }
       }
 
       const toWebp = webpQuery !== "false";
-      const allowedFormats =
-        formatQuery && formatQuery !== "" ? formatQuery.split(",") : undefined;
+      const format =
+        formatQuery && formatQuery !== "" ? formatQuery : undefined;
 
-      const result = await UploadService.uploadTempFile(userId, req.file, {
+      if (!req.file) {
+        throw new ResponseError(400, "File diperlukan");
+      }
+
+      const result = await UploadService.uploadFile(req.file, "uploads/temp", {
         quality,
-        toWebp,
-        allowedFormats,
+        webp: toWebp,
+        format,
       });
       sendSuccess(res, result, 201);
     } catch (error) {
@@ -40,27 +44,11 @@ export class UploadController {
 
   static async uploadBlog(req: Request, res: Response, next: NextFunction) {
     try {
-      const qualityQuery = req.query.quality as string;
-      const webpQuery = req.query.webp as string;
-      const formatQuery = req.query.format as string;
-
-      let quality = 50;
-      if (qualityQuery && qualityQuery !== "") {
-        const parsed = parseInt(qualityQuery);
-        if (!isNaN(parsed)) {
-          quality = Math.max(25, Math.min(75, parsed));
-        }
+      if (!req.file) {
+        throw new ResponseError(400, "File diperlukan");
       }
 
-      const toWebp = webpQuery !== "false";
-      const allowedFormats =
-        formatQuery && formatQuery !== "" ? formatQuery.split(",") : undefined;
-
-      const result = await UploadService.uploadBlogFile(req.file, {
-        quality,
-        toWebp,
-        allowedFormats,
-      });
+      const result = await UploadService.uploadFile(req.file, "uploads/blogs");
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);
