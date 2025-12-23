@@ -233,10 +233,9 @@ export class BlogCategoryService {
       );
     }
 
-    // Soft delete
-    await prisma.blogCategory.update({
+    // Hard delete
+    await prisma.blogCategory.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
@@ -275,14 +274,10 @@ export class BlogCategoryService {
       );
     }
 
-    // Soft delete categories
-    const result = await prisma.blogCategory.updateMany({
+    // Hard delete categories
+    const result = await prisma.blogCategory.deleteMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
       },
     });
 

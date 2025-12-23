@@ -287,10 +287,9 @@ export class TemplateService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    // Soft delete
-    await prisma.template.update({
+    // Hard delete
+    await prisma.template.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
@@ -299,11 +298,10 @@ export class TemplateService {
   ): Promise<{ message: string; deleted_count: number }> {
     const { ids } = validate(TemplateValidation.MASS_DELETE, request);
 
-    // Verify all templates exist
+    // Verify all templates exist (including already deleted ones for mass delete)
     const templates = await prisma.template.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -311,14 +309,10 @@ export class TemplateService {
       throw new ResponseError(404, "Satu atau lebih template tidak ditemukan");
     }
 
-    // Soft delete templates
-    const result = await prisma.template.updateMany({
+    // Hard delete templates
+    const result = await prisma.template.deleteMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
       },
     });
 

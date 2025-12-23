@@ -220,10 +220,9 @@ export class BlogTagService {
       );
     }
 
-    // Soft delete
-    await prisma.blogTag.update({
+    // Hard delete
+    await prisma.blogTag.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
@@ -258,14 +257,10 @@ export class BlogTagService {
       );
     }
 
-    // Soft delete tags
-    const result = await prisma.blogTag.updateMany({
+    // Hard delete tags
+    const result = await prisma.blogTag.deleteMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
       },
     });
 

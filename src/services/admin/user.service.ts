@@ -359,10 +359,9 @@ export class UserService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
-    // Soft delete
-    await prisma.user.update({
+    // Hard delete
+    await prisma.user.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
@@ -371,11 +370,10 @@ export class UserService {
   ): Promise<{ message: string; deleted_count: number }> {
     const { ids } = validate(UserValidation.MASS_DELETE, request);
 
-    // Verify all users exist
+    // Verify all users exist (including already deleted ones for mass delete)
     const users = await prisma.user.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -383,14 +381,10 @@ export class UserService {
       throw new ResponseError(404, "Satu atau lebih pengguna tidak ditemukan");
     }
 
-    // Soft delete users
-    const result = await prisma.user.updateMany({
+    // Hard delete users
+    const result = await prisma.user.deleteMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
       },
     });
 

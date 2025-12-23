@@ -451,9 +451,8 @@ export class BlogService {
 
   static async delete(id: string): Promise<void> {
     await BlogService.findBlog(id);
-    await prisma.blog.update({
+    await prisma.blog.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
   }
 
@@ -462,11 +461,10 @@ export class BlogService {
   ): Promise<{ message: string; deleted_count: number }> {
     const { ids } = validate(BlogValidation.MASS_DELETE, request);
 
-    // Verify all blogs exist
+    // Verify all blogs exist (including already deleted ones for mass delete)
     const blogs = await prisma.blog.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
       },
     });
 
@@ -474,14 +472,10 @@ export class BlogService {
       throw new ResponseError(404, "Satu atau lebih blog tidak ditemukan");
     }
 
-    // Soft delete blogs
-    const result = await prisma.blog.updateMany({
+    // Hard delete blogs
+    const result = await prisma.blog.deleteMany({
       where: {
         id: { in: ids },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
       },
     });
 
