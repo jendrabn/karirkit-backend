@@ -152,6 +152,7 @@ model Cv {
   address    String   @db.VarChar(255)
   about      String   @db.Text
   photo      String?  @db.VarChar(255)
+  language   Language @default(id)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
@@ -252,6 +253,7 @@ model ApplicationLetter {
   attachments      String        @db.Text
   closingParagraph String        @map("closing_paragraph") @db.Text
   signature        String        @db.VarChar(255)
+  language         Language      @default(id)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
 

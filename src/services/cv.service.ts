@@ -38,7 +38,6 @@ type CvListResult = {
 };
 
 type CvWithRelations = PrismaCv & {
-  templateId?: string | null;
   template?: {
     id: string;
     name: string;
@@ -441,6 +440,7 @@ export class CvService {
         address: source.address,
         about: source.about,
         photo: source.photo,
+        language: source.language,
         createdAt: now,
         updatedAt: now,
         educations: {
@@ -562,6 +562,7 @@ export class CvService {
       about: payload.about,
       photo,
       templateId: payload.template_id,
+      language: payload.language,
     };
   }
 
@@ -1171,6 +1172,7 @@ export class CvService {
       about: cv.about,
       photo: cv.photo ?? null,
       template_id: cv.templateId ?? null,
+      language: cv.language,
       template: template
         ? {
             id: template.id,

@@ -268,6 +268,7 @@ export class ApplicationLetterService {
         closingParagraph: source.closingParagraph,
         signature: source.signature,
         templateId: (source as any).templateId,
+        language: source.language,
         createdAt: now,
         updatedAt: now,
       },
@@ -363,6 +364,7 @@ export class ApplicationLetterService {
       closingParagraph: payload.closing_paragraph,
       signature: signaturePath,
       templateId: payload.template_id,
+      language: payload.language,
     };
   }
 
@@ -833,6 +835,7 @@ export class ApplicationLetterService {
       closing_paragraph: letter.closingParagraph,
       signature: letter.signature,
       template_id: (letter as any).templateId ?? null,
+      language: letter.language,
       template: letter.template
         ? {
             id: letter.template.id,

@@ -43,6 +43,7 @@ const payloadSchema = z.object({
   closing_paragraph: stringField(2000),
   signature: z.union([stringField(255), z.literal(""), z.null()]).optional(),
   template_id: z.string().uuid("ID template tidak valid"),
+  language: z.nativeEnum(Language).default("id"),
 });
 
 const listQuerySchema = z.object({

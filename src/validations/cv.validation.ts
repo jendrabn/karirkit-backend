@@ -4,6 +4,7 @@ import {
   JobType,
   SkillLevel,
   OrganizationType,
+  Language,
 } from "../generated/prisma/client";
 
 const trimmedString = (max = 255) =>
@@ -120,6 +121,7 @@ const payloadSchema = z.object({
   about: trimmedString(5000),
   photo: trimmedString().nullable().optional(),
   template_id: z.string().uuid("ID template tidak valid"),
+  language: z.nativeEnum(Language).default("id"),
   educations: z.array(educationSchema).optional(),
   certificates: z.array(certificateSchema).optional(),
   experiences: z.array(experienceSchema).optional(),

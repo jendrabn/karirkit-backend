@@ -174,6 +174,7 @@ export interface ApplicationLetter {
   closing_paragraph?: string;
   signature?: string | null;
   template_id?: string | null;
+  language?: "en" | "id";
   template?: {
     id?: string;
     name?: string;
@@ -206,6 +207,7 @@ export interface ApplicationLetterPayload {
   closing_paragraph: string;
   signature?: string | null;
   template_id?: string | null;
+  language?: "en" | "id";
 }
 
 export interface ApplicationLetterResponse {
@@ -404,6 +406,7 @@ export interface Cv {
   about?: string;
   photo?: string | null;
   template_id?: string | null;
+  language?: "en" | "id";
   template?: {
     id?: string;
     name?: string;
@@ -430,6 +433,7 @@ export interface CvPayload {
   about: string;
   photo?: string | null;
   template_id?: string | null;
+  language?: "en" | "id";
   educations?: CvEducation[];
   certificates?: CvCertificate[];
   experiences?: CvExperience[];
