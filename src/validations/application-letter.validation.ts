@@ -41,7 +41,7 @@ const payloadSchema = z.object({
   body_paragraph: stringField(5000),
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
-  signature: z.union([stringField(255), z.literal(""), z.null()]).optional(),
+  signature: optionalNullableString(255),
   template_id: z.string().uuid("ID template tidak valid"),
   language: z.nativeEnum(Language).default("id"),
 });

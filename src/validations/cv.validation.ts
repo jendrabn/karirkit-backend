@@ -119,7 +119,7 @@ const payloadSchema = z.object({
   phone: trimmedString(),
   address: trimmedString(),
   about: trimmedString(5000),
-  photo: trimmedString().nullable().optional(),
+  photo: nullableTrimmedString(),
   template_id: z.string().uuid("ID template tidak valid"),
   language: z.nativeEnum(Language).default("id"),
   educations: z.array(educationSchema).optional(),
