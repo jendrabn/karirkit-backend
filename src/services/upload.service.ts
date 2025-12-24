@@ -179,36 +179,16 @@ export class UploadService {
 
   static async moveFromTemp(
     destinationDirectory: string,
-    filename?: string
+    filePath?: string
   ): Promise<string> {
-    // Get temp directory
-    const tempDir = path.join(process.cwd(), "public", "uploads", "temp");
-
-    // Check if temp directory exists
-    try {
-      await fs.access(tempDir);
-    } catch (error) {
-      throw new ResponseError(400, "Direktori temp tidak ditemukan");
+    if (!filePath) {
+      throw new ResponseError(400, "FilePath diperlukan");
     }
 
-    // Get files in temp directory
-    const tempFiles = await fs.readdir(tempDir);
+    const fileName = path.basename(filePath);
 
-    if (tempFiles.length === 0) {
-      throw new ResponseError(400, "Tidak ada file di direktori temp");
-    }
+    const sourcePath = path.join(process.cwd(), "public", filePath);
 
-    const tempFileName = tempFiles.sort().pop();
-    if (!tempFileName) {
-      throw new ResponseError(
-        400,
-        "Tidak ada file yang valid di direktori temp"
-      );
-    }
-
-    const tempFilePath = path.join(tempDir, tempFileName);
-
-    // Create destination directory if it doesn't exist
     const destDir = path.join(
       process.cwd(),
       "public",
@@ -217,27 +197,10 @@ export class UploadService {
     );
     await fs.mkdir(destDir, { recursive: true });
 
-    // Determine filename
-    let finalFileName = filename;
-    if (!finalFileName) {
-      const timestamp = Date.now();
-      const uuid = crypto.randomUUID();
-      finalFileName = `${timestamp}-${uuid}`;
-    }
+    const finalPath = path.join(destDir, fileName);
 
-    // Get file extension from temp file
-    const extension = path.extname(tempFileName);
-    const finalFileNameWithExt = `${finalFileName}${extension}`;
-    const finalPath = path.join(destDir, finalFileNameWithExt);
+    await fs.rename(sourcePath, finalPath);
 
-    // Move file
-    await fs.rename(tempFilePath, finalPath);
-
-    // Return public path
-    return path.posix.join(
-      "/uploads",
-      destinationDirectory,
-      finalFileNameWithExt
-    );
+    return path.posix.join("/uploads", destinationDirectory, fileName);
   }
 }

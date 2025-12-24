@@ -123,6 +123,8 @@ export class TemplateService {
   static async create(request: CreateTemplateRequest): Promise<Template> {
     const requestData = validate(TemplateValidation.PAYLOAD, request);
 
+    console.log("request", requestData);
+
     // Check if slug is unique
     const existingTemplate = await prisma.template.findFirst({
       where: { slug: requestData.slug },
@@ -141,6 +143,7 @@ export class TemplateService {
           requestData.path
         );
       } catch (error) {
+        console.error(error);
         throw new ResponseError(400, "Gagal memproses file template");
       }
     }
