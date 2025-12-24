@@ -22,10 +22,7 @@ export class AccountController {
 
       // Handle avatar file upload if provided
       if (req.file) {
-        const uploadResult = await UploadService.uploadTempFile(
-          userId,
-          req.file
-        );
+        const uploadResult = await UploadService.uploadFile(req.file);
         avatarPath = uploadResult.path;
       }
 

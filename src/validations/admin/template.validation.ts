@@ -23,7 +23,6 @@ export class TemplateValidation {
 
   static readonly PAYLOAD = z.object({
     name: z.string().min(1).max(255),
-    slug: z.string().min(1).max(255),
     type: z.enum(["cv", "application_letter"]),
     language: z.enum(["en", "id"]).default("en"),
     path: z.string().min(1),

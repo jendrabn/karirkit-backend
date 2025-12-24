@@ -19,7 +19,6 @@ export class TemplateService {
     {
       id: string;
       name: string;
-      slug: string;
       type: "cv" | "application_letter";
       language: "en" | "id";
       isPremium: boolean;
@@ -45,7 +44,6 @@ export class TemplateService {
       select: {
         id: true,
         name: true,
-        slug: true,
         type: true,
         language: true,
         isPremium: true,

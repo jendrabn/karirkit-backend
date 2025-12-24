@@ -18,7 +18,6 @@ type TemplateListResult = {
 
 type CreateTemplateRequest = {
   name: string;
-  slug: string;
   type: "cv" | "application_letter";
   language?: "en" | "id";
   path: string;
@@ -28,7 +27,6 @@ type CreateTemplateRequest = {
 
 type UpdateTemplateRequest = {
   name?: string;
-  slug?: string;
   type?: "cv" | "application_letter";
   language?: "en" | "id";
   path?: string;
@@ -57,10 +55,7 @@ export class TemplateService {
 
     if (requestData.q) {
       const search = requestData.q;
-      where.OR = [
-        { name: { contains: search } },
-        { slug: { contains: search } },
-      ];
+      where.OR = [{ name: { contains: search } }];
     }
 
     if (requestData.type) {
@@ -125,15 +120,6 @@ export class TemplateService {
 
     console.log("request", requestData);
 
-    // Check if slug is unique
-    const existingTemplate = await prisma.template.findFirst({
-      where: { slug: requestData.slug },
-    });
-
-    if (existingTemplate) {
-      throw new ResponseError(400, "Slug sudah ada");
-    }
-
     // Move file from temp to permanent location if path is provided
     let finalPath = requestData.path;
     if (requestData.path) {
@@ -164,7 +150,6 @@ export class TemplateService {
     const template = await prisma.template.create({
       data: {
         name: requestData.name,
-        slug: requestData.slug,
         type: requestData.type,
         language: requestData.language ?? "en",
         path: finalPath,
@@ -192,20 +177,6 @@ export class TemplateService {
     }
 
     const requestData = validate(TemplateValidation.PAYLOAD.partial(), request);
-
-    // Check if slug is unique (excluding current template)
-    if (requestData.slug && requestData.slug !== existingTemplate.slug) {
-      const slugExists = await prisma.template.findFirst({
-        where: {
-          slug: requestData.slug,
-          NOT: { id },
-        },
-      });
-
-      if (slugExists) {
-        throw new ResponseError(400, "Slug sudah ada");
-      }
-    }
 
     // Move file from temp to permanent location if path is provided
     let finalPath = requestData.path;
@@ -239,10 +210,6 @@ export class TemplateService {
 
     if (requestData.name !== undefined) {
       updateData.name = requestData.name;
-    }
-
-    if (requestData.slug !== undefined) {
-      updateData.slug = requestData.slug;
     }
 
     if (requestData.type !== undefined) {

@@ -88,7 +88,6 @@ async function main() {
     prisma.template.create({
       data: {
         name: "Modern CV Template",
-        slug: "modern-cv-template",
         type: "cv",
         language: "en",
         path: "/templates/cv/modern.docx",
@@ -102,7 +101,6 @@ async function main() {
     prisma.template.create({
       data: {
         name: "Classic Application Letter",
-        slug: "classic-application-letter",
         type: "application_letter",
         language: "en",
         path: "/templates/letter/classic.docx",
@@ -116,7 +114,6 @@ async function main() {
     prisma.template.create({
       data: {
         name: "Creative CV Template",
-        slug: "creative-cv-template",
         type: "cv",
         language: "id",
         path: "/templates/cv/creative.docx",
