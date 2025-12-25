@@ -512,4 +512,36 @@ export class BlogService {
         : [],
     };
   }
+  static async getLatest(limit: number): Promise<BlogResponse[]> {
+    // Validate and clamp limit between 1-20
+    const take = Math.min(Math.max(limit, 1), 20);
+
+    const blogs = await prisma.blog.findMany({
+      where: {
+        status: "published",
+      },
+      orderBy: {
+        publishedAt: "desc",
+      },
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return blogs.map((blog) => BlogService.toResponse(blog));
+  }
 }

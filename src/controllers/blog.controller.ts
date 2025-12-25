@@ -78,4 +78,17 @@ export class BlogController {
       next(error);
     }
   }
+
+  static async latest(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Parse limit parameter with validation
+      let limit = parseInt(req.query.limit as string) || 4;
+      limit = Math.min(Math.max(limit, 1), 20); // Clamp between 1-20
+
+      const blogs = await BlogService.getLatest(limit);
+      sendSuccess(res, blogs);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

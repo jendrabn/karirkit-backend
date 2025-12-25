@@ -1283,6 +1283,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogListResponse'
+  /blogs/latest:
+    get:
+      tags: [Blogs]
+      summary: Get latest blogs
+      description: Get latest blogs without pagination
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 4
+      responses:
+        '200':
+          description: Latest blogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
   /blogs/{slug}:
     get:
       tags: [Blogs]
