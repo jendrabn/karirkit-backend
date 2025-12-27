@@ -75,12 +75,14 @@ enum MaritalStatus {
 }
 
 enum Degree {
-  highschool
-  associate
+  middle_school
+  high_school
+  associate_d1
+  associate_d2
+  associate_d3
   bachelor
   master
   doctorate
-  other
 }
 
 enum SkillLevel {
