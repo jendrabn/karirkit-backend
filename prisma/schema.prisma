@@ -524,3 +524,23 @@ model Otp {
   @@index([expiresAt], map: "idx_otps_expires_at")
   @@map("otps")
 }
+
+model Province {
+  id   String @id @default(cuid()) @db.VarChar(255)
+  name String @db.VarChar(255)
+
+  cities City[]
+
+  @@map("provinces")
+}
+
+model City {
+  id         String @id @default(cuid()) @db.VarChar(255)
+  provinceId String @map("province_id") @db.VarChar(255)
+  name       String @db.VarChar(255)
+
+  province Province @relation(fields: [provinceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([provinceId], map: "idx_cities_province_id")
+  @@map("cities")
+}

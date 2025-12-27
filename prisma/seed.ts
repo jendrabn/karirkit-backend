@@ -2,6 +2,8 @@ import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcrypt";
+import provinces from "../src/data/provinces.json";
+import cities from "../src/data/cities.json";
 
 const adapter = new PrismaMariaDb({
   host: process.env.DATABASE_HOST,
@@ -37,6 +39,8 @@ async function main() {
   await prisma.application.deleteMany();
   await prisma.cv.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.city.deleteMany();
+  await prisma.province.deleteMany();
 
   // Create Users
   const hashedPassword = await bcrypt.hash("password123", 10);
@@ -1111,6 +1115,32 @@ async function main() {
       },
     }),
   ]);
+
+  // Seed Provinces
+  console.log("Seeding provinces...");
+  const provinceMap = new Map();
+
+  for (const province of provinces) {
+    const createdProvince = await prisma.province.create({
+      data: {
+        id: province.id,
+        name: province.name,
+      },
+    });
+    provinceMap.set(province.id, createdProvince);
+  }
+
+  // Seed Cities
+  console.log("Seeding cities...");
+  for (const city of cities) {
+    await prisma.city.create({
+      data: {
+        id: city.id,
+        provinceId: city.province_id,
+        name: city.name,
+      },
+    });
+  }
 
   console.log("Seeding finished.");
 }
