@@ -181,6 +181,7 @@ router.get("/blogs/latest", BlogController.latest);
 router.get("/blogs/categories", BlogController.getCategories);
 router.get("/blogs/tags", BlogController.getTags);
 router.get("/blogs/:slug", BlogController.getBySlug);
+router.get("/blogs/:slug/related", BlogController.getRelatedBlogs);
 
 // Blogs API
 router.post("/blogs", authMiddleware, BlogController.create);

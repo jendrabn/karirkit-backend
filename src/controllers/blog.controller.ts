@@ -91,4 +91,20 @@ export class BlogController {
       next(error);
     }
   }
+
+  static async getRelatedBlogs(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { slug } = req.params;
+      const limit = parseInt(req.query.limit as string) || 4;
+
+      const blogs = await BlogService.getRelatedBlogs(slug, limit);
+      sendSuccess(res, blogs);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

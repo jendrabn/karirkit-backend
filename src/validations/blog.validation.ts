@@ -69,11 +69,25 @@ const listQuerySchema = z
     }
   });
 
+const relatedBlogsQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1, "Limit minimal 1")
+    .max(20, "Limit maksimal 20")
+    .default(4),
+});
+
 export class BlogValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
+  static readonly RELATED_BLOGS_QUERY = relatedBlogsQuerySchema;
 }
 
 export type BlogPayloadInput = z.infer<typeof BlogValidation.PAYLOAD>;
 
 export type BlogListQuery = z.infer<typeof BlogValidation.LIST_QUERY>;
+
+export type BlogRelatedBlogsQuery = z.infer<
+  typeof BlogValidation.RELATED_BLOGS_QUERY
+>;

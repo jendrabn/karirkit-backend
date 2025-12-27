@@ -1325,6 +1325,36 @@ paths:
                 $ref: '#/components/schemas/BlogResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+          
+  /blogs/{slug}/related:
+    get:
+      tags: [Blogs]
+      summary: Get related blogs
+      description: Get blogs related to the specified blog by common categories/tags
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 4
+      responses:
+        '200':
+          description: List of related blogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /blogs/categories:
     get:
       tags: [Blogs]
@@ -2841,6 +2871,10 @@ components:
         signature:
           type: string
           nullable: true
+        language:
+          type: string
+          enum: [en, id]
+          default: en
         template_id:
           type: string
           format: uuid
@@ -3176,6 +3210,10 @@ components:
         address: { type: string }
         about: { type: string }
         photo: { type: string, nullable: true }
+        language:
+          type: string
+          enum: [en, id]
+          default: en
         template_id:
           type: string
           format: uuid

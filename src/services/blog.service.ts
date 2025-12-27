@@ -544,4 +544,81 @@ export class BlogService {
 
     return blogs.map((blog) => BlogService.toResponse(blog));
   }
+
+  static async getRelatedBlogs(
+    slug: string,
+    limit: number
+  ): Promise<BlogResponse[]> {
+    // Validate and clamp limit between 1-20
+    const take = Math.min(Math.max(limit, 1), 20);
+
+    // First, get the current blog to find its category and tags
+    const currentBlog = await prisma.blog.findFirst({
+      where: {
+        slug,
+        status: "published",
+      },
+      include: {
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!currentBlog) {
+      throw new ResponseError(404, "Blog tidak ditemukan");
+    }
+
+    // Extract tag IDs from the current blog
+    const tagIds = currentBlog.tags.map((tagRelation) => tagRelation.tagId);
+    const categoryId = currentBlog.categoryId;
+
+    // Find related blogs based on category or tags
+    const relatedBlogs = await prisma.blog.findMany({
+      where: {
+        AND: [
+          { status: "published" },
+          { id: { not: currentBlog.id } }, // Exclude the current blog
+          {
+            OR: [
+              { categoryId: categoryId }, // Same category
+              {
+                tags: {
+                  some: {
+                    tagId: { in: tagIds }, // Same tags
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      orderBy: [
+        { publishedAt: "desc" }, // Prioritize more recent blogs
+        { views: "desc" }, // Then by popularity
+      ],
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return relatedBlogs.map((blog) => BlogService.toResponse(blog));
+  }
 }
