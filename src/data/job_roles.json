@@ -1,0 +1,226 @@
+[
+    {
+        "id": 5,
+        "name": "Accounting and Finance"
+    },
+    {
+        "id": 10,
+        "name": "Administration and Coordination"
+    },
+    {
+        "id": 15,
+        "name": "Android Developer"
+    },
+    {
+        "id": 20,
+        "name": "Architecture and Engineering"
+    },
+    {
+        "id": 25,
+        "name": "Arts and Sports"
+    },
+    {
+        "id": 30,
+        "name": "Back-End Developer"
+    },
+    {
+        "id": 35,
+        "name": "Cloud Engineer"
+    },
+    {
+        "id": 40,
+        "name": "Customer Service"
+    },
+    {
+        "id": 45,
+        "name": "Data Analyst"
+    },
+    {
+        "id": 50,
+        "name": "Data Engineer"
+    },
+    {
+        "id": 55,
+        "name": "Data Scientist"
+    },
+    {
+        "id": 60,
+        "name": "Database Administration"
+    },
+    {
+        "id": 65,
+        "name": "DevOps Engineer"
+    },
+    {
+        "id": 70,
+        "name": "Education and Training"
+    },
+    {
+        "id": 75,
+        "name": "Flutter Developer"
+    },
+    {
+        "id": 80,
+        "name": "Front-End Web Developer"
+    },
+    {
+        "id": 85,
+        "name": "Full-Stack Developer"
+    },
+    {
+        "id": 95,
+        "name": "Game Designer"
+    },
+    {
+        "id": 100,
+        "name": "Game Developer"
+    },
+    {
+        "id": 105,
+        "name": "Game Tester"
+    },
+    {
+        "id": 110,
+        "name": "General Services"
+    },
+    {
+        "id": 115,
+        "name": "Hardware Engineer"
+    },
+    {
+        "id": 120,
+        "name": "Health and Medical"
+    },
+    {
+        "id": 125,
+        "name": "Hospitality and Tourism"
+    },
+    {
+        "id": 130,
+        "name": "Human Resources"
+    },
+    {
+        "id": 135,
+        "name": "iOS Developer"
+    },
+    {
+        "id": 140,
+        "name": "IT and Software"
+    },
+    {
+        "id": 145,
+        "name": "Legal"
+    },
+    {
+        "id": 150,
+        "name": "Machine Learning Developer"
+    },
+    {
+        "id": 155,
+        "name": "Management and Consultancy"
+    },
+    {
+        "id": 160,
+        "name": "Manufacturing and Production"
+    },
+    {
+        "id": 165,
+        "name": "Media and Creatives"
+    },
+    {
+        "id": 170,
+        "name": "Mobile Apps Developer"
+    },
+    {
+        "id": 175,
+        "name": "Multi-Platform App Developer"
+    },
+    {
+        "id": 180,
+        "name": "Network Engineer"
+    },
+    {
+        "id": 185,
+        "name": "Product Designer"
+    },
+    {
+        "id": 190,
+        "name": "Product Manager"
+    },
+    {
+        "id": 195,
+        "name": "Programmer"
+    },
+    {
+        "id": 200,
+        "name": "Public Service and NGOs"
+    },
+    {
+        "id": 205,
+        "name": "Quality Assurance (QA)"
+    },
+    {
+        "id": 210,
+        "name": "React Developer"
+    },
+    {
+        "id": 215,
+        "name": "Safety and Security"
+    },
+    {
+        "id": 220,
+        "name": "Sales and Marketing"
+    },
+    {
+        "id": 225,
+        "name": "Sciences"
+    },
+    {
+        "id": 230,
+        "name": "Security Engineer"
+    },
+    {
+        "id": 235,
+        "name": "Site Reliability Engineer (SRE)"
+    },
+    {
+        "id": 240,
+        "name": "Supply Chain"
+    },
+    {
+        "id": 245,
+        "name": "System Analyst"
+    },
+    {
+        "id": 250,
+        "name": "UI/UX Designer"
+    },
+    {
+        "id": 255,
+        "name": "UX Researcher"
+    },
+    {
+        "id": 260,
+        "name": "Web Designer"
+    },
+    {
+        "id": 265,
+        "name": "Web Developer"
+    },
+    {
+        "id": 270,
+        "name": "Web Engineer"
+    },
+    {
+        "id": 275,
+        "name": "Web Programmer"
+    },
+    {
+        "id": 280,
+        "name": "Writing and Content"
+    },
+    {
+        "id": 285,
+        "name": "Lainnya"
+    }
+]

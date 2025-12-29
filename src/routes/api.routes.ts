@@ -28,6 +28,14 @@ import { BlogController as AdminBlogController } from "../controllers/admin/blog
 import { BlogCategoryController } from "../controllers/admin/blog-category.controller";
 import { BlogTagController } from "../controllers/admin/blog-tag.controller";
 
+// Job Portal controllers
+import { JobController } from "../controllers/job.controller";
+
+// Admin Job Portal controllers
+import { JobController as AdminJobController } from "../controllers/admin/job.controller";
+import { CompanyController as AdminCompanyController } from "../controllers/admin/company.controller";
+import { JobRoleController as AdminJobRoleController } from "../controllers/admin/job-role.controller";
+
 const router = Router();
 
 router.get("/health", getHealth);
@@ -394,6 +402,131 @@ router.delete(
   authMiddleware,
   adminMiddleware,
   BlogTagController.delete
+);
+
+// Job Portal Public API
+router.get("/jobs", JobController.getJobs);
+router.get("/jobs/:slug", JobController.getJobBySlug);
+router.get("/companies", PublicController.getCompanies);
+router.get("/job-roles", PublicController.getJobRoles);
+router.get("/cities", PublicController.getCities);
+
+// Admin Jobs API
+router.get(
+  "/admin/jobs",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobController.list
+);
+router.post(
+  "/admin/jobs",
+  authMiddleware,
+  adminMiddleware,
+  handleTempUpload,
+  AdminJobController.create
+);
+router.get(
+  "/admin/jobs/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobController.get
+);
+router.put(
+  "/admin/jobs/:id",
+  authMiddleware,
+  adminMiddleware,
+  handleTempUpload,
+  AdminJobController.update
+);
+router.delete(
+  "/admin/jobs/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobController.delete
+);
+router.delete(
+  "/admin/jobs",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobController.massDelete
+);
+
+// Admin Companies API
+router.get(
+  "/admin/companies",
+  authMiddleware,
+  adminMiddleware,
+  AdminCompanyController.list
+);
+router.post(
+  "/admin/companies",
+  authMiddleware,
+  adminMiddleware,
+  handleTempUpload,
+  AdminCompanyController.create
+);
+router.get(
+  "/admin/companies/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminCompanyController.get
+);
+router.put(
+  "/admin/companies/:id",
+  authMiddleware,
+  adminMiddleware,
+  handleTempUpload,
+  AdminCompanyController.update
+);
+router.delete(
+  "/admin/companies/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminCompanyController.delete
+);
+router.delete(
+  "/admin/companies",
+  authMiddleware,
+  adminMiddleware,
+  AdminCompanyController.massDelete
+);
+
+// Admin Job Roles API
+router.get(
+  "/admin/job-roles",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.list
+);
+router.post(
+  "/admin/job-roles",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.create
+);
+router.get(
+  "/admin/job-roles/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.get
+);
+router.put(
+  "/admin/job-roles/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.update
+);
+router.delete(
+  "/admin/job-roles/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.delete
+);
+router.delete(
+  "/admin/job-roles",
+  authMiddleware,
+  adminMiddleware,
+  AdminJobRoleController.massDelete
 );
 
 export default router;

@@ -4,6 +4,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcrypt";
 import provinces from "../src/data/provinces.json";
 import cities from "../src/data/cities.json";
+import jobRoles from "../src/data/job_roles.json";
 
 const adapter = new PrismaMariaDb({
   host: process.env.DATABASE_HOST,
@@ -41,6 +42,9 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.city.deleteMany();
   await prisma.province.deleteMany();
+  await prisma.job.deleteMany();
+  await prisma.jobRole.deleteMany();
+  await prisma.company.deleteMany();
 
   // Create Users
   const hashedPassword = await bcrypt.hash("password123", 10);
@@ -1195,6 +1199,173 @@ async function main() {
       },
     });
   }
+
+  // Create Companies
+  console.log("Seeding companies...");
+  const companies = await Promise.all([
+    prisma.company.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "Tech Solutions Indonesia",
+        slug: "tech-solutions-indonesia",
+        description:
+          "Perusahaan teknologi terkemuka di Indonesia yang fokus pada pengembangan solusi digital inovatif",
+        logo: "https://example.com/logos/tech-solutions.png",
+        employeeSize: "fifty_one_to_two_hundred",
+        businessSector: "Technology",
+        websiteUrl: "https://techsolutions.co.id",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.company.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        name: "Digital Creative Agency",
+        slug: "digital-creative-agency",
+        description:
+          "Agency kreatif digital yang menyediakan layanan desain dan pengembangan web",
+        logo: "https://example.com/logos/digital-creative.png",
+        employeeSize: "eleven_to_fifty",
+        businessSector: "Design & Creative",
+        websiteUrl: "https://digitalcreative.com",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.company.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440002",
+        name: "FinTech Innovations",
+        slug: "fintech-innovations",
+        description:
+          "Startup fintech yang mengembangkan solusi pembayaran digital untuk UMKM",
+        logo: "https://example.com/logos/fintech-innovations.png",
+        employeeSize: "one_to_ten",
+        businessSector: "Financial Technology",
+        websiteUrl: "https://fintechinnovations.id",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+  ]);
+
+  // Create Job Roles
+  console.log("Seeding job roles...");
+  const createdJobRoles = await Promise.all(
+    jobRoles.slice(0, 5).map((role) =>
+      prisma.jobRole.create({
+        data: {
+          name: role.name,
+          slug: role.name
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^\w-]/g, ""),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      })
+    )
+  );
+
+  // Create Jobs
+  console.log("Seeding jobs...");
+  await Promise.all([
+    prisma.job.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440020",
+        companyId: companies[0].id,
+        jobRoleId: createdJobRoles[0].id,
+        cityId: "1", // Jakarta
+        title: "Senior Front-End Web Developer",
+        slug: "senior-front-end-web-developer",
+        jobType: "full_time",
+        workSystem: "hybrid",
+        educationLevel: "bachelor",
+        minYearsOfExperience: 3,
+        maxYearsOfExperience: 5,
+        description:
+          "Kami mencari Senior Front-End Web Developer yang berpengalaman dalam mengembangkan aplikasi web modern dengan React.js. Anda akan bertanggung jawab atas pengembangan UI yang responsif dan interaktif, serta berkolaborasi dengan tim back-end untuk mengintegrasikan API.",
+        requirements:
+          "• Pengalaman minimal 3 tahun dengan React.js\n• Mahir dengan TypeScript dan JavaScript ES6+\n• Pengalaman dengan state management (Redux, Context API)\n• Familiar dengan RESTful API dan GraphQL\n• Memahami prinsip responsive design\n• Pengalaman dengan testing (Jest, React Testing Library)\n• Kemampuan komunikasi yang baik",
+        salaryMin: BigInt(15000000),
+        salaryMax: BigInt(25000000),
+        talentQuota: 2,
+        jobUrl:
+          "https://techsolutions.co.id/careers/senior-front-end-developer",
+        contactName: "HR Tech Solutions",
+        contactEmail: "hr@techsolutions.co.id",
+        contactPhone: "+6221-2345-6789",
+        poster: "https://example.com/posters/front-end-dev.jpg",
+        status: "published",
+        expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.job.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440021",
+        companyId: companies[1].id,
+        jobRoleId: createdJobRoles[3].id,
+        cityId: "2", // Surabaya
+        title: "UI/UX Designer",
+        slug: "ui-ux-designer",
+        jobType: "full_time",
+        workSystem: "remote",
+        educationLevel: "bachelor",
+        minYearsOfExperience: 2,
+        maxYearsOfExperience: 4,
+        description:
+          "Digital Creative Agency mencari UI/UX Designer yang kreatif dan berpengalaman untuk bergabung dengan tim kami. Anda akan bertanggung jawab atas desain antarmuka pengguna untuk berbagai proyek klien.",
+        requirements:
+          "• Portfolio yang kuat\n• Pengalaman dengan Figma, Sketch, atau Adobe XD\n• Memahami prinsip desain yang berpusat pada pengguna\n• Kemampuan membuat prototipe interaktif\n• Pengalaman dengan user research dan testing\n• Kemampuan berkolaborasi dengan tim pengembang",
+        salaryMin: BigInt(12000000),
+        salaryMax: BigInt(18000000),
+        talentQuota: 1,
+        jobUrl: "https://digitalcreative.com/careers/ui-ux-designer",
+        contactName: "Creative Director",
+        contactEmail: "jobs@digitalcreative.com",
+        contactPhone: "+6222-3456-7890",
+        poster: "https://example.com/posters/ui-ux-designer.jpg",
+        status: "published",
+        expirationDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.job.create({
+      data: {
+        id: "550e8400-e29b-41d4-a716-446655440022",
+        companyId: companies[2].id,
+        jobRoleId: createdJobRoles[2].id,
+        cityId: "3", // Bandung
+        title: "Full-Stack Developer (FinTech)",
+        slug: "full-stack-developer-fintech",
+        jobType: "full_time",
+        workSystem: "remote",
+        educationLevel: "bachelor",
+        minYearsOfExperience: 4,
+        maxYearsOfExperience: 7,
+        description:
+          "FinTech Innovations sedang mencari Full-Stack Developer yang berpengalaman dalam mengembangkan solusi keuangan digital. Anda akan bergabung dengan tim inovatif yang sedang mengubah lanskap industri keuangan di Indonesia.",
+        requirements:
+          "• Pengalaman 4+ tahun dengan Node.js dan Express.js\n• Mahir dengan React.js atau Vue.js\n• Pengalaman dengan database (PostgreSQL, MongoDB)\n• Memahami konsep microservices\n• Pengalaman dengan integrasi payment gateway\n• Familiar dengan cloud services (AWS, GCP)\n• Memahami prinsip keamanan aplikasi keuangan",
+        salaryMin: BigInt(20000000),
+        salaryMax: BigInt(35000000),
+        talentQuota: 3,
+        jobUrl: "https://fintechinnovations.id/careers/full-stack-developer",
+        contactName: "CTO FinTech Innovations",
+        contactEmail: "careers@fintechinnovations.id",
+        contactPhone: "+6222-1234-5678",
+        poster: "https://example.com/posters/full-stack-fintech.jpg",
+        status: "published",
+        expirationDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+  ]);
 
   console.log("Seeding finished.");
 }

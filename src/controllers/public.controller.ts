@@ -3,6 +3,7 @@ import { PublicPortfolioService } from "../services/public-portfolio.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { prisma } from "../config/prisma.config";
 import { TemplateService } from "../services/template.service";
+import { JobService } from "../services/job.service";
 
 export class PublicController {
   static async getPortfolioListing(
@@ -74,6 +75,38 @@ export class PublicController {
       };
 
       return sendSuccess(res, stats);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCompanies(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await JobService.listCompanies();
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getJobRoles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await JobService.listJobRoles();
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCities(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { has_jobs, province_id } = req.query;
+
+      const hasJobs = has_jobs !== "false"; // Default to true unless explicitly false
+      const provinceId = province_id as string | undefined;
+
+      const result = await JobService.listCities(hasJobs, provinceId);
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }

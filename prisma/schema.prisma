@@ -83,6 +83,22 @@ enum Degree {
   bachelor
   master
   doctorate
+  any
+}
+
+enum EmployeeSize {
+  one_to_ten
+  eleven_to_fifty
+  fifty_one_to_two_hundred
+  two_hundred_one_to_five_hundred
+  five_hundred_plus
+}
+
+enum JobStatus {
+  draft
+  published
+  closed
+  archived
 }
 
 enum SkillLevel {
@@ -542,7 +558,80 @@ model City {
   name       String @db.VarChar(255)
 
   province Province @relation(fields: [provinceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  jobs     Job[]
 
   @@index([provinceId], map: "idx_cities_province_id")
   @@map("cities")
+}
+
+model Company {
+  id             String        @id @default(uuid()) @db.VarChar(255)
+  name           String        @db.VarChar(255)
+  slug           String        @unique @db.VarChar(255)
+  description    String?       @db.Text
+  logo           String?       @db.VarChar(255)
+  employeeSize   EmployeeSize? @map("employee_size")
+  businessSector String?       @map("business_sector") @db.VarChar(255)
+  websiteUrl     String?       @map("website_url") @db.Text
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  jobs Job[]
+
+  @@map("companies")
+}
+
+model JobRole {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  jobs Job[]
+
+  @@map("job_roles")
+}
+
+model Job {
+  id                   String     @id @default(uuid()) @db.VarChar(255)
+  companyId            String     @map("company_id") @db.VarChar(255)
+  jobRoleId            String     @map("job_role_id") @db.VarChar(255)
+  cityId               String?    @map("city_id") @db.VarChar(255)
+  title                String     @db.VarChar(255)
+  slug                 String     @unique @db.VarChar(255)
+  jobType              JobType    @map("job_type")
+  workSystem           WorkSystem @map("work_system")
+  educationLevel       Degree     @map("education_level")
+  minYearsOfExperience Int        @map("min_years_of_experience") @db.TinyInt
+  maxYearsOfExperience Int?       @map("max_years_of_experience") @db.TinyInt
+  description          String     @db.Text
+  requirements         String     @db.Text
+  salaryMin            BigInt?    @map("salary_min") @db.BigInt
+  salaryMax            BigInt?    @map("salary_max") @db.BigInt
+  talentQuota          Int?       @map("talent_quota") @db.TinyInt
+  jobUrl               String?    @map("job_url") @db.Text
+  contactName          String?    @map("contact_name") @db.VarChar(255)
+  contactEmail         String?    @map("contact_email") @db.VarChar(255)
+  contactPhone         String?    @map("contact_phone") @db.VarChar(255)
+  poster               String?    @db.VarChar(255)
+  status               JobStatus  @default(draft)
+  expirationDate       DateTime?  @map("expiration_date") @db.Timestamp(0)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  company Company @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  jobRole JobRole @relation(fields: [jobRoleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  city    City?   @relation(fields: [cityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([companyId], map: "idx_jobs_company_id")
+  @@index([jobRoleId], map: "idx_jobs_job_role_id")
+  @@index([cityId], map: "idx_jobs_city_id")
+  @@index([status], map: "idx_jobs_status")
+  @@index([jobType], map: "idx_jobs_job_type")
+  @@index([workSystem], map: "idx_jobs_work_system")
+  @@index([educationLevel], map: "idx_jobs_education_level")
+  @@index([salaryMin], map: "idx_jobs_salary_min")
+  @@index([createdAt], map: "idx_jobs_created_at")
+  @@map("jobs")
 }

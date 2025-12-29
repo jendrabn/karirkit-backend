@@ -6,6 +6,7 @@ import env from "./config/env.config";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
 import requestLogger from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
+import bigIntMiddleware from "./middleware/bigint.middleware";
 import routes from "./routes/api.routes";
 import {
   errorHandler,
@@ -30,6 +31,7 @@ app.use(globalRateLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(bigIntMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
 app.use(express.static(publicDirectory));

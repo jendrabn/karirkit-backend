@@ -19,6 +19,7 @@ tags:
   - name: Public
   - name: Uploads
   - name: Blogs
+  - name: Jobs
   - name: Admin
 paths:
   /auth/register:
@@ -2330,6 +2331,1024 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /jobs:
+    get:
+      tags: [Jobs]
+      summary: List jobs
+      description: Mengambil daftar lowongan pekerjaan dengan berbagai filter dan pagination.
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Pencarian global (title, description, company)
+        - name: company_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter lowongan berdasarkan perusahaan (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: job_role_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan role pekerjaan (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: city_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan kota (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: province_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan provinsi (via relasi city) (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: job_type
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [full_time, part_time, contract, internship, freelance]
+              - type: array
+                items:
+                  type: string
+                  enum: [full_time, part_time, contract, internship, freelance]
+          description: Filter tipe pekerjaan (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: work_system
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [onsite, hybrid, remote]
+              - type: array
+                items:
+                  type: string
+                  enum: [onsite, hybrid, remote]
+          description: Filter sistem kerja (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: education_level
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+              - type: array
+                items:
+                  type: string
+                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+          description: Filter minimal pendidikan (dapat menggunakan multiple values dengan parameter yang sama)
+        - name: experience_min
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 50
+          description: Filter minimal pengalaman (tahun)
+        - name: salary_min
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Filter gaji minimum
+        - $ref: '#/components/parameters/Page'
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            enum: [5, 10, 20, 50]
+            default: 10
+          description: Jumlah data per halaman
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created_at, salary_min, experience_min]
+            default: created_at
+          description: Field untuk sorting
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Jobs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobListResponse'
+  /jobs/{slug}:
+    get:
+      tags: [Jobs]
+      summary: Get job detail by slug
+      description: Mengambil detail lowongan pekerjaan berdasarkan slug unik.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /companies:
+    get:
+      tags: [Public]
+      summary: List companies
+      description: Mengambil daftar perusahaan yang memiliki lowongan pekerjaan aktif, diurutkan berdasarkan nama ASC.
+      responses:
+        '200':
+          description: Companies list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Company'
+  /job-roles:
+    get:
+      tags: [Public]
+      summary: List job roles
+      description: Mengambil daftar job roles yang tersedia, diurutkan berdasarkan nama ASC.
+      responses:
+        '200':
+          description: Job roles list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/JobRole'
+  /cities:
+    get:
+      tags: [Public]
+      summary: List cities
+      description: Mengambil daftar kota, diurutkan berdasarkan nama ASC.
+      parameters:
+        - name: has_jobs
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Filter untuk menampilkan kota yang memiliki lowongan pekerjaan (> 0). Jika false, akan menampilkan semua kota.
+        - name: province_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by province
+      responses:
+        '200':
+          description: Cities list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/City'
+  /admin/jobs:
+    get:
+      tags: [Admin]
+      summary: List all jobs (Admin)
+      description: Mengambil daftar semua lowongan pekerjaan dengan berbagai filter dan pagination (termasuk draft dan closed).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Pencarian global (title, description, company)
+        - name: company_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter lowongan berdasarkan perusahaan (dapat menggunakan multiple values)
+        - name: job_role_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan role pekerjaan (dapat menggunakan multiple values)
+        - name: city_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan kota (dapat menggunakan multiple values)
+        - name: province_id
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                format: uuid
+              - type: array
+                items:
+                  type: string
+                  format: uuid
+          description: Filter berdasarkan provinsi (via relasi city) (dapat menggunakan multiple values)
+        - name: job_type
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [full_time, part_time, contract, internship, freelance]
+              - type: array
+                items:
+                  type: string
+                  enum: [full_time, part_time, contract, internship, freelance]
+          description: Filter tipe pekerjaan (dapat menggunakan multiple values)
+        - name: work_system
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [onsite, hybrid, remote]
+              - type: array
+                items:
+                  type: string
+                  enum: [onsite, hybrid, remote]
+          description: Filter sistem kerja (dapat menggunakan multiple values)
+        - name: education_level
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+              - type: array
+                items:
+                  type: string
+                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+          description: Filter minimal pendidikan (dapat menggunakan multiple values)
+        - name: experience_min
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 50
+          description: Filter minimal pengalaman (tahun)
+        - name: salary_min
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Filter gaji minimum
+        - name: status
+          in: query
+          schema:
+            oneOf:
+              - type: string
+                enum: [draft, published, closed, archived]
+              - type: array
+                items:
+                  type: string
+                  enum: [draft, published, closed, archived]
+          description: Filter by status (dapat menggunakan multiple values)
+        - $ref: '#/components/parameters/Page'
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            enum: [5, 10, 20, 50]
+            default: 10
+          description: Jumlah data per halaman
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created_at, salary_min, experience_min]
+            default: created_at
+          description: Field untuk sorting
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Jobs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminJobListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create job
+      description: Membuat lowongan pekerjaan baru.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateJobRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                company_id:
+                  type: string
+                  format: uuid
+                job_role_id:
+                  type: string
+                  format: uuid
+                city_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                title:
+                  type: string
+                slug:
+                  type: string
+                job_type:
+                  type: string
+                  enum: [full_time, part_time, contract, internship, freelance]
+                work_system:
+                  type: string
+                  enum: [onsite, hybrid, remote]
+                education_level:
+                  type: string
+                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                min_years_of_experience:
+                  type: integer
+                max_years_of_experience:
+                  type: integer
+                  nullable: true
+                description:
+                  type: string
+                requirements:
+                  type: string
+                salary_min:
+                  type: integer
+                  nullable: true
+                salary_max:
+                  type: integer
+                  nullable: true
+                talent_quota:
+                  type: integer
+                  nullable: true
+                job_url:
+                  type: string
+                  nullable: true
+                contact_name:
+                  type: string
+                  nullable: true
+                contact_email:
+                  type: string
+                  nullable: true
+                contact_phone:
+                  type: string
+                  nullable: true
+                poster:
+                  type: string
+                  format: binary
+                  nullable: true
+                status:
+                  type: string
+                  enum: [draft, published, closed, archived]
+                  default: draft
+                expiration_date:
+                  type: string
+                  format: date-time
+                  nullable: true
+              required: [company_id, job_role_id, title, slug, job_type, work_system, education_level, min_years_of_experience, description, requirements]
+      responses:
+        '201':
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/jobs/{id}:
+    get:
+      tags: [Admin]
+      summary: Get job detail by ID (Admin)
+      description: Mengambil detail lowongan pekerjaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update job
+      description: Memperbarui detail lowongan pekerjaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateJobRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                company_id:
+                  type: string
+                  format: uuid
+                job_role_id:
+                  type: string
+                  format: uuid
+                city_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                title:
+                  type: string
+                slug:
+                  type: string
+                job_type:
+                  type: string
+                  enum: [full_time, part_time, contract, internship, freelance]
+                work_system:
+                  type: string
+                  enum: [onsite, hybrid, remote]
+                education_level:
+                  type: string
+                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                min_years_of_experience:
+                  type: integer
+                max_years_of_experience:
+                  type: integer
+                  nullable: true
+                description:
+                  type: string
+                requirements:
+                  type: string
+                salary_min:
+                  type: integer
+                  nullable: true
+                salary_max:
+                  type: integer
+                  nullable: true
+                talent_quota:
+                  type: integer
+                  nullable: true
+                job_url:
+                  type: string
+                  nullable: true
+                contact_name:
+                  type: string
+                  nullable: true
+                contact_email:
+                  type: string
+                  nullable: true
+                contact_phone:
+                  type: string
+                  nullable: true
+                poster:
+                  type: string
+                  format: binary
+                  nullable: true
+                status:
+                  type: string
+                  enum: [draft, published, closed, archived]
+                expiration_date:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '200':
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete job
+      description: Menghapus lowongan pekerjaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/jobs/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete jobs
+      description: Menghapus beberapa lowongan pekerjaan berdasarkan daftar ID yang diberikan.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of job IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Jobs deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/companies:
+    get:
+      tags: [Admin]
+      summary: List all companies (Admin)
+      description: Mengambil daftar semua perusahaan dengan pagination.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+            default: created_at
+        - name: business_sector
+          in: query
+          schema:
+            type: string
+          description: Filter by business sector
+        - name: employee_size
+          in: query
+          schema:
+            type: string
+            enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+          description: Filter by employee size
+      responses:
+        '200':
+          description: Companies list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCompanyListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create company
+      description: Membuat perusahaan baru.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateCompanyRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                logo:
+                  type: string
+                  format: binary
+                  nullable: true
+                employee_size:
+                  type: string
+                  enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+                  nullable: true
+                business_sector:
+                  type: string
+                  nullable: true
+                website_url:
+                  type: string
+                  nullable: true
+              required: [name, slug]
+      responses:
+        '201':
+          description: Created company
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/companies/{id}:
+    get:
+      tags: [Admin]
+      summary: Get company detail by ID (Admin)
+      description: Mengambil detail perusahaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Company detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update company
+      description: Memperbarui detail perusahaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateCompanyRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                logo:
+                  type: string
+                  format: binary
+                  nullable: true
+                employee_size:
+                  type: string
+                  enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+                  nullable: true
+                business_sector:
+                  type: string
+                  nullable: true
+                website_url:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Updated company
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete company
+      description: Menghapus perusahaan berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/companies/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete companies
+      description: Menghapus beberapa perusahaan berdasarkan daftar ID yang diberikan.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of company IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Companies deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/job-roles:
+    get:
+      tags: [Admin]
+      summary: List all job roles (Admin)
+      description: Mengambil daftar semua job roles.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+            default: name
+      responses:
+        '200':
+          description: Job roles list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminJobRoleListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create job role
+      description: Membuat job role baru.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateJobRoleRequest'
+      responses:
+        '201':
+          description: Created job role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRoleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /admin/job-roles/{id}:
+    get:
+      tags: [Admin]
+      summary: Get job role detail by ID (Admin)
+      description: Mengambil detail job role berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Job role detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRoleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin]
+      summary: Update job role
+      description: Memperbarui detail job role berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateJobRoleRequest'
+      responses:
+        '200':
+          description: Updated job role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRoleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Admin]
+      summary: Delete job role
+      description: Menghapus job role berdasarkan ID.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/job-roles/mass-delete:
+    delete:
+      tags: [Admin]
+      summary: Mass delete job roles
+      description: Menghapus beberapa job roles berdasarkan daftar ID yang diberikan.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of job role IDs to delete
+              required: [ids]
+      responses:
+        '200':
+          description: Job roles deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      deleted_count:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 components:
   securitySchemes:
     sessionCookie:
@@ -3905,4 +4924,451 @@ components:
           type: string
           format: date-time
           nullable: true
+    EmployeeSize:
+      type: string
+      enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+    JobStatus:
+      type: string
+      enum: [draft, published, closed, archived]
+    EducationLevel:
+      type: string
+      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+        employee_size:
+          $ref: '#/components/schemas/EmployeeSize'
+        business_sector:
+          type: string
+          nullable: true
+        website_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CompanyResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Company'
+    CompanyListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Company'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    CompanyWithJobsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            company:
+              $ref: '#/components/schemas/Company'
+            jobs:
+              type: array
+              items:
+                $ref: '#/components/schemas/Job'
+    JobRole:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    JobRoleResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/JobRole'
+    JobRoleListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/JobRole'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    City:
+      type: object
+      properties:
+        id:
+          type: string
+        province_id:
+          type: string
+        name:
+          type: string
+        province:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        job_count:
+          type: integer
+          description: Number of jobs in this city
+    CityListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/City'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        company_id:
+          type: string
+        job_role_id:
+          type: string
+        city_id:
+          type: string
+          nullable: true
+        title:
+          type: string
+        slug:
+          type: string
+        job_type:
+          $ref: '#/components/schemas/JobType'
+        work_system:
+          $ref: '#/components/schemas/WorkSystem'
+        education_level:
+          $ref: '#/components/schemas/EducationLevel'
+        min_years_of_experience:
+          type: integer
+        max_years_of_experience:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        requirements:
+          type: string
+        salary_min:
+          type: integer
+          nullable: true
+        salary_max:
+          type: integer
+          nullable: true
+        talent_quota:
+          type: integer
+          nullable: true
+        job_url:
+          type: string
+          nullable: true
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        poster:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        expiration_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        company:
+          $ref: '#/components/schemas/Company'
+        job_role:
+          $ref: '#/components/schemas/JobRole'
+        city:
+          $ref: '#/components/schemas/City'
+    JobResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Job'
+    JobListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Job'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateJobRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        job_role_id:
+          type: string
+          format: uuid
+        city_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        slug:
+          type: string
+        job_type:
+          $ref: '#/components/schemas/JobType'
+        work_system:
+          $ref: '#/components/schemas/WorkSystem'
+        education_level:
+          $ref: '#/components/schemas/EducationLevel'
+        min_years_of_experience:
+          type: integer
+        max_years_of_experience:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        requirements:
+          type: string
+        salary_min:
+          type: integer
+          nullable: true
+        salary_max:
+          type: integer
+          nullable: true
+        talent_quota:
+          type: integer
+          nullable: true
+        job_url:
+          type: string
+          nullable: true
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        poster:
+          type: string
+          nullable: true
+          description: Path to poster image (from temp upload)
+        status:
+          $ref: '#/components/schemas/JobStatus'
+          default: draft
+        expiration_date:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        [company_id, job_role_id, title, slug, job_type, work_system, education_level, min_years_of_experience, description, requirements]
+    AdminUpdateJobRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        job_role_id:
+          type: string
+          format: uuid
+        city_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        slug:
+          type: string
+        job_type:
+          $ref: '#/components/schemas/JobType'
+        work_system:
+          $ref: '#/components/schemas/WorkSystem'
+        education_level:
+          $ref: '#/components/schemas/EducationLevel'
+        min_years_of_experience:
+          type: integer
+        max_years_of_experience:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        requirements:
+          type: string
+        salary_min:
+          type: integer
+          nullable: true
+        salary_max:
+          type: integer
+          nullable: true
+        talent_quota:
+          type: integer
+          nullable: true
+        job_url:
+          type: string
+          nullable: true
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        poster:
+          type: string
+          nullable: true
+          description: Path to poster image (from temp upload)
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        expiration_date:
+          type: string
+          format: date-time
+          nullable: true
+    AdminJobListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Job'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+          description: Path to logo image (from temp upload)
+        employee_size:
+          $ref: '#/components/schemas/EmployeeSize'
+          nullable: true
+        business_sector:
+          type: string
+          nullable: true
+        website_url:
+          type: string
+          nullable: true
+      required: [name, slug]
+    AdminUpdateCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+          description: Path to logo image (from temp upload)
+        employee_size:
+          $ref: '#/components/schemas/EmployeeSize'
+          nullable: true
+        business_sector:
+          type: string
+          nullable: true
+        website_url:
+          type: string
+          nullable: true
+    AdminCompanyListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Company'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    AdminCreateJobRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+      required: [name, slug]
+    AdminUpdateJobRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+    AdminJobRoleListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/JobRole'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
 
