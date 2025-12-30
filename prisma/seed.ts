@@ -1253,7 +1253,7 @@ async function main() {
   // Create Job Roles
   console.log("Seeding job roles...");
   const createdJobRoles = await Promise.all(
-    jobRoles.slice(0, 5).map((role) =>
+    jobRoles.map((role) =>
       prisma.jobRole.create({
         data: {
           name: role.name,
