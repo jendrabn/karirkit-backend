@@ -14,8 +14,8 @@ type SafeUser = {
   role: string;
   phone: string | null;
   avatar: string | null;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 };
 
 type UserListResult = {
@@ -135,8 +135,8 @@ export class UserService {
         role: user.role,
         phone: user.phone,
         avatar: user.avatar,
-        createdAt: user.createdAt?.toISOString() || "",
-        updatedAt: user.updatedAt?.toISOString() || "",
+        created_at: user.createdAt?.toISOString() || "",
+        updated_at: user.updatedAt?.toISOString() || "",
       })),
       pagination: {
         page,
@@ -177,8 +177,8 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
-      createdAt: user.createdAt?.toISOString() || "",
-      updatedAt: user.updatedAt?.toISOString() || "",
+      created_at: user.createdAt?.toISOString() || "",
+      updated_at: user.updatedAt?.toISOString() || "",
     };
   }
 
@@ -238,8 +238,8 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
-      createdAt: user.createdAt?.toISOString() || "",
-      updatedAt: user.updatedAt?.toISOString() || "",
+      created_at: user.createdAt?.toISOString() || "",
+      updated_at: user.updatedAt?.toISOString() || "",
     };
   }
 
@@ -341,8 +341,8 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
-      createdAt: user.createdAt?.toISOString() || "",
-      updatedAt: user.updatedAt?.toISOString() || "",
+      created_at: user.createdAt?.toISOString() || "",
+      updated_at: user.updatedAt?.toISOString() || "",
     };
   }
 

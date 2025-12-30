@@ -27,27 +27,27 @@ export class AuthController {
       const result = await AuthService.login(req.body as LoginRequest);
 
       // Check if OTP is required
-      if ("requiresOtp" in result && result.requiresOtp) {
+      if ("requires_otp" in result && result.requires_otp) {
         sendSuccess(res, {
           message: result.message,
           requires_otp: true,
-          expiresAt: result.expiresAt,
-          expiresIn: result.expiresIn,
-          resendAvailableAt: result.resendAvailableAt,
+          expires_at: result.expires_at,
+          expires_in: result.expires_in,
+          resend_available_at: result.resend_available_at,
         });
         return;
       }
 
       // Normal login flow
-      const { token, user, expiresAt } = result as {
+      const { token, user, expires_at } = result as {
         token: string;
         user: any;
-        expiresAt?: number;
+        expires_at?: number;
       };
 
       const maxAge =
-        typeof expiresAt === "number"
-          ? Math.max(expiresAt - Date.now(), 0)
+        typeof expires_at === "number"
+          ? Math.max(expires_at - Date.now(), 0)
           : 24 * 60 * 60 * 1000;
 
       res.cookie(env.sessionCookieName, token, {
@@ -69,13 +69,12 @@ export class AuthController {
     next: NextFunction
   ) {
     try {
-      const { token, user, expiresAt } = await AuthService.loginWithGoogle(
+      const { token, user, expires_at } = await AuthService.loginWithGoogle(
         req.body as GoogleLoginRequest
       );
-
       const maxAge =
-        typeof expiresAt === "number"
-          ? Math.max(expiresAt - Date.now(), 0)
+        typeof expires_at === "number"
+          ? Math.max(expires_at - Date.now(), 0)
           : 24 * 60 * 60 * 1000;
 
       res.cookie(env.sessionCookieName, token, {
@@ -140,8 +139,8 @@ export class AuthController {
       const result = await OtpService.verifyOtp(req.body);
 
       // Set session cookie when OTP verification is successful
-      const maxAge = result.expiresAt
-        ? Math.max(result.expiresAt - Date.now(), 0)
+      const maxAge = result.expires_at
+        ? Math.max(result.expires_at - Date.now(), 0)
         : 24 * 60 * 60 * 1000;
 
       res.cookie(env.sessionCookieName, result.token, {

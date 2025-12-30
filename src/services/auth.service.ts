@@ -17,11 +17,18 @@ import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 
-export type SafeUser = Omit<User, "password">;
+export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
+  created_at: Date;
+  updated_at: Date;
+};
 
 const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, ...safeUser } = user;
-  return safeUser;
+  const { password: _password, createdAt, updatedAt, ...rest } = user;
+  return {
+    ...rest,
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
 };
 
 const googleOAuthClient = new OAuth2Client(
@@ -32,15 +39,15 @@ const googleOAuthClient = new OAuth2Client(
 interface LoginResult {
   token: string;
   user: SafeUser;
-  expiresAt?: number;
+  expires_at?: number;
 }
 
 interface OtpLoginResult {
-  requiresOtp: boolean;
+  requires_otp: boolean;
   message: string;
-  expiresAt?: number;
-  expiresIn?: number;
-  resendAvailableAt?: number;
+  expires_at?: number;
+  expires_in?: number;
+  resend_available_at?: number;
 }
 
 export class AuthService {
@@ -121,12 +128,12 @@ export class AuthService {
       });
 
       return {
-        requiresOtp: true,
+        requires_otp: true,
         message:
           "OTP telah dikirim ke email Anda. Silakan verifikasi untuk menyelesaikan login.",
-        expiresAt: otpResult.expiresAt,
-        expiresIn: otpResult.expiresIn,
-        resendAvailableAt: otpResult.resendAvailableAt,
+        expires_at: otpResult.expires_at,
+        expires_in: otpResult.expires_in,
+        resend_available_at: otpResult.resend_available_at,
       };
     }
 
@@ -146,7 +153,7 @@ export class AuthService {
     return {
       token,
       user: toSafeUser(user),
-      expiresAt: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }
 
@@ -248,7 +255,7 @@ export class AuthService {
     return {
       token,
       user: toSafeUser(user),
-      expiresAt: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }
 

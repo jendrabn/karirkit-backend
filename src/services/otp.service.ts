@@ -17,9 +17,9 @@ export class OtpService {
 
   static async sendOtp(request: { identifier: string }): Promise<{
     message: string;
-    expiresAt: number;
-    expiresIn: number;
-    resendAvailableAt: number;
+    expires_at: number;
+    expires_in: number;
+    resend_available_at: number;
   }> {
     const requestData = validate(AuthValidation.SEND_OTP, request);
 
@@ -87,9 +87,9 @@ export class OtpService {
 
     return {
       message: "OTP telah dikirim ke email Anda",
-      expiresAt: expiresAt.getTime(),
-      expiresIn: env.otp.expiresInSeconds,
-      resendAvailableAt: resendAvailableAt.getTime(),
+      expires_at: expiresAt.getTime(),
+      expires_in: env.otp.expiresInSeconds,
+      resend_available_at: resendAvailableAt.getTime(),
     };
   }
 
@@ -97,7 +97,7 @@ export class OtpService {
     identifier: string;
     otp_code: string;
     password: string;
-  }): Promise<{ token: string; user: any; expiresAt?: number }> {
+  }): Promise<{ token: string; user: any; expires_at?: number }> {
     const requestData = validate(AuthValidation.VERIFY_OTP, request);
 
     // Find user by email or username
@@ -169,18 +169,18 @@ export class OtpService {
         phone: user.phone,
         role: user.role,
         avatar: user.avatar,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        created_at: user.createdAt,
+        updated_at: user.updatedAt,
       },
-      expiresAt: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }
 
   static async resendOtp(request: { identifier: string }): Promise<{
     message: string;
-    expiresAt: number;
-    expiresIn: number;
-    resendAvailableAt: number;
+    expires_at: number;
+    expires_in: number;
+    resend_available_at: number;
   }> {
     const requestData = validate(AuthValidation.RESEND_OTP, request);
 
@@ -224,8 +224,8 @@ export class OtpService {
           429,
           "OTP sudah dikirim. Silakan tunggu sebelum meminta yang baru.",
           {
-            remainingTime: [remainingCooldown.toString()],
-            resendAvailableAt: [
+            remaining_time: [remainingCooldown.toString()],
+            resend_available_at: [
               String(otpCreatedAt + env.otp.resendCooldownInSeconds * 1000),
             ],
           }
@@ -283,17 +283,17 @@ export class OtpService {
 
     return {
       message: "OTP telah dikirim ulang ke email Anda",
-      expiresAt: expiresAt.getTime(),
-      expiresIn: env.otp.expiresInSeconds,
-      resendAvailableAt: resendAvailableAt.getTime(),
+      expires_at: expiresAt.getTime(),
+      expires_in: env.otp.expiresInSeconds,
+      resend_available_at: resendAvailableAt.getTime(),
     };
   }
 
   static async checkOtpStatus(request: { identifier: string }): Promise<{
-    hasActiveOtp: boolean;
-    expiresAt?: number;
-    expiresIn?: number;
-    resendAvailableAt?: number;
+    has_active_otp: boolean;
+    expires_at?: number;
+    expires_in?: number;
+    resend_available_at?: number;
   }> {
     const requestData = validate(AuthValidation.CHECK_OTP_STATUS, request);
 
@@ -324,7 +324,7 @@ export class OtpService {
 
     if (!activeOtp) {
       return {
-        hasActiveOtp: false,
+        has_active_otp: false,
       };
     }
 
@@ -333,10 +333,10 @@ export class OtpService {
     const expiresIn = Math.ceil((expiresAt - now) / 1000);
 
     return {
-      hasActiveOtp: true,
-      expiresAt,
-      expiresIn,
-      resendAvailableAt: activeOtp.createdAt
+      has_active_otp: true,
+      expires_at: expiresAt,
+      expires_in: expiresIn,
+      resend_available_at: activeOtp.createdAt
         ? activeOtp.createdAt.getTime() + env.otp.resendCooldownInSeconds * 1000
         : expiresAt,
     };

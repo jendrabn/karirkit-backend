@@ -32,16 +32,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterRequest'
+              $ref: "#/components/schemas/RegisterRequest"
       responses:
-        '201':
+        "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/login:
     post:
       tags: [Auth]
@@ -55,9 +55,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Login successful or OTP sent
           content:
             application/json:
@@ -74,27 +74,27 @@ paths:
                           requires_otp:
                             type: boolean
                             example: true
-                          expiresAt:
+                          expires_at:
                             type: integer
                             format: int64
                             description: Timestamp when OTP expires (Unix timestamp in milliseconds)
                             example: 1703123456789
-                          expiresIn:
+                          expires_in:
                             type: integer
                             description: Time in seconds until OTP expires
                             example: 300
-                          resendAvailableAt:
+                          resend_available_at:
                             type: integer
                             format: int64
                             description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
                             example: 1703123456789
                     description: Response when OTP is enabled and sent to user's email
-                  - $ref: '#/components/schemas/AuthUserResponse'
+                  - $ref: "#/components/schemas/AuthUserResponse"
                     description: Response when OTP is disabled and user is authenticated directly
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/google:
     post:
       tags: [Auth]
@@ -105,18 +105,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GoogleLoginRequest'
+              $ref: "#/components/schemas/GoogleLoginRequest"
       responses:
-        '200':
+        "200":
           description: Authenticated with Google
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthUserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/logout:
     post:
       tags: [Auth]
@@ -125,10 +125,10 @@ paths:
       security:
         - sessionCookie: []
       responses:
-        '204':
+        "204":
           description: Logged out
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /account/me:
     get:
       tags: [Account]
@@ -136,14 +136,14 @@ paths:
       security:
         - sessionCookie: []
       responses:
-        '200':
+        "200":
           description: Current user profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     put:
       tags: [Account]
       summary: Update current user
@@ -154,7 +154,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateMeRequest'
+              $ref: "#/components/schemas/UpdateMeRequest"
           multipart/form-data:
             schema:
               type: object
@@ -173,16 +173,16 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200':
+        "200":
           description: Updated profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/forgot-password:
     post:
       tags: [Auth]
@@ -193,16 +193,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ForgotPasswordRequest'
+              $ref: "#/components/schemas/ForgotPasswordRequest"
       responses:
-        '200':
+        "200":
           description: Reset email dispatched
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/reset-password:
     post:
       tags: [Auth]
@@ -212,16 +212,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
+              $ref: "#/components/schemas/ResetPasswordRequest"
       responses:
-        '200':
+        "200":
           description: Password reset
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /account/change-password:
     put:
       tags: [Account]
@@ -233,18 +233,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
+              $ref: "#/components/schemas/ChangePasswordRequest"
       responses:
-        '200':
+        "200":
           description: Password updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -257,22 +257,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerifyOtpRequest'
+              $ref: "#/components/schemas/VerifyOtpRequest"
       responses:
-        '200':
+        "200":
           description: OTP verified successfully, user authenticated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthUserResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
+                $ref: "#/components/schemas/AuthUserResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
           description: Invalid or expired OTP
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/resend-otp:
     post:
       tags: [Auth]
@@ -283,29 +283,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResendOtpRequest'
+              $ref: "#/components/schemas/ResendOtpRequest"
       responses:
-        '200':
+        "200":
           description: OTP resent successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OtpResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
+                $ref: "#/components/schemas/OtpResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
           description: Too many requests - OTP already sent and still valid
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: "#/components/schemas/ErrorResponse"
                   - type: object
                     properties:
                       remainingTime:
@@ -325,22 +325,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CheckOtpStatusRequest'
+              $ref: "#/components/schemas/CheckOtpStatusRequest"
       responses:
-        '200':
+        "200":
           description: OTP status retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OtpStatusResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
+                $ref: "#/components/schemas/OtpStatusResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /applications:
     get:
       tags: [Applications]
@@ -349,15 +349,24 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
             type: string
-            enum: [date, created_at, updated_at, company_name, position, status, result_status]
+            enum:
+              [
+                date,
+                created_at,
+                updated_at,
+                company_name,
+                position,
+                status,
+                result_status,
+              ]
         - name: status
           in: query
           schema:
@@ -370,11 +379,11 @@ paths:
         - name: job_type
           in: query
           schema:
-            $ref: '#/components/schemas/JobType'
+            $ref: "#/components/schemas/JobType"
         - name: work_system
           in: query
           schema:
-            $ref: '#/components/schemas/WorkSystem'
+            $ref: "#/components/schemas/WorkSystem"
         - name: date_from
           in: query
           schema:
@@ -390,14 +399,14 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Applications list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/ApplicationListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Applications]
       summary: Create application
@@ -408,18 +417,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationPayload'
+              $ref: "#/components/schemas/ApplicationPayload"
       responses:
-        '201':
+        "201":
           description: Created application
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ApplicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /applications/stats:
     get:
       tags: [Applications]
@@ -428,14 +437,14 @@ paths:
       security:
         - sessionCookie: []
       responses:
-        '200':
+        "200":
           description: Application statistics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationStatsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/ApplicationStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /applications/{id}:
     get:
       tags: [Applications]
@@ -443,56 +452,56 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Application detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Applications]
       summary: Update application
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationPayload'
+              $ref: "#/components/schemas/ApplicationPayload"
       responses:
-        '200':
+        "200":
           description: Updated application
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags: [Applications]
       summary: Delete application
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /applications/mass-delete:
     delete:
       tags: [Applications]
@@ -514,7 +523,7 @@ paths:
                   description: Array of application IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Applications deleted successfully
           content:
             application/json:
@@ -528,10 +537,10 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /applications/{id}/duplicate:
     post:
       tags: [Applications]
@@ -539,18 +548,18 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '201':
+        "201":
           description: Duplicated application
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /application-letters:
     get:
       tags: [Application Letters]
@@ -558,15 +567,16 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, application_date, company_name, subject]
+            enum:
+              [created_at, updated_at, application_date, company_name, subject]
         - name: company_name
           in: query
           schema:
@@ -576,14 +586,14 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Letters list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationLetterListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/ApplicationLetterListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Application Letters]
       summary: Create application letter
@@ -594,18 +604,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationLetterPayload'
+              $ref: "#/components/schemas/ApplicationLetterPayload"
       responses:
-        '201':
+        "201":
           description: Created letter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationLetterResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ApplicationLetterResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /application-letters/{id}:
     get:
       tags: [Application Letters]
@@ -613,56 +623,56 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Application letter detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationLetterResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationLetterResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Application Letters]
       summary: Update application letter
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationLetterPayload'
+              $ref: "#/components/schemas/ApplicationLetterPayload"
       responses:
-        '200':
+        "200":
           description: Updated letter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationLetterResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationLetterResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags: [Application Letters]
       summary: Delete application letter
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /application-letters/mass-delete:
     delete:
       tags: [Application Letters]
@@ -684,7 +694,7 @@ paths:
                   description: Array of application letter IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Application letters deleted successfully
           content:
             application/json:
@@ -698,10 +708,10 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /application-letters/{id}/duplicate:
     post:
       tags: [Application Letters]
@@ -709,18 +719,18 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '201':
+        "201":
           description: Duplicated application letter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationLetterResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApplicationLetterResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /application-letters/{id}/download:
     get:
       tags: [Application Letters]
@@ -728,7 +738,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
         - name: format
           in: query
           schema:
@@ -736,7 +746,7 @@ paths:
             enum: [pdf, docx]
             default: pdf
       responses:
-        '200':
+        "200":
           description: Downloaded letter
           content:
             application/pdf:
@@ -749,11 +759,11 @@ paths:
                 format: binary
             application/json:
               schema:
-                $ref: '#/components/schemas/DownloadUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/DownloadUrlResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /uploads:
     post:
       tags: [Uploads]
@@ -774,16 +784,16 @@ paths:
                   description: File to persist inside the temp folder
               required: [file]
       responses:
-        '201':
+        "201":
           description: File uploaded to the temp storage
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TempUploadResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/TempUploadResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /portfolios:
     get:
       tags: [Portfolios]
@@ -791,10 +801,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -803,7 +813,7 @@ paths:
         - name: project_type
           in: query
           schema:
-            $ref: '#/components/schemas/ProjectType'
+            $ref: "#/components/schemas/ProjectType"
         - name: industry
           in: query
           schema:
@@ -817,14 +827,14 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Portfolios list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortfolioListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/PortfolioListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Portfolios]
       summary: Create portfolio
@@ -838,18 +848,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PortfolioPayload'
+              $ref: "#/components/schemas/PortfolioPayload"
       responses:
-        '201':
+        "201":
           description: Created portfolio
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortfolioResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/PortfolioResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /portfolios/{id}:
     get:
       tags: [Portfolios]
@@ -857,18 +867,18 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Portfolio detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortfolioResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/PortfolioResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Portfolios]
       summary: Update portfolio
@@ -878,38 +888,38 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PortfolioPayload'
+              $ref: "#/components/schemas/PortfolioPayload"
       responses:
-        '200':
+        "200":
           description: Updated portfolio
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortfolioResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/PortfolioResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags: [Portfolios]
       summary: Delete portfolio
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /portfolios/mass-delete:
     delete:
       tags: [Portfolios]
@@ -931,7 +941,7 @@ paths:
                   description: Array of portfolio IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Portfolios deleted successfully
           content:
             application/json:
@@ -945,10 +955,10 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /u/@{username}:
     get:
       tags: [Public]
@@ -960,14 +970,14 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Public portfolio listing
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicPortfolioResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/PublicPortfolioResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /u/@{username}/{id}:
     get:
       tags: [Public]
@@ -984,14 +994,14 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Public portfolio detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicPortfolioDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/PublicPortfolioDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /cvs:
     get:
       tags: [CVs]
@@ -1000,10 +1010,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1018,14 +1028,14 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: CVs list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CvListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/CvListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [CVs]
       summary: Create CV
@@ -1039,18 +1049,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CvPayload'
+              $ref: "#/components/schemas/CvPayload"
       responses:
-        '201':
+        "201":
           description: Created CV
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CvResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/CvResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /cvs/{id}:
     get:
       tags: [CVs]
@@ -1059,18 +1069,18 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: CV detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CvResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/CvResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [CVs]
       summary: Update CV
@@ -1080,24 +1090,24 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CvPayload'
+              $ref: "#/components/schemas/CvPayload"
       responses:
-        '200':
+        "200":
           description: Updated CV
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CvResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/CvResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags: [CVs]
       summary: Delete CV
@@ -1105,14 +1115,14 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /cvs/mass-delete:
     delete:
       tags: [CVs]
@@ -1134,7 +1144,7 @@ paths:
                   description: Array of CV IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: CVs deleted successfully
           content:
             application/json:
@@ -1148,10 +1158,10 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /cvs/{id}/duplicate:
     post:
       tags: [CVs]
@@ -1160,18 +1170,18 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '201':
+        "201":
           description: Duplicated CV
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CvResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/CvResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /cvs/{id}/download:
     get:
       tags: [CVs]
@@ -1179,7 +1189,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
         - name: format
           in: query
           schema:
@@ -1187,7 +1197,7 @@ paths:
             enum: [pdf, docx]
             default: pdf
       responses:
-        '200':
+        "200":
           description: Downloaded CV
           content:
             application/pdf:
@@ -1200,11 +1210,11 @@ paths:
                 format: binary
             application/json:
               schema:
-                $ref: '#/components/schemas/DownloadUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/DownloadUrlResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /dashboard:
     get:
       tags: [Dashboard]
@@ -1213,36 +1223,36 @@ paths:
       security:
         - sessionCookie: []
       responses:
-        '200':
+        "200":
           description: User dashboard statistics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DashboardResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/DashboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /stats:
     get:
       tags: [Public]
       summary: Get platform statistics
       description: Retrieve platform statistics for display on the home page.
       responses:
-        '200':
+        "200":
           description: Platform statistics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatsResponse'
+                $ref: "#/components/schemas/StatsResponse"
   /blogs:
     get:
       tags: [Blogs]
       summary: List blogs
       description: List blogs with search, filters, sorting, and pagination.
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1278,12 +1288,12 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Blogs list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogListResponse'
+                $ref: "#/components/schemas/BlogListResponse"
   /blogs/latest:
     get:
       tags: [Blogs]
@@ -1298,14 +1308,14 @@ paths:
             maximum: 20
             default: 4
       responses:
-        '200':
+        "200":
           description: Latest blogs
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Blog'
+                  $ref: "#/components/schemas/Blog"
   /blogs/{slug}:
     get:
       tags: [Blogs]
@@ -1318,15 +1328,15 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Blog detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-          
+                $ref: "#/components/schemas/BlogResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /blogs/{slug}/related:
     get:
       tags: [Blogs]
@@ -1346,23 +1356,23 @@ paths:
             maximum: 10
             default: 4
       responses:
-        '200':
+        "200":
           description: List of related blogs
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Blog'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                  $ref: "#/components/schemas/Blog"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /blogs/categories:
     get:
       tags: [Blogs]
       summary: List blog categories
       description: Get all blog categories for frontend display
       responses:
-        '200':
+        "200":
           description: Blog categories list
           content:
             application/json:
@@ -1375,14 +1385,14 @@ paths:
                       items:
                         type: array
                         items:
-                          $ref: '#/components/schemas/BlogCategory'
+                          $ref: "#/components/schemas/BlogCategory"
   /blogs/tags:
     get:
       tags: [Blogs]
       summary: List blog tags
       description: Get all blog tags for frontend display
       responses:
-        '200':
+        "200":
           description: Blog tags list
           content:
             application/json:
@@ -1395,7 +1405,7 @@ paths:
                       items:
                         type: array
                         items:
-                          $ref: '#/components/schemas/BlogTag'
+                          $ref: "#/components/schemas/BlogTag"
   /admin/dashboard:
     get:
       tags: [Admin]
@@ -1404,16 +1414,16 @@ paths:
       security:
         - sessionCookie: []
       responses:
-        '200':
+        "200":
           description: Dashboard statistics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminDashboardResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminDashboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /admin/users:
     get:
       tags: [Admin]
@@ -1422,10 +1432,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1448,16 +1458,16 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Users list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminUserListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminUserListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create user
@@ -1469,20 +1479,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateUserRequest'
+              $ref: "#/components/schemas/AdminCreateUserRequest"
       responses:
-        '201':
+        "201":
           description: Created user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/users/{id}:
     get:
       tags: [Admin]
@@ -1490,64 +1500,64 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: User detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update user
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateUserRequest'
+              $ref: "#/components/schemas/AdminUpdateUserRequest"
       responses:
-        '200':
+        "200":
           description: Updated user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete user
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -1569,7 +1579,7 @@ paths:
                   description: Array of user IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Users deleted successfully
           content:
             application/json:
@@ -1583,12 +1593,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /templates:
     get:
       tags: [Public]
@@ -1608,7 +1618,7 @@ paths:
             enum: [en, id]
           description: Filter by template language
       responses:
-        '200':
+        "200":
           description: Templates list
           content:
             application/json:
@@ -1621,7 +1631,7 @@ paths:
                       items:
                         type: array
                         items:
-                          $ref: '#/components/schemas/TemplateWithoutPath'
+                          $ref: "#/components/schemas/TemplateWithoutPath"
   /admin/templates:
     get:
       tags: [Admin]
@@ -1630,10 +1640,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1655,16 +1665,16 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: Templates list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminTemplateListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminTemplateListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create template
@@ -1676,20 +1686,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateTemplateRequest'
+              $ref: "#/components/schemas/AdminCreateTemplateRequest"
       responses:
-        '201':
+        "201":
           description: Created template
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplateResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/TemplateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/templates/{id}:
     get:
       tags: [Admin]
@@ -1697,64 +1707,64 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Template detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplateResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/TemplateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update template
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateTemplateRequest'
+              $ref: "#/components/schemas/AdminUpdateTemplateRequest"
       responses:
-        '200':
+        "200":
           description: Updated template
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplateResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/TemplateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete template
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/templates/mass-delete:
     delete:
       tags: [Admin]
@@ -1776,7 +1786,7 @@ paths:
                   description: Array of template IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Templates deleted successfully
           content:
             application/json:
@@ -1790,12 +1800,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blogs:
     get:
       tags: [Admin]
@@ -1804,10 +1814,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1838,16 +1848,16 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Blogs list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminBlogListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminBlogListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create blog
@@ -1859,20 +1869,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateBlogRequest'
+              $ref: "#/components/schemas/AdminCreateBlogRequest"
       responses:
-        '201':
+        "201":
           description: Created blog
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blogs/{id}:
     get:
       tags: [Admin]
@@ -1880,64 +1890,64 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Blog detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/BlogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update blog
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateBlogRequest'
+              $ref: "#/components/schemas/AdminUpdateBlogRequest"
       responses:
-        '200':
+        "200":
           description: Updated blog
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete blog
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/blogs/mass-delete:
     delete:
       tags: [Admin]
@@ -1959,7 +1969,7 @@ paths:
                   description: Array of blog IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Blogs deleted successfully
           content:
             application/json:
@@ -1973,12 +1983,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blog-categories:
     get:
       tags: [Admin]
@@ -1987,10 +1997,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -1998,16 +2008,16 @@ paths:
             enum: [created_at, updated_at, name]
             default: name
       responses:
-        '200':
+        "200":
           description: Blog categories list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminBlogCategoryListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminBlogCategoryListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create blog category
@@ -2019,20 +2029,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateBlogCategoryRequest'
+              $ref: "#/components/schemas/AdminCreateBlogCategoryRequest"
       responses:
-        '201':
+        "201":
           description: Created blog category
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogCategoryResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogCategoryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blog-categories/{id}:
     get:
       tags: [Admin]
@@ -2040,64 +2050,64 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Blog category detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogCategoryResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/BlogCategoryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update blog category
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateBlogCategoryRequest'
+              $ref: "#/components/schemas/AdminUpdateBlogCategoryRequest"
       responses:
-        '200':
+        "200":
           description: Updated blog category
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogCategoryResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogCategoryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete blog category
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/blog-categories/mass-delete:
     delete:
       tags: [Admin]
@@ -2119,7 +2129,7 @@ paths:
                   description: Array of blog category IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Blog categories deleted successfully
           content:
             application/json:
@@ -2133,12 +2143,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blog-tags:
     get:
       tags: [Admin]
@@ -2147,10 +2157,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -2158,16 +2168,16 @@ paths:
             enum: [created_at, updated_at, name]
             default: name
       responses:
-        '200':
+        "200":
           description: Blog tags list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminBlogTagListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminBlogTagListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create blog tag
@@ -2179,20 +2189,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateBlogTagRequest'
+              $ref: "#/components/schemas/AdminCreateBlogTagRequest"
       responses:
-        '201':
+        "201":
           description: Created blog tag
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogTagResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogTagResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blog-tags/{id}:
     get:
       tags: [Admin]
@@ -2200,64 +2210,64 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Blog tag detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogTagResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/BlogTagResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update blog tag
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateBlogTagRequest'
+              $ref: "#/components/schemas/AdminUpdateBlogTagRequest"
       responses:
-        '200':
+        "200":
           description: Updated blog tag
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BlogTagResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/BlogTagResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete blog tag
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/blog-tags/mass-delete:
     delete:
       tags: [Admin]
@@ -2279,7 +2289,7 @@ paths:
                   description: Array of blog tag IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Blog tags deleted successfully
           content:
             application/json:
@@ -2293,12 +2303,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/blogs/uploads:
     post:
       tags: [Admin]
@@ -2319,18 +2329,18 @@ paths:
                   description: File to upload for blog post (image, document, etc.)
               required: [file]
       responses:
-        '201':
+        "201":
           description: File uploaded successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TempUploadResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/TempUploadResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /jobs:
     get:
       tags: [Jobs]
@@ -2413,11 +2423,33 @@ paths:
           schema:
             oneOf:
               - type: string
-                enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                enum:
+                  [
+                    middle_school,
+                    high_school,
+                    associate_d1,
+                    associate_d2,
+                    associate_d3,
+                    bachelor,
+                    master,
+                    doctorate,
+                    any,
+                  ]
               - type: array
                 items:
                   type: string
-                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                  enum:
+                    [
+                      middle_school,
+                      high_school,
+                      associate_d1,
+                      associate_d2,
+                      associate_d3,
+                      bachelor,
+                      master,
+                      doctorate,
+                      any,
+                    ]
           description: Filter minimal pendidikan (dapat menggunakan multiple values dengan parameter yang sama)
         - name: experience_min
           in: query
@@ -2432,7 +2464,7 @@ paths:
             type: integer
             minimum: 1
           description: Filter gaji minimum
-        - $ref: '#/components/parameters/Page'
+        - $ref: "#/components/parameters/Page"
         - name: per_page
           in: query
           schema:
@@ -2447,14 +2479,14 @@ paths:
             enum: [created_at, salary_min, experience_min]
             default: created_at
           description: Field untuk sorting
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/SortOrder"
       responses:
-        '200':
+        "200":
           description: Jobs list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobListResponse'
+                $ref: "#/components/schemas/JobListResponse"
   /jobs/{slug}:
     get:
       tags: [Jobs]
@@ -2467,21 +2499,21 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Job detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/JobResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /companies:
     get:
       tags: [Public]
       summary: List companies
       description: Mengambil daftar perusahaan yang memiliki lowongan pekerjaan aktif, diurutkan berdasarkan nama ASC.
       responses:
-        '200':
+        "200":
           description: Companies list
           content:
             application/json:
@@ -2491,14 +2523,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Company'
+                      $ref: "#/components/schemas/Company"
   /job-roles:
     get:
       tags: [Public]
       summary: List job roles
       description: Mengambil daftar job roles yang tersedia, diurutkan berdasarkan nama ASC.
       responses:
-        '200':
+        "200":
           description: Job roles list
           content:
             application/json:
@@ -2508,7 +2540,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/JobRole'
+                      $ref: "#/components/schemas/JobRole"
   /cities:
     get:
       tags: [Public]
@@ -2528,7 +2560,7 @@ paths:
             format: uuid
           description: Filter by province
       responses:
-        '200':
+        "200":
           description: Cities list
           content:
             application/json:
@@ -2538,7 +2570,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/City'
+                      $ref: "#/components/schemas/City"
   /admin/jobs:
     get:
       tags: [Admin]
@@ -2623,11 +2655,33 @@ paths:
           schema:
             oneOf:
               - type: string
-                enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                enum:
+                  [
+                    middle_school,
+                    high_school,
+                    associate_d1,
+                    associate_d2,
+                    associate_d3,
+                    bachelor,
+                    master,
+                    doctorate,
+                    any,
+                  ]
               - type: array
                 items:
                   type: string
-                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                  enum:
+                    [
+                      middle_school,
+                      high_school,
+                      associate_d1,
+                      associate_d2,
+                      associate_d3,
+                      bachelor,
+                      master,
+                      doctorate,
+                      any,
+                    ]
           description: Filter minimal pendidikan (dapat menggunakan multiple values)
         - name: experience_min
           in: query
@@ -2653,7 +2707,7 @@ paths:
                   type: string
                   enum: [draft, published, closed, archived]
           description: Filter by status (dapat menggunakan multiple values)
-        - $ref: '#/components/parameters/Page'
+        - $ref: "#/components/parameters/Page"
         - name: per_page
           in: query
           schema:
@@ -2668,18 +2722,18 @@ paths:
             enum: [created_at, salary_min, experience_min]
             default: created_at
           description: Field untuk sorting
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/SortOrder"
       responses:
-        '200':
+        "200":
           description: Jobs list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminJobListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminJobListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create job
@@ -2691,7 +2745,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateJobRequest'
+              $ref: "#/components/schemas/AdminCreateJobRequest"
           multipart/form-data:
             schema:
               type: object
@@ -2718,7 +2772,18 @@ paths:
                   enum: [onsite, hybrid, remote]
                 education_level:
                   type: string
-                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                  enum:
+                    [
+                      middle_school,
+                      high_school,
+                      associate_d1,
+                      associate_d2,
+                      associate_d3,
+                      bachelor,
+                      master,
+                      doctorate,
+                      any,
+                    ]
                 min_years_of_experience:
                   type: integer
                 max_years_of_experience:
@@ -2761,20 +2826,32 @@ paths:
                   type: string
                   format: date-time
                   nullable: true
-              required: [company_id, job_role_id, title, slug, job_type, work_system, education_level, min_years_of_experience, description, requirements]
+              required:
+                [
+                  company_id,
+                  job_role_id,
+                  title,
+                  slug,
+                  job_type,
+                  work_system,
+                  education_level,
+                  min_years_of_experience,
+                  description,
+                  requirements,
+                ]
       responses:
-        '201':
+        "201":
           description: Created job
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/JobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/jobs/{id}:
     get:
       tags: [Admin]
@@ -2783,20 +2860,20 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Job detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/JobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update job
@@ -2804,13 +2881,13 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateJobRequest'
+              $ref: "#/components/schemas/AdminUpdateJobRequest"
           multipart/form-data:
             schema:
               type: object
@@ -2837,7 +2914,18 @@ paths:
                   enum: [onsite, hybrid, remote]
                 education_level:
                   type: string
-                  enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+                  enum:
+                    [
+                      middle_school,
+                      high_school,
+                      associate_d1,
+                      associate_d2,
+                      associate_d3,
+                      bachelor,
+                      master,
+                      doctorate,
+                      any,
+                    ]
                 min_years_of_experience:
                   type: integer
                 max_years_of_experience:
@@ -2880,20 +2968,20 @@ paths:
                   format: date-time
                   nullable: true
       responses:
-        '200':
+        "200":
           description: Updated job
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/JobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete job
@@ -2901,16 +2989,16 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/jobs/mass-delete:
     delete:
       tags: [Admin]
@@ -2932,7 +3020,7 @@ paths:
                   description: Array of job IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Jobs deleted successfully
           content:
             application/json:
@@ -2946,12 +3034,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/companies:
     get:
       tags: [Admin]
@@ -2960,10 +3048,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -2979,19 +3067,26 @@ paths:
           in: query
           schema:
             type: string
-            enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+            enum:
+              [
+                one_to_ten,
+                eleven_to_fifty,
+                fifty_one_to_two_hundred,
+                two_hundred_one_to_five_hundred,
+                five_hundred_plus,
+              ]
           description: Filter by employee size
       responses:
-        '200':
+        "200":
           description: Companies list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminCompanyListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminCompanyListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create company
@@ -3003,7 +3098,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateCompanyRequest'
+              $ref: "#/components/schemas/AdminCreateCompanyRequest"
           multipart/form-data:
             schema:
               type: object
@@ -3021,7 +3116,14 @@ paths:
                   nullable: true
                 employee_size:
                   type: string
-                  enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+                  enum:
+                    [
+                      one_to_ten,
+                      eleven_to_fifty,
+                      fifty_one_to_two_hundred,
+                      two_hundred_one_to_five_hundred,
+                      five_hundred_plus,
+                    ]
                   nullable: true
                 business_sector:
                   type: string
@@ -3031,18 +3133,18 @@ paths:
                   nullable: true
               required: [name, slug]
       responses:
-        '201':
+        "201":
           description: Created company
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompanyResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/CompanyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/companies/{id}:
     get:
       tags: [Admin]
@@ -3051,20 +3153,20 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Company detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompanyResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/CompanyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update company
@@ -3072,13 +3174,13 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateCompanyRequest'
+              $ref: "#/components/schemas/AdminUpdateCompanyRequest"
           multipart/form-data:
             schema:
               type: object
@@ -3096,7 +3198,14 @@ paths:
                   nullable: true
                 employee_size:
                   type: string
-                  enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+                  enum:
+                    [
+                      one_to_ten,
+                      eleven_to_fifty,
+                      fifty_one_to_two_hundred,
+                      two_hundred_one_to_five_hundred,
+                      five_hundred_plus,
+                    ]
                   nullable: true
                 business_sector:
                   type: string
@@ -3105,20 +3214,20 @@ paths:
                   type: string
                   nullable: true
       responses:
-        '200':
+        "200":
           description: Updated company
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompanyResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/CompanyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete company
@@ -3126,16 +3235,16 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/companies/mass-delete:
     delete:
       tags: [Admin]
@@ -3157,7 +3266,7 @@ paths:
                   description: Array of company IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Companies deleted successfully
           content:
             application/json:
@@ -3171,12 +3280,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/job-roles:
     get:
       tags: [Admin]
@@ -3185,10 +3294,10 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortOrder'
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
         - name: sort_by
           in: query
           schema:
@@ -3196,16 +3305,16 @@ paths:
             enum: [created_at, updated_at, name]
             default: name
       responses:
-        '200':
+        "200":
           description: Job roles list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminJobRoleListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/AdminJobRoleListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
       summary: Create job role
@@ -3217,20 +3326,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminCreateJobRoleRequest'
+              $ref: "#/components/schemas/AdminCreateJobRoleRequest"
       responses:
-        '201':
+        "201":
           description: Created job role
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobRoleResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/JobRoleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/job-roles/{id}:
     get:
       tags: [Admin]
@@ -3239,20 +3348,20 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '200':
+        "200":
           description: Job role detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobRoleResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/JobRoleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags: [Admin]
       summary: Update job role
@@ -3260,28 +3369,28 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateJobRoleRequest'
+              $ref: "#/components/schemas/AdminUpdateJobRoleRequest"
       responses:
-        '200':
+        "200":
           description: Updated job role
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobRoleResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/JobRoleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Admin]
       summary: Delete job role
@@ -3289,16 +3398,16 @@ paths:
       security:
         - sessionCookie: []
       parameters:
-        - $ref: '#/components/parameters/ResourceId'
+        - $ref: "#/components/parameters/ResourceId"
       responses:
-        '204':
+        "204":
           description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/job-roles/mass-delete:
     delete:
       tags: [Admin]
@@ -3320,7 +3429,7 @@ paths:
                   description: Array of job role IDs to delete
               required: [ids]
       responses:
-        '200':
+        "200":
           description: Job roles deleted successfully
           content:
             application/json:
@@ -3334,12 +3443,12 @@ paths:
                         type: string
                       deleted_count:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/ValidationError"
 components:
   securitySchemes:
     sessionCookie:
@@ -3386,25 +3495,25 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     ValidationError:
       description: Validation error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: Forbidden - Admin access required
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     ErrorResponse:
       type: object
@@ -3581,16 +3690,16 @@ components:
             message:
               type: string
               example: "OTP telah dikirim ke email Anda."
-            expiresAt:
+            expires_at:
               type: integer
               format: int64
               description: Timestamp when OTP expires (Unix timestamp in milliseconds)
               example: 1703123456789
-            expiresIn:
+            expires_in:
               type: integer
               description: Time in seconds until OTP expires
               example: 300
-            resendAvailableAt:
+            resend_available_at:
               type: integer
               format: int64
               description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
@@ -3601,20 +3710,20 @@ components:
         data:
           type: object
           properties:
-            hasActiveOtp:
+            has_active_otp:
               type: boolean
               description: Whether the user has an active OTP
               example: true
-            expiresAt:
+            expires_at:
               type: integer
               format: int64
               description: Timestamp when OTP expires (Unix timestamp in milliseconds)
               example: 1703123456789
-            expiresIn:
+            expires_in:
               type: integer
               description: Time in seconds until OTP expires
               example: 300
-            resendAvailableAt:
+            resend_available_at:
               type: integer
               format: int64
               description: Timestamp when user can request a new OTP (Unix timestamp in milliseconds)
@@ -3643,9 +3752,9 @@ components:
           type: string
           nullable: true
         job_type:
-          $ref: '#/components/schemas/JobType'
+          $ref: "#/components/schemas/JobType"
         work_system:
-          $ref: '#/components/schemas/WorkSystem'
+          $ref: "#/components/schemas/WorkSystem"
         salary_min:
           type: number
         salary_max:
@@ -3703,9 +3812,9 @@ components:
           type: string
           nullable: true
         job_type:
-          $ref: '#/components/schemas/JobType'
+          $ref: "#/components/schemas/JobType"
         work_system:
-          $ref: '#/components/schemas/WorkSystem'
+          $ref: "#/components/schemas/WorkSystem"
         salary_min:
           type: number
         salary_max:
@@ -3744,12 +3853,20 @@ components:
           type: string
           nullable: true
       required:
-        [company_name, position, job_type, work_system, date, status, result_status]
+        [
+          company_name,
+          position,
+          job_type,
+          work_system,
+          date,
+          status,
+          result_status,
+        ]
     ApplicationResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Application'
+          $ref: "#/components/schemas/Application"
     TempUploadResponse:
       type: object
       properties:
@@ -3778,9 +3895,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Application'
+                $ref: "#/components/schemas/Application"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     ApplicationLetter:
       type: object
       properties:
@@ -3890,12 +4007,31 @@ components:
           format: uuid
           description: ID of the template to use for this application letter
       required:
-        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, template_id]
+        [
+          name,
+          birth_place_date,
+          gender,
+          marital_status,
+          education,
+          phone,
+          email,
+          address,
+          subject,
+          applicant_city,
+          application_date,
+          receiver_title,
+          company_name,
+          opening_paragraph,
+          body_paragraph,
+          attachments,
+          closing_paragraph,
+          template_id,
+        ]
     ApplicationLetterResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/ApplicationLetter'
+          $ref: "#/components/schemas/ApplicationLetter"
     ApplicationLetterListResponse:
       type: object
       properties:
@@ -3905,9 +4041,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/ApplicationLetter'
+                $ref: "#/components/schemas/ApplicationLetter"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     PortfolioMedia:
       type: object
       properties:
@@ -3950,7 +4086,7 @@ components:
         role_title:
           type: string
         project_type:
-          $ref: '#/components/schemas/ProjectType'
+          $ref: "#/components/schemas/ProjectType"
         industry:
           type: string
         month:
@@ -3974,11 +4110,11 @@ components:
         medias:
           type: array
           items:
-            $ref: '#/components/schemas/PortfolioMedia'
+            $ref: "#/components/schemas/PortfolioMedia"
         tools:
           type: array
           items:
-            $ref: '#/components/schemas/PortfolioTool'
+            $ref: "#/components/schemas/PortfolioTool"
     PortfolioPayload:
       type: object
       properties:
@@ -3987,7 +4123,7 @@ components:
         sort_description: { type: string }
         description: { type: string }
         role_title: { type: string }
-        project_type: { $ref: '#/components/schemas/ProjectType' }
+        project_type: { $ref: "#/components/schemas/ProjectType" }
         industry: { type: string }
         month: { type: integer }
         year: { type: integer }
@@ -4016,12 +4152,22 @@ components:
             required: [path]
           description: Ordered gallery assets referencing files previously uploaded via `/uploads`.
       required:
-        [title, slug, sort_description, description, role_title, project_type, industry, month, year]
+        [
+          title,
+          slug,
+          sort_description,
+          description,
+          role_title,
+          project_type,
+          industry,
+          month,
+          year,
+        ]
     PortfolioResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Portfolio'
+          $ref: "#/components/schemas/Portfolio"
     PortfolioListResponse:
       type: object
       properties:
@@ -4031,9 +4177,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Portfolio'
+                $ref: "#/components/schemas/Portfolio"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     PublicPortfolioResponse:
       type: object
       properties:
@@ -4051,7 +4197,7 @@ components:
             portfolios:
               type: array
               items:
-                $ref: '#/components/schemas/Portfolio'
+                $ref: "#/components/schemas/Portfolio"
     PublicPortfolioDetailResponse:
       type: object
       properties:
@@ -4067,37 +4213,37 @@ components:
                 avatar: { type: string, nullable: true }
                 headline: { type: string, nullable: true }
             portfolio:
-              $ref: '#/components/schemas/Portfolio'
+              $ref: "#/components/schemas/Portfolio"
     CvEducation:
       type: object
       properties:
-          degree:
-            type: string
-            enum: [highschool, associate, bachelor, master, doctorate, other]
-          school_name:
-            type: string
-          school_location:
-            type: string
-          major:
-            type: string
-          start_month:
-            type: integer
-          start_year:
-            type: integer
-          end_month:
-            type: integer
-            nullable: true
-          end_year:
-            type: integer
-            nullable: true
-          is_current:
-            type: boolean
-          gpa:
-            type: number
-            nullable: true
-          description:
-            type: string
-            nullable: true
+        degree:
+          type: string
+          enum: [highschool, associate, bachelor, master, doctorate, other]
+        school_name:
+          type: string
+        school_location:
+          type: string
+        major:
+          type: string
+        start_month:
+          type: integer
+        start_year:
+          type: integer
+        end_month:
+          type: integer
+          nullable: true
+        end_year:
+          type: integer
+          nullable: true
+        is_current:
+          type: boolean
+        gpa:
+          type: number
+          nullable: true
+        description:
+          type: string
+          nullable: true
     CvCertificate:
       type: object
       properties:
@@ -4117,7 +4263,7 @@ components:
         job_title: { type: string }
         company_name: { type: string }
         company_location: { type: string }
-        job_type: { $ref: '#/components/schemas/JobType' }
+        job_type: { $ref: "#/components/schemas/JobType" }
         start_month: { type: integer }
         start_year: { type: integer }
         end_month: { type: integer, nullable: true }
@@ -4191,25 +4337,25 @@ components:
         updated_at: { type: string, format: date-time }
         educations:
           type: array
-          items: { $ref: '#/components/schemas/CvEducation' }
+          items: { $ref: "#/components/schemas/CvEducation" }
         certificates:
           type: array
-          items: { $ref: '#/components/schemas/CvCertificate' }
+          items: { $ref: "#/components/schemas/CvCertificate" }
         experiences:
           type: array
-          items: { $ref: '#/components/schemas/CvExperience' }
+          items: { $ref: "#/components/schemas/CvExperience" }
         skills:
           type: array
-          items: { $ref: '#/components/schemas/CvSkill' }
+          items: { $ref: "#/components/schemas/CvSkill" }
         awards:
           type: array
-          items: { $ref: '#/components/schemas/CvAward' }
+          items: { $ref: "#/components/schemas/CvAward" }
         social_links:
           type: array
-          items: { $ref: '#/components/schemas/CvSocialLink' }
+          items: { $ref: "#/components/schemas/CvSocialLink" }
         organizations:
           type: array
-          items: { $ref: '#/components/schemas/CvOrganization' }
+          items: { $ref: "#/components/schemas/CvOrganization" }
     CvPayload:
       type: object
       properties:
@@ -4230,31 +4376,31 @@ components:
           description: ID of the template to use for this CV
         educations:
           type: array
-          items: { $ref: '#/components/schemas/CvEducation' }
+          items: { $ref: "#/components/schemas/CvEducation" }
         certificates:
           type: array
-          items: { $ref: '#/components/schemas/CvCertificate' }
+          items: { $ref: "#/components/schemas/CvCertificate" }
         experiences:
           type: array
-          items: { $ref: '#/components/schemas/CvExperience' }
+          items: { $ref: "#/components/schemas/CvExperience" }
         skills:
           type: array
-          items: { $ref: '#/components/schemas/CvSkill' }
+          items: { $ref: "#/components/schemas/CvSkill" }
         awards:
           type: array
-          items: { $ref: '#/components/schemas/CvAward' }
+          items: { $ref: "#/components/schemas/CvAward" }
         social_links:
           type: array
-          items: { $ref: '#/components/schemas/CvSocialLink' }
+          items: { $ref: "#/components/schemas/CvSocialLink" }
         organizations:
           type: array
-          items: { $ref: '#/components/schemas/CvOrganization' }
+          items: { $ref: "#/components/schemas/CvOrganization" }
       required: [name, headline, email, phone, address, about, template_id]
     CvResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Cv'
+          $ref: "#/components/schemas/Cv"
     CvListResponse:
       type: object
       properties:
@@ -4264,19 +4410,19 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Cv'
+                $ref: "#/components/schemas/Cv"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     UserResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
     AuthUserResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
     StatsResponse:
       type: object
       properties:
@@ -4394,7 +4540,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/BlogCategory'
+          $ref: "#/components/schemas/BlogCategory"
     BlogCategoryListResponse:
       type: object
       properties:
@@ -4404,9 +4550,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/BlogCategory'
+                $ref: "#/components/schemas/BlogCategory"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     BlogTag:
       type: object
       properties:
@@ -4437,7 +4583,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/BlogTag'
+          $ref: "#/components/schemas/BlogTag"
     BlogTagListResponse:
       type: object
       properties:
@@ -4447,9 +4593,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/BlogTag'
+                $ref: "#/components/schemas/BlogTag"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     Blog:
       type: object
       properties:
@@ -4472,7 +4618,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: '#/components/schemas/BlogStatus'
+          $ref: "#/components/schemas/BlogStatus"
         read_time:
           type: integer
           nullable: true
@@ -4489,13 +4635,13 @@ components:
           format: date-time
           nullable: true
         user:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         category:
-          $ref: '#/components/schemas/BlogCategory'
+          $ref: "#/components/schemas/BlogCategory"
         tags:
           type: array
           items:
-            $ref: '#/components/schemas/BlogTag'
+            $ref: "#/components/schemas/BlogTag"
     BlogPayload:
       type: object
       properties:
@@ -4512,7 +4658,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: '#/components/schemas/BlogStatus'
+          $ref: "#/components/schemas/BlogStatus"
         read_time:
           type: integer
           nullable: true
@@ -4527,7 +4673,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Blog'
+          $ref: "#/components/schemas/Blog"
     BlogListResponse:
       type: object
       properties:
@@ -4537,9 +4683,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Blog'
+                $ref: "#/components/schemas/Blog"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminDashboardResponse:
       type: object
       properties:
@@ -4579,12 +4725,12 @@ components:
             recent_users:
               type: array
               items:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
               description: Recently registered users
             recent_blogs:
               type: array
               items:
-                $ref: '#/components/schemas/Blog'
+                $ref: "#/components/schemas/Blog"
               description: Recently created blog posts
             blog_status_distribution:
               type: object
@@ -4655,9 +4801,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     Template:
       type: object
       properties:
@@ -4693,7 +4839,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Template'
+          $ref: "#/components/schemas/Template"
     AdminCreateTemplateRequest:
       type: object
       properties:
@@ -4750,9 +4896,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Template'
+                $ref: "#/components/schemas/Template"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateBlogRequest:
       type: object
       properties:
@@ -4770,7 +4916,7 @@ components:
           nullable: true
           description: Path to the featured image (from temp upload)
         status:
-          $ref: '#/components/schemas/BlogStatus'
+          $ref: "#/components/schemas/BlogStatus"
         read_time:
           type: integer
           nullable: true
@@ -4800,7 +4946,7 @@ components:
           nullable: true
           description: Path to the featured image (from temp upload)
         status:
-          $ref: '#/components/schemas/BlogStatus'
+          $ref: "#/components/schemas/BlogStatus"
         read_time:
           type: integer
           nullable: true
@@ -4821,9 +4967,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Blog'
+                $ref: "#/components/schemas/Blog"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateBlogCategoryRequest:
       type: object
       properties:
@@ -4854,9 +5000,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/BlogCategory'
+                $ref: "#/components/schemas/BlogCategory"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateBlogTagRequest:
       type: object
       properties:
@@ -4881,9 +5027,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/BlogTag'
+                $ref: "#/components/schemas/BlogTag"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     TemplateWithoutPath:
       type: object
       properties:
@@ -4917,13 +5063,31 @@ components:
           nullable: true
     EmployeeSize:
       type: string
-      enum: [one_to_ten, eleven_to_fifty, fifty_one_to_two_hundred, two_hundred_one_to_five_hundred, five_hundred_plus]
+      enum:
+        [
+          one_to_ten,
+          eleven_to_fifty,
+          fifty_one_to_two_hundred,
+          two_hundred_one_to_five_hundred,
+          five_hundred_plus,
+        ]
     JobStatus:
       type: string
       enum: [draft, published, closed, archived]
     EducationLevel:
       type: string
-      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+      enum:
+        [
+          middle_school,
+          high_school,
+          associate_d1,
+          associate_d2,
+          associate_d3,
+          bachelor,
+          master,
+          doctorate,
+          any,
+        ]
     Company:
       type: object
       properties:
@@ -4940,7 +5104,7 @@ components:
           type: string
           nullable: true
         employee_size:
-          $ref: '#/components/schemas/EmployeeSize'
+          $ref: "#/components/schemas/EmployeeSize"
         business_sector:
           type: string
           nullable: true
@@ -4957,7 +5121,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Company'
+          $ref: "#/components/schemas/Company"
     CompanyListResponse:
       type: object
       properties:
@@ -4967,9 +5131,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Company'
+                $ref: "#/components/schemas/Company"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     CompanyWithJobsResponse:
       type: object
       properties:
@@ -4977,11 +5141,11 @@ components:
           type: object
           properties:
             company:
-              $ref: '#/components/schemas/Company'
+              $ref: "#/components/schemas/Company"
             jobs:
               type: array
               items:
-                $ref: '#/components/schemas/Job'
+                $ref: "#/components/schemas/Job"
     JobRole:
       type: object
       properties:
@@ -5001,7 +5165,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/JobRole'
+          $ref: "#/components/schemas/JobRole"
     JobRoleListResponse:
       type: object
       properties:
@@ -5011,9 +5175,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/JobRole'
+                $ref: "#/components/schemas/JobRole"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     City:
       type: object
       properties:
@@ -5042,9 +5206,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/City'
+                $ref: "#/components/schemas/City"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     Job:
       type: object
       properties:
@@ -5062,11 +5226,11 @@ components:
         slug:
           type: string
         job_type:
-          $ref: '#/components/schemas/JobType'
+          $ref: "#/components/schemas/JobType"
         work_system:
-          $ref: '#/components/schemas/WorkSystem'
+          $ref: "#/components/schemas/WorkSystem"
         education_level:
-          $ref: '#/components/schemas/EducationLevel'
+          $ref: "#/components/schemas/EducationLevel"
         min_years_of_experience:
           type: integer
         max_years_of_experience:
@@ -5101,7 +5265,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: '#/components/schemas/JobStatus'
+          $ref: "#/components/schemas/JobStatus"
         expiration_date:
           type: string
           format: date-time
@@ -5113,16 +5277,16 @@ components:
           type: string
           format: date-time
         company:
-          $ref: '#/components/schemas/Company'
+          $ref: "#/components/schemas/Company"
         job_role:
-          $ref: '#/components/schemas/JobRole'
+          $ref: "#/components/schemas/JobRole"
         city:
-          $ref: '#/components/schemas/City'
+          $ref: "#/components/schemas/City"
     JobResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/Job'
+          $ref: "#/components/schemas/Job"
     JobListResponse:
       type: object
       properties:
@@ -5132,9 +5296,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Job'
+                $ref: "#/components/schemas/Job"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateJobRequest:
       type: object
       properties:
@@ -5153,11 +5317,11 @@ components:
         slug:
           type: string
         job_type:
-          $ref: '#/components/schemas/JobType'
+          $ref: "#/components/schemas/JobType"
         work_system:
-          $ref: '#/components/schemas/WorkSystem'
+          $ref: "#/components/schemas/WorkSystem"
         education_level:
-          $ref: '#/components/schemas/EducationLevel'
+          $ref: "#/components/schemas/EducationLevel"
         min_years_of_experience:
           type: integer
         max_years_of_experience:
@@ -5193,14 +5357,25 @@ components:
           nullable: true
           description: Path to poster image (from temp upload)
         status:
-          $ref: '#/components/schemas/JobStatus'
+          $ref: "#/components/schemas/JobStatus"
           default: draft
         expiration_date:
           type: string
           format: date-time
           nullable: true
       required:
-        [company_id, job_role_id, title, slug, job_type, work_system, education_level, min_years_of_experience, description, requirements]
+        [
+          company_id,
+          job_role_id,
+          title,
+          slug,
+          job_type,
+          work_system,
+          education_level,
+          min_years_of_experience,
+          description,
+          requirements,
+        ]
     AdminUpdateJobRequest:
       type: object
       properties:
@@ -5219,11 +5394,11 @@ components:
         slug:
           type: string
         job_type:
-          $ref: '#/components/schemas/JobType'
+          $ref: "#/components/schemas/JobType"
         work_system:
-          $ref: '#/components/schemas/WorkSystem'
+          $ref: "#/components/schemas/WorkSystem"
         education_level:
-          $ref: '#/components/schemas/EducationLevel'
+          $ref: "#/components/schemas/EducationLevel"
         min_years_of_experience:
           type: integer
         max_years_of_experience:
@@ -5259,7 +5434,7 @@ components:
           nullable: true
           description: Path to poster image (from temp upload)
         status:
-          $ref: '#/components/schemas/JobStatus'
+          $ref: "#/components/schemas/JobStatus"
         expiration_date:
           type: string
           format: date-time
@@ -5273,9 +5448,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Job'
+                $ref: "#/components/schemas/Job"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateCompanyRequest:
       type: object
       properties:
@@ -5291,7 +5466,7 @@ components:
           nullable: true
           description: Path to logo image (from temp upload)
         employee_size:
-          $ref: '#/components/schemas/EmployeeSize'
+          $ref: "#/components/schemas/EmployeeSize"
           nullable: true
         business_sector:
           type: string
@@ -5315,7 +5490,7 @@ components:
           nullable: true
           description: Path to logo image (from temp upload)
         employee_size:
-          $ref: '#/components/schemas/EmployeeSize'
+          $ref: "#/components/schemas/EmployeeSize"
           nullable: true
         business_sector:
           type: string
@@ -5332,9 +5507,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Company'
+                $ref: "#/components/schemas/Company"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
     AdminCreateJobRoleRequest:
       type: object
       properties:
@@ -5359,7 +5534,6 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/JobRole'
+                $ref: "#/components/schemas/JobRole"
             pagination:
-              $ref: '#/components/schemas/Pagination'
-
+              $ref: "#/components/schemas/Pagination"

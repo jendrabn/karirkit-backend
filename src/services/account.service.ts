@@ -7,11 +7,18 @@ import { UploadService } from "../services/upload.service";
 import { validate } from "../utils/validate.util";
 import { AccountValidation } from "../validations/account.validation";
 
-export type SafeUser = Omit<User, "password">;
+export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
+  created_at: Date;
+  updated_at: Date;
+};
 
 const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, ...safeUser } = user;
-  return safeUser;
+  const { password: _password, createdAt, updatedAt, ...rest } = user;
+  return {
+    ...rest,
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
 };
 
 export class AccountService {
