@@ -11,12 +11,8 @@ export class JobValidation {
     job_role_id: z
       .union([z.string().uuid(), z.array(z.string().uuid())])
       .optional(),
-    city_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
-    province_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
+    city_id: z.union([z.string(), z.array(z.string())]).optional(),
+    province_id: z.union([z.string(), z.array(z.string())]).optional(),
     job_type: z
       .union([
         z.enum([
@@ -89,7 +85,7 @@ export class JobValidation {
     .object({
       company_id: z.string().uuid("ID perusahaan harus valid"),
       job_role_id: z.string().uuid("ID job role harus valid"),
-      city_id: z.string().uuid("ID kota harus valid").nullable().optional(),
+      city_id: z.string("ID kota harus valid").nullable().optional(),
       title: z
         .string()
         .min(3, "Judul minimal 3 karakter")
@@ -221,7 +217,7 @@ export class JobValidation {
     .object({
       company_id: z.string().uuid("ID perusahaan harus valid").optional(),
       job_role_id: z.string().uuid("ID job role harus valid").optional(),
-      city_id: z.string().uuid("ID kota harus valid").nullable().optional(),
+      city_id: z.string("ID kota harus valid").nullable().optional(),
       title: z
         .string()
         .min(3, "Judul minimal 3 karakter")

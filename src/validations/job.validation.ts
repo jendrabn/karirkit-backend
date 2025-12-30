@@ -11,12 +11,8 @@ export class JobValidation {
     job_role_id: z
       .union([z.string().uuid(), z.array(z.string().uuid())])
       .optional(),
-    city_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
-    province_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
+    city_id: z.union([z.string(), z.array(z.string())]).optional(),
+    province_id: z.union([z.string(), z.array(z.string())]).optional(),
     job_type: z
       .union([
         z.enum([

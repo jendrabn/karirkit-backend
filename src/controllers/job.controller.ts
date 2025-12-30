@@ -19,7 +19,7 @@ export class JobController {
     try {
       const { slug } = validate(JobValidation.SLUG_PARAM, req.params);
       const result = await JobService.getBySlug(slug);
-      sendSuccess(res, result);
+      sendSuccess(res, result, 200, true);
     } catch (error) {
       next(error);
     }

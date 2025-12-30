@@ -2489,12 +2489,9 @@ paths:
                 type: object
                 properties:
                   data:
-                    type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Company'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Company'
   /job-roles:
     get:
       tags: [Public]
@@ -2509,12 +2506,9 @@ paths:
                 type: object
                 properties:
                   data:
-                    type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/JobRole'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobRole'
   /cities:
     get:
       tags: [Public]
@@ -2542,12 +2536,9 @@ paths:
                 type: object
                 properties:
                   data:
-                    type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/City'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/City'
   /admin/jobs:
     get:
       tags: [Admin]

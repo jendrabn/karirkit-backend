@@ -318,11 +318,11 @@ export class JobService {
       expiration_date: job.expirationDate?.toISOString() || null,
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
-      company: job.company || null,
-      job_role: job.jobRole || null,
+      company: job.company ? JobService.toCompanyResponse(job.company) : null,
+      job_role: job.jobRole ? JobService.toJobRoleResponse(job.jobRole) : null,
       city: job.city
         ? {
-            ...job.city,
+            ...JobService.toCityResponse(job.city),
             province: job.city.province || null,
           }
         : null,

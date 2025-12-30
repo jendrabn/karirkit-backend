@@ -13,10 +13,16 @@ const normalizeErrors = (errors: ErrorPayload | string): ErrorPayload => {
 export const sendSuccess = <T>(
   res: Response,
   data?: T,
-  statusCode = data === undefined ? 204 : 200
+  statusCode = data === undefined ? 204 : 200,
+  unwrapData = false
 ): Response<SuccessPayload<T> | Record<string, never>> => {
   if (data === undefined) {
     return res.status(statusCode).json({});
+  }
+
+  // If unwrapData is true, return data directly without wrapping it in a "data" object
+  if (unwrapData) {
+    return res.status(statusCode).json(data);
   }
 
   return res.status(statusCode).json({
