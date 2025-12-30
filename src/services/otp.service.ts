@@ -101,7 +101,7 @@ export class OtpService {
     const requestData = validate(AuthValidation.VERIFY_OTP, request);
 
     // Find user by email or username
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: requestData.identifier },
@@ -145,6 +145,16 @@ export class OtpService {
         id: otp.id,
       },
     });
+
+    // Update user emailVerifiedAt if not set
+    if (!user.emailVerifiedAt) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerifiedAt: new Date(),
+        },
+      });
+    }
 
     // Generate JWT token
     const token = jwt.sign(

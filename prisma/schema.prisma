@@ -148,6 +148,7 @@ model User {
   avatar    String?  @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(0)
 
   cvs                Cv[]
   portfolios         Portfolio[]

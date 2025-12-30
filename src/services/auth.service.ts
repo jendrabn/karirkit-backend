@@ -17,17 +17,28 @@ import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 
-export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
+export type SafeUser = Omit<
+  User,
+  "password" | "createdAt" | "updatedAt" | "emailVerifiedAt"
+> & {
   created_at: Date;
   updated_at: Date;
+  email_verified_at: Date | null;
 };
 
 const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, createdAt, updatedAt, ...rest } = user;
+  const {
+    password: _password,
+    createdAt,
+    updatedAt,
+    emailVerifiedAt,
+    ...rest
+  } = user;
   return {
     ...rest,
     created_at: createdAt,
     updated_at: updatedAt,
+    email_verified_at: emailVerifiedAt,
   };
 };
 
@@ -214,6 +225,7 @@ export class AuthService {
           password: hashedPassword,
           googleId,
           avatar,
+          emailVerifiedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -222,6 +234,7 @@ export class AuthService {
       const updateData: {
         googleId?: string;
         avatar?: string | null;
+        emailVerifiedAt?: Date;
       } = {};
 
       if (!user.googleId) {
@@ -230,6 +243,10 @@ export class AuthService {
 
       if (!user.avatar && avatar) {
         updateData.avatar = avatar;
+      }
+
+      if (!user.emailVerifiedAt) {
+        updateData.emailVerifiedAt = new Date();
       }
 
       if (Object.keys(updateData).length > 0) {
