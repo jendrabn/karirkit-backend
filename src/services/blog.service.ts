@@ -12,6 +12,8 @@ import type {
 } from "../types/api-schemas";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
+import { slugify } from "../utils/slugify.util";
+import { calculateReadTime } from "../utils/read-time.util";
 import {
   BlogValidation,
   type BlogListQuery,
@@ -26,7 +28,13 @@ type BlogListResult = {
 
 type BlogMutableFields = Omit<
   Prisma.BlogUncheckedCreateInput,
-  "id" | "userId" | "createdAt" | "updatedAt" | "publishedAt"
+  | "id"
+  | "userId"
+  | "createdAt"
+  | "updatedAt"
+  | "publishedAt"
+  | "slug"
+  | "readTime"
 >;
 
 const sortFieldMap = {
@@ -174,10 +182,12 @@ export class BlogService {
     const payload: BlogPayloadInput = validate(BlogValidation.PAYLOAD, request);
     const now = new Date();
     const data = BlogService.mapPayloadToData(payload);
+    const slug = slugify(payload.title, 5);
+    const readTime = calculateReadTime(payload.content);
 
     // Check if slug is unique
     const existingBlog = await prisma.blog.findFirst({
-      where: { slug: data.slug },
+      where: { slug },
     });
 
     if (existingBlog) {
@@ -206,10 +216,12 @@ export class BlogService {
 
     const blogData: any = {
       ...data,
+      slug,
+      readTime,
       userId,
       createdAt: now,
       updatedAt: now,
-      publishedAt: data.status === "published" ? now : null,
+      publishedAt: payload.status === "published" ? now : null,
     };
 
     // Remove tag_ids from main data as it's not a direct field
@@ -278,15 +290,18 @@ export class BlogService {
     const data = BlogService.mapPayloadToData(payload);
 
     // Check if slug is unique (excluding current blog)
-    const existingBlog = await prisma.blog.findFirst({
-      where: {
-        slug: data.slug,
-        NOT: { id },
-      },
-    });
+    if (payload.title) {
+      const newSlug = slugify(payload.title, 5);
+      const existingBlog = await prisma.blog.findFirst({
+        where: {
+          slug: newSlug,
+          NOT: { id },
+        },
+      });
 
-    if (existingBlog) {
-      throw new ResponseError(400, "Slug sudah ada");
+      if (existingBlog) {
+        throw new ResponseError(400, "Slug sudah ada");
+      }
     }
 
     // Check if category exists
@@ -318,6 +333,15 @@ export class BlogService {
       ...data,
       updatedAt: new Date(),
     };
+
+    if (payload.title) {
+      updateData.slug = slugify(payload.title, 5);
+    }
+
+    // 4. Update logic to handle content updates.
+    if (payload.content) {
+      updateData.readTime = calculateReadTime(payload.content);
+    }
 
     // Set publishedAt if status is changing to published and it wasn't published before
     if (currentBlog?.status !== "published" && data.status === "published") {
@@ -439,12 +463,12 @@ export class BlogService {
   ): BlogMutableFields & { tag_ids?: string[] } {
     return {
       title: payload.title,
-      slug: payload.slug,
+      // slug: payload.slug, // Removed
       excerpt: payload.excerpt ?? null,
       content: payload.content,
       featuredImage: payload.featured_image ?? null,
       status: payload.status,
-      readTime: payload.read_time ?? null,
+      // readTime: calculateReadTime(payload.content), // Handled separately
       categoryId: payload.category_id,
       tag_ids: payload.tag_ids,
     };

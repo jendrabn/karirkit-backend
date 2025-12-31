@@ -25,12 +25,12 @@ export class BlogValidation {
 
   static readonly PAYLOAD = z.object({
     title: z.string().min(1).max(255),
-    slug: z.string().min(1).max(255),
+
     excerpt: z.string().or(z.literal("")).nullable().optional(),
     content: z.string().min(1),
     featured_image: z.string().or(z.literal("")).nullable().optional(),
     status: z.enum(["draft", "published", "archived"]),
-    read_time: z.coerce.number().nullable().optional(),
+
     category_id: z.string().min(1),
     author_id: z.string().min(1),
     tag_ids: z.array(z.string()).optional(),

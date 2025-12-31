@@ -90,10 +90,7 @@ export class JobValidation {
         .string()
         .min(3, "Judul minimal 3 karakter")
         .max(255, "Judul maksimal 255 karakter"),
-      slug: z
-        .string()
-        .min(3, "Slug minimal 3 karakter")
-        .max(255, "Slug maksimal 255 karakter"),
+
       job_type: z.enum(
         ["full_time", "part_time", "contract", "internship", "freelance"],
         "Tipe pekerjaan tidak valid"
@@ -223,11 +220,7 @@ export class JobValidation {
         .min(3, "Judul minimal 3 karakter")
         .max(255, "Judul maksimal 255 karakter")
         .optional(),
-      slug: z
-        .string()
-        .min(3, "Slug minimal 3 karakter")
-        .max(255, "Slug maksimal 255 karakter")
-        .optional(),
+
       job_type: z
         .enum(
           ["full_time", "part_time", "contract", "internship", "freelance"],

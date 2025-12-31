@@ -59,7 +59,6 @@ const payloadSchema = z.object({
     .trim()
     .min(1, "Judul wajib diisi")
     .max(255, "Maksimal 255 karakter"),
-  slug: slugSchema,
   sort_description: z
     .string()
     .trim()

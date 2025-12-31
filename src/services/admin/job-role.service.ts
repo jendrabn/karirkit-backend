@@ -10,6 +10,7 @@ import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { prisma } from "../../config/prisma.config";
+import { slugify } from "../../utils/slugify.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -107,20 +108,22 @@ export class AdminJobRoleService {
   }
 
   static async create(request: CreateJobRoleRequest): Promise<JobRoleResponse> {
+    const slug = slugify(request.name);
+
     // Check if slug is unique
     const existingJobRole = await prisma.jobRole.findFirst({
-      where: { slug: request.slug },
+      where: { slug },
     });
 
     if (existingJobRole) {
-      throw new ResponseError(400, "Slug sudah ada");
+      throw new ResponseError(400, "Job role dengan nama/slug ini sudah ada");
     }
 
     const now = new Date();
     const jobRole = await prisma.jobRole.create({
       data: {
         name: request.name,
-        slug: request.slug,
+        slug,
         createdAt: now,
         updatedAt: now,
       },
@@ -142,30 +145,24 @@ export class AdminJobRoleService {
   ): Promise<JobRoleResponse> {
     await AdminJobRoleService.findJobRole(id);
 
-    // Check if slug is unique (excluding current job role)
-    if (request.slug) {
-      const existingJobRole = await prisma.jobRole.findFirst({
-        where: {
-          slug: request.slug,
-          NOT: { id },
-        },
-      });
-
-      if (existingJobRole) {
-        throw new ResponseError(400, "Slug sudah ada");
-      }
-    }
-
     const updateData: any = {
       updatedAt: new Date(),
     };
 
     if (request.name !== undefined) {
       updateData.name = request.name;
-    }
+      updateData.slug = slugify(request.name);
 
-    if (request.slug !== undefined) {
-      updateData.slug = request.slug;
+      const existingJobRole = await prisma.jobRole.findFirst({
+        where: {
+          slug: updateData.slug,
+          NOT: { id },
+        },
+      });
+
+      if (existingJobRole) {
+        throw new ResponseError(400, "Job role dengan nama/slug ini sudah ada");
+      }
     }
 
     const jobRole = await prisma.jobRole.update({

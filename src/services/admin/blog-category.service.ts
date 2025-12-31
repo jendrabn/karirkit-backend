@@ -7,6 +7,7 @@ import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
 import { ResponseError } from "../../utils/response-error.util";
 import { BlogCategoryValidation } from "../../validations/admin/blog-category.validation";
+import { slugify } from "../../utils/slugify.util";
 
 type BlogCategoryListResult = {
   items: BlogCategory[];
@@ -20,13 +21,11 @@ type BlogCategoryListResult = {
 
 type CreateBlogCategoryRequest = {
   name: string;
-  slug: string;
   description?: string | null;
 };
 
 type UpdateBlogCategoryRequest = {
   name?: string;
-  slug?: string;
   description?: string | null;
 };
 
@@ -121,8 +120,9 @@ export class BlogCategoryService {
     }
 
     // Check if slug is unique
+    const slug = slugify(requestData.name);
     const existingSlug = await prisma.blogCategory.findFirst({
-      where: { slug: requestData.slug },
+      where: { slug },
     });
 
     if (existingSlug) {
@@ -132,7 +132,7 @@ export class BlogCategoryService {
     const category = await prisma.blogCategory.create({
       data: {
         name: requestData.name,
-        slug: requestData.slug,
+        slug,
         description: requestData.description ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -175,10 +175,11 @@ export class BlogCategoryService {
     }
 
     // Check if slug is unique (excluding current category)
-    if (requestData.slug && requestData.slug !== existingCategory.slug) {
+    if (requestData.name && requestData.name !== existingCategory.name) {
+      const newSlug = slugify(requestData.name);
       const slugExists = await prisma.blogCategory.findFirst({
         where: {
-          slug: requestData.slug,
+          slug: newSlug,
           NOT: { id },
         },
       });
@@ -194,10 +195,7 @@ export class BlogCategoryService {
 
     if (requestData.name !== undefined) {
       updateData.name = requestData.name;
-    }
-
-    if (requestData.slug !== undefined) {
-      updateData.slug = requestData.slug;
+      updateData.slug = slugify(requestData.name);
     }
 
     if (requestData.description !== undefined) {

@@ -259,7 +259,7 @@ export interface Portfolio {
 
 export interface PortfolioPayload {
   title: string;
-  slug: string;
+
   sort_description: string;
   description: string;
   role_title: string;
@@ -476,7 +476,7 @@ export interface BlogCategory {
 
 export interface BlogCategoryPayload {
   name: string;
-  slug: string;
+
   description?: string | null;
 }
 
@@ -502,7 +502,6 @@ export interface BlogTag {
 
 export interface BlogTagPayload {
   name: string;
-  slug: string;
 }
 
 export interface BlogTagResponse {
@@ -538,12 +537,12 @@ export interface Blog {
 
 export interface BlogPayload {
   title: string;
-  slug: string;
+
   excerpt?: string | null;
   content: string;
   featured_image?: string | null;
   status: BlogStatus;
-  read_time?: number | null;
+
   category_id: string;
   tag_ids?: string[];
 }

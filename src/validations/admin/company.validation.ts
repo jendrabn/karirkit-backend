@@ -14,10 +14,7 @@ export class CompanyValidation {
       .string()
       .min(3, "Nama minimal 3 karakter")
       .max(255, "Nama maksimal 255 karakter"),
-    slug: z
-      .string()
-      .min(3, "Slug minimal 3 karakter")
-      .max(255, "Slug maksimal 255 karakter"),
+
     description: z.string().optional(),
     logo: z.string().nullable().optional(),
     employee_size: z
@@ -47,11 +44,7 @@ export class CompanyValidation {
       .min(3, "Nama minimal 3 karakter")
       .max(255, "Nama maksimal 255 karakter")
       .optional(),
-    slug: z
-      .string()
-      .min(3, "Slug minimal 3 karakter")
-      .max(255, "Slug maksimal 255 karakter")
-      .optional(),
+
     description: z.string().optional(),
     logo: z.string().nullable().optional(),
     employee_size: z

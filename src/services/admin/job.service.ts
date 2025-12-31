@@ -11,6 +11,7 @@ import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
 import { prisma } from "../../config/prisma.config";
+import { slugify } from "../../utils/slugify.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -297,8 +298,9 @@ export class AdminJobService {
     }
 
     // Check if slug is unique
+    const slug = slugify(request.title, 10);
     const existingJob = await prisma.job.findFirst({
-      where: { slug: request.slug },
+      where: { slug },
     });
 
     if (existingJob) {
@@ -322,7 +324,7 @@ export class AdminJobService {
         jobRoleId: request.job_role_id,
         cityId: request.city_id || null,
         title: request.title,
-        slug: request.slug,
+        slug,
         jobType: request.job_type,
         workSystem: request.work_system,
         educationLevel: request.education_level,
@@ -399,10 +401,11 @@ export class AdminJobService {
     }
 
     // Check if slug is unique (excluding current job)
-    if (request.slug) {
+    if (request.title) {
+      const newSlug = slugify(request.title, 10);
       const existingJob = await prisma.job.findFirst({
         where: {
-          slug: request.slug,
+          slug: newSlug,
           NOT: { id },
         },
       });
@@ -440,10 +443,7 @@ export class AdminJobService {
 
     if (request.title !== undefined) {
       updateData.title = request.title;
-    }
-
-    if (request.slug !== undefined) {
-      updateData.slug = request.slug;
+      updateData.slug = slugify(request.title, 10);
     }
 
     if (request.job_type !== undefined) {

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
 import { prisma } from "../../config/prisma.config";
+import { slugify } from "../../utils/slugify.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -110,8 +111,9 @@ export class AdminCompanyService {
 
   static async create(request: CreateCompanyRequest): Promise<CompanyResponse> {
     // Check if slug is unique
+    const slug = slugify(request.name);
     const existingCompany = await prisma.company.findFirst({
-      where: { slug: request.slug },
+      where: { slug },
     });
 
     if (existingCompany) {
@@ -132,7 +134,7 @@ export class AdminCompanyService {
     const company = await prisma.company.create({
       data: {
         name: request.name,
-        slug: request.slug,
+        slug,
         description: request.description || null,
         logo: finalLogo || null,
         employeeSize: request.employee_size || null,
@@ -160,10 +162,11 @@ export class AdminCompanyService {
     await AdminCompanyService.findCompany(id);
 
     // Check if slug is unique (excluding current company)
-    if (request.slug) {
+    if (request.name) {
+      const newSlug = slugify(request.name);
       const existingCompany = await prisma.company.findFirst({
         where: {
-          slug: request.slug,
+          slug: newSlug,
           NOT: { id },
         },
       });
@@ -189,10 +192,7 @@ export class AdminCompanyService {
 
     if (request.name !== undefined) {
       updateData.name = request.name;
-    }
-
-    if (request.slug !== undefined) {
-      updateData.slug = request.slug;
+      updateData.slug = slugify(request.name);
     }
 
     if (request.description !== undefined) {

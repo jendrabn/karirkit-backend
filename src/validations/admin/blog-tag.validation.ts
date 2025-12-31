@@ -11,7 +11,6 @@ export class BlogTagValidation {
 
   static readonly PAYLOAD = z.object({
     name: z.string().min(1).max(255),
-    slug: z.string().min(1).max(255),
   });
 
   static readonly MASS_DELETE = z.object({

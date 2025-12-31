@@ -12,6 +12,8 @@ import type {
 } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
+import { slugify } from "../../utils/slugify.util";
+import { calculateReadTime } from "../../utils/read-time.util";
 import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
@@ -24,12 +26,11 @@ type BlogListResult = {
 
 type CreateBlogRequest = {
   title: string;
-  slug: string;
   excerpt?: string | null;
   content: string;
   featured_image?: string | null;
   status: "draft" | "published" | "archived";
-  read_time?: number | null;
+
   category_id: string;
   author_id: string;
   tag_ids?: string[];
@@ -37,12 +38,11 @@ type CreateBlogRequest = {
 
 type UpdateBlogRequest = {
   title?: string;
-  slug?: string;
   excerpt?: string | null;
   content?: string;
   featured_image?: string | null;
   status?: "draft" | "published" | "archived";
-  read_time?: number | null;
+
   category_id?: string;
   author_id?: string;
   tag_ids?: string[];
@@ -185,8 +185,9 @@ export class BlogService {
     const requestData = validate(BlogValidation.PAYLOAD, request);
 
     // Check if slug is unique
+    const slug = slugify(requestData.title, 5);
     const existingBlog = await prisma.blog.findFirst({
-      where: { slug: requestData.slug },
+      where: { slug },
     });
 
     if (existingBlog) {
@@ -238,12 +239,12 @@ export class BlogService {
     const now = new Date();
     const blogData: any = {
       title: requestData.title,
-      slug: requestData.slug,
+      slug,
       excerpt: requestData.excerpt ?? null,
       content: requestData.content,
       featuredImage: finalFeaturedImage ?? null,
       status: requestData.status,
-      readTime: requestData.read_time ?? null,
+      readTime: calculateReadTime(requestData.content),
       categoryId: requestData.category_id,
       userId: requestData.author_id,
       createdAt: now,
@@ -295,10 +296,11 @@ export class BlogService {
     const requestData = validate(BlogValidation.PAYLOAD.partial(), request);
 
     // Check if slug is unique (excluding current blog)
-    if (requestData.slug) {
+    if (requestData.title) {
+      const newSlug = slugify(requestData.title, 5);
       const existingBlog = await prisma.blog.findFirst({
         where: {
-          slug: requestData.slug,
+          slug: newSlug,
           NOT: { id },
         },
       });
@@ -365,10 +367,7 @@ export class BlogService {
 
     if (requestData.title !== undefined) {
       updateData.title = requestData.title;
-    }
-
-    if (requestData.slug !== undefined) {
-      updateData.slug = requestData.slug;
+      updateData.slug = slugify(requestData.title, 5);
     }
 
     if (requestData.excerpt !== undefined) {
@@ -385,10 +384,6 @@ export class BlogService {
 
     if (requestData.status !== undefined) {
       updateData.status = requestData.status;
-    }
-
-    if (requestData.read_time !== undefined) {
-      updateData.readTime = requestData.read_time;
     }
 
     if (requestData.category_id !== undefined) {

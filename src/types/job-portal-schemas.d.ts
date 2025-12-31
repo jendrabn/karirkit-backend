@@ -60,7 +60,7 @@ export interface CompanyListQueryParams {
 
 export interface CreateCompanyRequest {
   name: string;
-  slug: string;
+
   description?: string | null;
   logo?: string | null;
   employee_size?: EmployeeSize | null;
@@ -70,7 +70,7 @@ export interface CreateCompanyRequest {
 
 export interface UpdateCompanyRequest {
   name?: string;
-  slug?: string;
+
   description?: string | null;
   logo?: string | null;
   employee_size?: EmployeeSize | null;
@@ -110,12 +110,10 @@ export interface JobRoleListQueryParams {
 
 export interface CreateJobRoleRequest {
   name: string;
-  slug: string;
 }
 
 export interface UpdateJobRoleRequest {
   name?: string;
-  slug?: string;
 }
 
 export interface City {
@@ -230,7 +228,7 @@ export interface CreateJobRequest {
   job_role_id: string;
   city_id?: string | null;
   title: string;
-  slug: string;
+
   job_type: "full_time" | "part_time" | "contract" | "internship" | "freelance";
   work_system: "onsite" | "hybrid" | "remote";
   education_level: EducationLevel;
@@ -255,7 +253,7 @@ export interface UpdateJobRequest {
   job_role_id?: string;
   city_id?: string | null;
   title?: string;
-  slug?: string;
+
   job_type?:
     | "full_time"
     | "part_time"

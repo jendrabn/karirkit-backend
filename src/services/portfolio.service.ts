@@ -20,6 +20,7 @@ import {
   type PortfolioPayloadInput,
 } from "../validations/portfolio.validation";
 import { ResponseError } from "../utils/response-error.util";
+import { slugify } from "../utils/slugify.util";
 
 type PortfolioListResult = {
   items: PortfolioSchema[];
@@ -28,7 +29,7 @@ type PortfolioListResult = {
 
 type PortfolioMutableFields = Omit<
   Prisma.PortfolioUncheckedCreateInput,
-  "id" | "userId" | "createdAt" | "updatedAt"
+  "id" | "userId" | "createdAt" | "updatedAt" | "slug"
 >;
 
 type PreparedMediaRecord = {
@@ -171,11 +172,13 @@ export class PortfolioService {
     );
     const toolValues = PortfolioService.prepareTools(payload.tools ?? []);
     const now = new Date();
+    const slug = slugify(payload.title, 10);
 
     try {
       const portfolio = await prisma.portfolio.create({
         data: {
           ...PortfolioService.mapPayloadToData(payload, coverChange.path),
+          slug,
           userId,
           createdAt: now,
           updatedAt: now,
@@ -283,12 +286,18 @@ export class PortfolioService {
           }
         }
 
+        const updateData: any = {
+          ...PortfolioService.mapPayloadToData(payload, coverChange.path),
+          updatedAt: now,
+        };
+
+        if (payload.title) {
+          updateData.slug = slugify(payload.title, 10);
+        }
+
         const updated = await tx.portfolio.update({
           where: { id },
-          data: {
-            ...PortfolioService.mapPayloadToData(payload, coverChange.path),
-            updatedAt: now,
-          },
+          data: updateData,
           include: portfolioInclude,
         });
 
@@ -413,7 +422,7 @@ export class PortfolioService {
   ): PortfolioMutableFields {
     return {
       title: payload.title,
-      slug: payload.slug,
+      // slug removed
       sortDescription: payload.sort_description,
       description: payload.description,
       roleTitle: payload.role_title,

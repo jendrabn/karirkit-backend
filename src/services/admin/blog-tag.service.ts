@@ -8,6 +8,7 @@ import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { BlogTagValidation } from "../../validations/admin/blog-tag.validation";
+import { slugify } from "../../utils/slugify.util";
 
 type BlogTagListResult = {
   items: BlogTag[];
@@ -21,12 +22,10 @@ type BlogTagListResult = {
 
 type CreateBlogTagRequest = {
   name: string;
-  slug: string;
 };
 
 type UpdateBlogTagRequest = {
   name?: string;
-  slug?: string;
 };
 
 // Schemas moved to BlogTagValidation
@@ -130,8 +129,9 @@ export class BlogTagService {
     }
 
     // Check if slug is unique
+    const slug = slugify(requestData.name);
     const existingSlug = await prisma.blogTag.findFirst({
-      where: { slug: requestData.slug },
+      where: { slug },
     });
 
     if (existingSlug) {
@@ -141,7 +141,7 @@ export class BlogTagService {
     const tag = await prisma.blogTag.create({
       data: {
         name: requestData.name,
-        slug: requestData.slug,
+        slug,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -180,10 +180,11 @@ export class BlogTagService {
     }
 
     // Check if slug is unique (excluding current tag)
-    if (requestData.slug && requestData.slug !== existingTag.slug) {
+    if (requestData.name && requestData.name !== existingTag.name) {
+      const newSlug = slugify(requestData.name);
       const slugExists = await prisma.blogTag.findFirst({
         where: {
-          slug: requestData.slug,
+          slug: newSlug,
           NOT: { id },
         },
       });
@@ -199,10 +200,7 @@ export class BlogTagService {
 
     if (requestData.name !== undefined) {
       updateData.name = requestData.name;
-    }
-
-    if (requestData.slug !== undefined) {
-      updateData.slug = requestData.slug;
+      updateData.slug = slugify(requestData.name);
     }
 
     const tag = await prisma.blogTag.update({

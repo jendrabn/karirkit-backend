@@ -14,10 +14,6 @@ export class JobRoleValidation {
       .string()
       .min(3, "Nama minimal 3 karakter")
       .max(255, "Nama maksimal 255 karakter"),
-    slug: z
-      .string()
-      .min(3, "Slug minimal 3 karakter")
-      .max(255, "Slug maksimal 255 karakter"),
   });
 
   static readonly UPDATE = z.object({
@@ -25,11 +21,6 @@ export class JobRoleValidation {
       .string()
       .min(3, "Nama minimal 3 karakter")
       .max(255, "Nama maksimal 255 karakter")
-      .optional(),
-    slug: z
-      .string()
-      .min(3, "Slug minimal 3 karakter")
-      .max(255, "Slug maksimal 255 karakter")
       .optional(),
   });
 

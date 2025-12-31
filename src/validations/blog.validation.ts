@@ -20,16 +20,12 @@ const payloadSchema = z.object({
     .trim()
     .min(1, "Judul wajib diisi")
     .max(255, "Maksimal 255 karakter"),
-  slug: z
-    .string()
-    .trim()
-    .min(1, "Slug wajib diisi")
-    .max(255, "Maksimal 255 karakter"),
+
   excerpt: nullableString(500),
   content: z.string().trim().min(1, "Konten wajib diisi"),
   featured_image: nullableString(500),
   status: z.nativeEnum(BlogStatus),
-  read_time: z.number().int().nonnegative().optional(),
+
   category_id: z.string().trim().min(1, "Kategori wajib diisi"),
   tag_ids: z.array(z.string().trim().min(1)).optional(),
 });

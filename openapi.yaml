@@ -4123,7 +4123,7 @@ components:
       type: object
       properties:
         title: { type: string }
-        slug: { type: string }
+
         sort_description: { type: string }
         description: { type: string }
         role_title: { type: string }
@@ -4158,7 +4158,7 @@ components:
       required:
         [
           title,
-          slug,
+
           sort_description,
           description,
           role_title,
@@ -4534,12 +4534,11 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
+
         description:
           type: string
           nullable: true
-      required: [name, slug]
+      required: [name]
     BlogCategoryResponse:
       type: object
       properties:
@@ -4580,9 +4579,8 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
-      required: [name, slug]
+
+      required: [name]
     BlogTagResponse:
       type: object
       properties:
@@ -4651,8 +4649,7 @@ components:
       properties:
         title:
           type: string
-        slug:
-          type: string
+
         excerpt:
           type: string
           nullable: true
@@ -4663,16 +4660,14 @@ components:
           nullable: true
         status:
           $ref: "#/components/schemas/BlogStatus"
-        read_time:
-          type: integer
-          nullable: true
+
         category_id:
           type: string
         tag_ids:
           type: array
           items:
             type: string
-      required: [title, slug, content, status, category_id]
+      required: [title, content, status, category_id]
     BlogResponse:
       type: object
       properties:
@@ -4908,8 +4903,7 @@ components:
       properties:
         title:
           type: string
-        slug:
-          type: string
+
         excerpt:
           type: string
           nullable: true
@@ -4921,9 +4915,7 @@ components:
           description: Path to the featured image (from temp upload)
         status:
           $ref: "#/components/schemas/BlogStatus"
-        read_time:
-          type: integer
-          nullable: true
+
         category_id:
           type: string
         author_id:
@@ -4932,14 +4924,13 @@ components:
           type: array
           items:
             type: string
-      required: [title, slug, content, status, category_id, author_id]
+      required: [title, content, status, category_id, author_id]
     AdminUpdateBlogRequest:
       type: object
       properties:
         title:
           type: string
-        slug:
-          type: string
+
         excerpt:
           type: string
           nullable: true
@@ -4951,9 +4942,7 @@ components:
           description: Path to the featured image (from temp upload)
         status:
           $ref: "#/components/schemas/BlogStatus"
-        read_time:
-          type: integer
-          nullable: true
+
         category_id:
           type: string
         author_id:
@@ -4979,19 +4968,17 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
+
         description:
           type: string
           nullable: true
-      required: [name, slug]
+      required: [name]
     AdminUpdateBlogCategoryRequest:
       type: object
       properties:
         name:
           type: string
-        slug:
-          type: string
+
         description:
           type: string
           nullable: true
@@ -5012,16 +4999,14 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
-      required: [name, slug]
+
+      required: [name]
     AdminUpdateBlogTagRequest:
       type: object
       properties:
         name:
           type: string
-        slug:
-          type: string
+
     AdminBlogTagListResponse:
       type: object
       properties:
@@ -5318,8 +5303,7 @@ components:
           nullable: true
         title:
           type: string
-        slug:
-          type: string
+
         job_type:
           $ref: "#/components/schemas/JobType"
         work_system:
@@ -5372,7 +5356,7 @@ components:
           company_id,
           job_role_id,
           title,
-          slug,
+
           job_type,
           work_system,
           education_level,
@@ -5395,8 +5379,7 @@ components:
           nullable: true
         title:
           type: string
-        slug:
-          type: string
+
         job_type:
           $ref: "#/components/schemas/JobType"
         work_system:
@@ -5460,8 +5443,7 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
+
         description:
           type: string
           nullable: true
@@ -5478,14 +5460,13 @@ components:
         website_url:
           type: string
           nullable: true
-      required: [name, slug]
+      required: [name]
     AdminUpdateCompanyRequest:
       type: object
       properties:
         name:
           type: string
-        slug:
-          type: string
+
         description:
           type: string
           nullable: true
@@ -5519,16 +5500,14 @@ components:
       properties:
         name:
           type: string
-        slug:
-          type: string
-      required: [name, slug]
+
+      required: [name]
     AdminUpdateJobRoleRequest:
       type: object
       properties:
         name:
           type: string
-        slug:
-          type: string
+
     AdminJobRoleListResponse:
       type: object
       properties:
