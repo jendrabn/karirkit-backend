@@ -40,6 +40,12 @@ export class UserValidation {
       .optional(),
     role: z.enum(["user", "admin"]).default("user"),
     avatar: z.string().or(z.literal("")).nullable().optional(),
+    daily_download_limit: z.coerce
+      .number()
+      .min(0)
+      .max(1000)
+      .default(10)
+      .optional(),
   });
 
   static readonly UPDATE = z.object({
@@ -70,6 +76,11 @@ export class UserValidation {
       .optional(),
     role: z.enum(["user", "admin"]).optional(),
     avatar: z.string().or(z.literal("")).nullable().optional(),
+    daily_download_limit: z.coerce.number().min(0).max(1000).optional(),
+  });
+
+  static readonly UPDATE_DOWNLOAD_LIMIT = z.object({
+    daily_download_limit: z.coerce.number().min(0).max(1000),
   });
 
   static readonly MASS_DELETE = z.object({

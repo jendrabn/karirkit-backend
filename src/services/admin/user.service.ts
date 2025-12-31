@@ -14,6 +14,7 @@ type SafeUser = {
   role: string;
   phone: string | null;
   avatar: string | null;
+  daily_download_limit: number;
   created_at: string;
   updated_at: string;
 };
@@ -36,6 +37,7 @@ type CreateUserRequest = {
   phone?: string | null;
   role?: "user" | "admin";
   avatar?: string | null;
+  daily_download_limit?: number;
 };
 
 type UpdateUserRequest = {
@@ -45,6 +47,11 @@ type UpdateUserRequest = {
   phone?: string | null;
   role?: "user" | "admin";
   avatar?: string | null;
+  daily_download_limit?: number;
+};
+
+type UpdateDownloadLimitRequest = {
+  daily_download_limit: number;
 };
 
 // Schemas moved to UserValidation
@@ -117,6 +124,7 @@ export class UserService {
           role: true,
           phone: true,
           avatar: true,
+          dailyDownloadLimit: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -135,6 +143,7 @@ export class UserService {
         role: user.role,
         phone: user.phone,
         avatar: user.avatar,
+        daily_download_limit: user.dailyDownloadLimit,
         created_at: user.createdAt?.toISOString() || "",
         updated_at: user.updatedAt?.toISOString() || "",
       })),
@@ -160,6 +169,7 @@ export class UserService {
         role: true,
         phone: true,
         avatar: true,
+        dailyDownloadLimit: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -177,6 +187,7 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
+      daily_download_limit: user.dailyDownloadLimit,
       created_at: user.createdAt?.toISOString() || "",
       updated_at: user.updatedAt?.toISOString() || "",
     };
@@ -214,6 +225,7 @@ export class UserService {
         phone: requestData.phone ?? null,
         role: requestData.role,
         avatar: requestData.avatar ?? null,
+        dailyDownloadLimit: requestData.daily_download_limit ?? 10,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -225,6 +237,7 @@ export class UserService {
         role: true,
         phone: true,
         avatar: true,
+        dailyDownloadLimit: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -238,6 +251,7 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
+      daily_download_limit: user.dailyDownloadLimit,
       created_at: user.createdAt?.toISOString() || "",
       updated_at: user.updatedAt?.toISOString() || "",
     };
@@ -317,6 +331,10 @@ export class UserService {
       updateData.avatar = requestData.avatar;
     }
 
+    if (requestData.daily_download_limit !== undefined) {
+      updateData.dailyDownloadLimit = requestData.daily_download_limit;
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -328,6 +346,7 @@ export class UserService {
         role: true,
         phone: true,
         avatar: true,
+        dailyDownloadLimit: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -341,6 +360,7 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       avatar: user.avatar,
+      daily_download_limit: user.dailyDownloadLimit,
       created_at: user.createdAt?.toISOString() || "",
       updated_at: user.updatedAt?.toISOString() || "",
     };
@@ -388,6 +408,53 @@ export class UserService {
     return {
       message: `${result.count} pengguna berhasil dihapus`,
       deleted_count: result.count,
+    };
+  }
+
+  static async updateDownloadLimit(
+    id: string,
+    request: UpdateDownloadLimitRequest
+  ): Promise<SafeUser> {
+    const existingUser = await prisma.user.findFirst({
+      where: { id },
+    });
+
+    if (!existingUser) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    const requestData = validate(UserValidation.UPDATE_DOWNLOAD_LIMIT, request);
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        dailyDownloadLimit: requestData.daily_download_limit,
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        role: true,
+        phone: true,
+        avatar: true,
+        dailyDownloadLimit: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      avatar: user.avatar,
+      daily_download_limit: user.dailyDownloadLimit,
+      created_at: user.createdAt?.toISOString() || "",
+      updated_at: user.updatedAt?.toISOString() || "",
     };
   }
 }

@@ -136,6 +136,11 @@ enum OtpPurpose {
   login_verification
 }
 
+enum DownloadType {
+  cv
+  application_letter
+}
+
 model User {
   id        String   @id @default(uuid()) @db.VarChar(255)
   name      String   @db.VarChar(255)
@@ -149,8 +154,10 @@ model User {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(0)
+  dailyDownloadLimit Int @default(10) @map("daily_download_limit") @db.Int
 
   cvs                Cv[]
+  downloadLogs       DownloadLog[]
   portfolios         Portfolio[]
   applications       Application[]
   applicationLetters ApplicationLetter[]
@@ -635,4 +642,20 @@ model Job {
   @@index([salaryMin], map: "idx_jobs_salary_min")
   @@index([createdAt], map: "idx_jobs_created_at")
   @@map("jobs")
+}
+
+model DownloadLog {
+  id           String       @id @default(uuid()) @db.VarChar(255)
+  userId       String       @map("user_id") @db.VarChar(255)
+  type         DownloadType
+  documentId   String       @map("document_id") @db.VarChar(255)
+  documentName String       @map("document_name") @db.VarChar(255)
+  downloadedAt DateTime     @default(now()) @map("downloaded_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([downloadedAt])
+  @@index([userId, downloadedAt])
+  @@map("download_logs")
 }

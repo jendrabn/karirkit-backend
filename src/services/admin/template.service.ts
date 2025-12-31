@@ -118,8 +118,6 @@ export class TemplateService {
   static async create(request: CreateTemplateRequest): Promise<Template> {
     const requestData = validate(TemplateValidation.PAYLOAD, request);
 
-    console.log("request", requestData);
-
     // Move file from temp to permanent location if path is provided
     let finalPath = requestData.path;
     if (requestData.path) {

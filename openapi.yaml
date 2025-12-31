@@ -245,6 +245,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/ValidationError"
+  /account/download-stats:
+    get:
+      tags: [Account]
+      summary: Get download stats
+      description: Check remaining daily download quota
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Download statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -764,6 +780,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          description: Daily download limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /uploads:
     post:
       tags: [Uploads]
@@ -1215,6 +1237,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          description: Daily download limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /dashboard:
     get:
       tags: [Dashboard]
@@ -1558,6 +1586,35 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/users/{id}/download-limit:
+    patch:
+      tags: [Admin]
+      summary: Update user download limit
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateDownloadLimitRequest"
+      responses:
+        "200":
+          description: Updated download limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -3590,6 +3647,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        daily_download_limit:
+          type: integer
+          default: 10
+          description: Daily download limit for CVs and Application Letters
     RegisterRequest:
       type: object
       properties:
@@ -4771,6 +4832,9 @@ components:
         avatar:
           type: string
           nullable: true
+        daily_download_limit:
+          type: integer
+          default: 10
       required: [name, username, email, password]
     AdminUpdateUserRequest:
       type: object
@@ -4791,6 +4855,8 @@ components:
         avatar:
           type: string
           nullable: true
+        daily_download_limit:
+          type: integer
     AdminUserListResponse:
       type: object
       properties:
@@ -5520,3 +5586,23 @@ components:
                 $ref: "#/components/schemas/JobRole"
             pagination:
               $ref: "#/components/schemas/Pagination"
+    AdminUpdateDownloadLimitRequest:
+      type: object
+      properties:
+        daily_download_limit:
+          type: integer
+          minimum: 0
+          maximum: 1000
+      required: [daily_download_limit]
+    DownloadStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            daily_limit:
+              type: integer
+            today_count:
+              type: integer
+            remaining:
+              type: integer
