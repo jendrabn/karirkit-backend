@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const mediaSchema = z.object({
+  path: z
+    .string()
+    .trim()
+    .min(1, "Path media wajib diisi")
+    .max(255, "Maksimal 255 karakter"),
+});
+
 export class JobValidation {
   static readonly LIST_QUERY = z.object({
     page: z.coerce.number().min(1).default(1),
@@ -163,7 +171,7 @@ export class JobValidation {
         .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
         .nullable()
         .optional(),
-      poster: z.string().nullable().optional(),
+      medias: z.array(mediaSchema).optional(),
       status: z
         .enum(
           ["draft", "published", "closed", "archived"],
@@ -303,7 +311,7 @@ export class JobValidation {
         .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
         .nullable()
         .optional(),
-      poster: z.string().nullable().optional(),
+      medias: z.array(mediaSchema).optional(),
       status: z
         .enum(
           ["draft", "published", "closed", "archived"],

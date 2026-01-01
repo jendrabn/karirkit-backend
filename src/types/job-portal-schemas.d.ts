@@ -150,6 +150,12 @@ export interface CityListQueryParams {
   province_id?: string;
 }
 
+export interface JobMedia {
+  id?: string;
+  job_id?: string;
+  path?: string;
+}
+
 export interface Job {
   id?: string;
   company_id?: string;
@@ -176,7 +182,7 @@ export interface Job {
   contact_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
-  poster?: string | null;
+  medias?: JobMedia[];
   status?: JobStatus;
   expiration_date?: string | null;
   created_at?: string;
@@ -243,7 +249,9 @@ export interface CreateJobRequest {
   contact_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
-  poster?: string | null;
+  medias?: {
+    path?: string;
+  }[];
   status?: JobStatus;
   expiration_date?: string | null;
 }
@@ -273,7 +281,9 @@ export interface UpdateJobRequest {
   contact_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
-  poster?: string | null;
+  medias?: {
+    path?: string;
+  }[];
   status?: JobStatus;
   expiration_date?: string | null;
 }

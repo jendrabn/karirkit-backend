@@ -142,19 +142,19 @@ enum DownloadType {
 }
 
 model User {
-  id        String   @id @default(uuid()) @db.VarChar(255)
-  name      String   @db.VarChar(255)
-  username  String   @unique @db.VarChar(255)
-  email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(255)
-  role      UserRole @default(user)
-  phone     String?  @db.VarChar(255)
-  googleId  String?  @map("google_id") @db.VarChar(255)
-  avatar    String?  @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
-  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(0)
-  dailyDownloadLimit Int @default(10) @map("daily_download_limit") @db.Int
+  id                 String    @id @default(uuid()) @db.VarChar(255)
+  name               String    @db.VarChar(255)
+  username           String    @unique @db.VarChar(255)
+  email              String    @unique @db.VarChar(255)
+  password           String    @db.VarChar(255)
+  role               UserRole  @default(user)
+  phone              String?   @db.VarChar(255)
+  googleId           String?   @map("google_id") @db.VarChar(255)
+  avatar             String?   @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamp(0)
+  dailyDownloadLimit Int       @default(10) @map("daily_download_limit") @db.Int
 
   cvs                Cv[]
   downloadLogs       DownloadLog[]
@@ -622,15 +622,15 @@ model Job {
   contactName          String?    @map("contact_name") @db.VarChar(255)
   contactEmail         String?    @map("contact_email") @db.VarChar(255)
   contactPhone         String?    @map("contact_phone") @db.VarChar(255)
-  poster               String?    @db.VarChar(255)
   status               JobStatus  @default(draft)
   expirationDate       DateTime?  @map("expiration_date") @db.Timestamp(0)
   createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  company Company @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  jobRole JobRole @relation(fields: [jobRoleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  city    City?   @relation(fields: [cityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  company Company    @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  jobRole JobRole    @relation(fields: [jobRoleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  city    City?      @relation(fields: [cityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  medias  JobMedia[]
 
   @@index([companyId], map: "idx_jobs_company_id")
   @@index([jobRoleId], map: "idx_jobs_job_role_id")
@@ -642,6 +642,19 @@ model Job {
   @@index([salaryMin], map: "idx_jobs_salary_min")
   @@index([createdAt], map: "idx_jobs_created_at")
   @@map("jobs")
+}
+
+model JobMedia {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  jobId     String   @map("job_id") @db.VarChar(255)
+  path      String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  job Job @relation(fields: [jobId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([jobId], map: "idx_job_medias_job_id")
+  @@map("job_medias")
 }
 
 model DownloadLog {

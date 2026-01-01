@@ -237,6 +237,11 @@ export class JobService {
         include: {
           company: true,
           jobRole: true,
+          medias: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
           city: {
             include: {
               province: true,
@@ -270,6 +275,11 @@ export class JobService {
       include: {
         company: true,
         jobRole: true,
+        medias: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         city: {
           include: {
             province: true,
@@ -290,6 +300,7 @@ export class JobService {
       company?: any;
       jobRole?: any;
       city?: any & { province?: any };
+      medias?: { id: string; jobId: string; path: string }[];
     }
   ): any {
     return {
@@ -313,11 +324,17 @@ export class JobService {
       contact_name: job.contactName,
       contact_email: job.contactEmail,
       contact_phone: job.contactPhone,
-      poster: job.poster,
       status: job.status,
       expiration_date: job.expirationDate?.toISOString() || null,
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
+      medias: job.medias
+        ? job.medias.map((media) => ({
+            id: media.id,
+            job_id: media.jobId,
+            path: media.path,
+          }))
+        : [],
       company: job.company ? JobService.toCompanyResponse(job.company) : null,
       job_role: job.jobRole ? JobService.toJobRoleResponse(job.jobRole) : null,
       city: job.city

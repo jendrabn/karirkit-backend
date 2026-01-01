@@ -316,12 +316,15 @@ export interface PublicPortfolioDetailResponse {
 
 export interface CvEducation {
   degree?:
-    | "highschool"
-    | "associate"
+    | "middle_school"
+    | "high_school"
+    | "associate_d1"
+    | "associate_d2"
+    | "associate_d3"
     | "bachelor"
     | "master"
     | "doctorate"
-    | "other";
+    | "any";
   school_name?: string;
   school_location?: string;
   major?: string;

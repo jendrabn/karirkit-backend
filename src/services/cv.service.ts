@@ -939,6 +939,7 @@ export class CvService {
         end_year: record.endYear,
         is_current: record.isCurrent,
         description: record.description,
+        description_points: CvService.splitDescriptionLines(record.description),
       })),
       skills: cv.skills.map((record) => ({
         name: record.name,
@@ -966,8 +967,20 @@ export class CvService {
         end_year: record.endYear,
         is_current: record.isCurrent,
         description: record.description,
+        description_points: CvService.splitDescriptionLines(record.description),
       })),
     };
+  }
+
+  private static splitDescriptionLines(value?: string | null): string[] {
+    if (!value) {
+      return [];
+    }
+
+    return value
+      .split(/\r?\n/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
   }
 
   private static buildSocialLinkLabel(url: string): string {

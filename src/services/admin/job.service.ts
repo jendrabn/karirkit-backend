@@ -12,6 +12,7 @@ import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
 import { prisma } from "../../config/prisma.config";
 import { slugify } from "../../utils/slugify.util";
+import { isHttpUrl } from "../../utils/url.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -20,6 +21,10 @@ const sortFieldMap = {
   salary_min: "salaryMin",
   experience_min: "minYearsOfExperience",
 } as const;
+
+type JobMediaPayload = {
+  path: string;
+};
 
 export class AdminJobService {
   static async list(query: unknown): Promise<JobListResponse> {
@@ -221,6 +226,11 @@ export class AdminJobService {
         include: {
           company: true,
           jobRole: true,
+          medias: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
           city: {
             include: {
               province: true,
@@ -252,6 +262,11 @@ export class AdminJobService {
       include: {
         company: true,
         jobRole: true,
+        medias: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         city: {
           include: {
             province: true,
@@ -307,15 +322,9 @@ export class AdminJobService {
       throw new ResponseError(400, "Slug sudah ada");
     }
 
-    // Move poster from temp to permanent location if provided
-    let finalPoster = request.poster;
-    if (request.poster) {
-      try {
-        finalPoster = await UploadService.moveFromTemp("jobs", request.poster);
-      } catch (error) {
-        throw new ResponseError(400, "Gagal memproses poster");
-      }
-    }
+    const mediaPaths = request.medias?.length
+      ? await AdminJobService.prepareJobMediaFiles(request.medias)
+      : [];
 
     const now = new Date();
     const job = await prisma.job.create({
@@ -339,17 +348,30 @@ export class AdminJobService {
         contactName: request.contact_name || null,
         contactEmail: request.contact_email || null,
         contactPhone: request.contact_phone || null,
-        poster: finalPoster || null,
         status: request.status,
         expirationDate: request.expiration_date
           ? new Date(request.expiration_date)
           : null,
         createdAt: now,
         updatedAt: now,
+        medias: mediaPaths.length
+          ? {
+              create: mediaPaths.map((path) => ({
+                path,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            }
+          : undefined,
       },
       include: {
         company: true,
         jobRole: true,
+        medias: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         city: {
           include: {
             province: true,
@@ -415,18 +437,14 @@ export class AdminJobService {
       }
     }
 
-    // Move poster from temp to permanent location if provided
-    let finalPoster = request.poster;
-    if (request.poster) {
-      try {
-        finalPoster = await UploadService.moveFromTemp("jobs", request.poster);
-      } catch (error) {
-        throw new ResponseError(400, "Gagal memproses poster");
-      }
-    }
+    const shouldUpdateMedias = request.medias !== undefined;
+    const mediaPaths = shouldUpdateMedias
+      ? await AdminJobService.prepareJobMediaFiles(request.medias ?? [])
+      : [];
 
+    const now = new Date();
     const updateData: any = {
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
     if (request.company_id !== undefined) {
@@ -502,10 +520,6 @@ export class AdminJobService {
       updateData.contactPhone = request.contact_phone;
     }
 
-    if (request.poster !== undefined) {
-      updateData.poster = finalPoster;
-    }
-
     if (request.status !== undefined) {
       updateData.status = request.status;
     }
@@ -516,18 +530,42 @@ export class AdminJobService {
         : null;
     }
 
-    const job = await prisma.job.update({
-      where: { id },
-      data: updateData,
-      include: {
-        company: true,
-        jobRole: true,
-        city: {
-          include: {
-            province: true,
+    const job = await prisma.$transaction(async (tx) => {
+      if (shouldUpdateMedias) {
+        await tx.jobMedia.deleteMany({
+          where: { jobId: id },
+        });
+
+        if (mediaPaths.length) {
+          await tx.jobMedia.createMany({
+            data: mediaPaths.map((path) => ({
+              jobId: id,
+              path,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          });
+        }
+      }
+
+      return tx.job.update({
+        where: { id },
+        data: updateData,
+        include: {
+          company: true,
+          jobRole: true,
+          medias: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          city: {
+            include: {
+              province: true,
+            },
           },
         },
-      },
+      });
     });
 
     return AdminJobService.toResponse(job);
@@ -588,6 +626,7 @@ export class AdminJobService {
       company?: any;
       jobRole?: any;
       city?: any & { province?: any };
+      medias?: { id: string; jobId: string; path: string }[];
     }
   ): any {
     return {
@@ -611,11 +650,17 @@ export class AdminJobService {
       contact_name: job.contactName,
       contact_email: job.contactEmail,
       contact_phone: job.contactPhone,
-      poster: job.poster,
       status: job.status,
       expiration_date: job.expirationDate?.toISOString() || null,
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
+      medias: job.medias
+        ? job.medias.map((media) => ({
+            id: media.id,
+            job_id: media.jobId,
+            path: media.path,
+          }))
+        : [],
       company: job.company || null,
       job_role: job.jobRole || null,
       city: job.city
@@ -626,4 +671,72 @@ export class AdminJobService {
         : null,
     };
   }
+
+  private static normalizeJobMediaPath(value?: string | null): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalized = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
+    const prefix = "uploads/jobs/";
+    if (!normalized.toLowerCase().startsWith(prefix)) {
+      return null;
+    }
+
+    const relative = normalized.slice(prefix.length);
+    if (!relative || relative.includes("..")) {
+      return null;
+    }
+
+    return `/${normalized}`;
+  }
+
+  private static async prepareJobMediaFiles(
+    entries: JobMediaPayload[]
+  ): Promise<string[]> {
+    const mediaPaths: string[] = [];
+    const seen = new Set<string>();
+
+    for (const entry of entries) {
+      const trimmed = entry.path.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      if (isHttpUrl(trimmed)) {
+        if (!seen.has(trimmed)) {
+          mediaPaths.push(trimmed);
+          seen.add(trimmed);
+        }
+        continue;
+      }
+
+      const normalized = AdminJobService.normalizeJobMediaPath(trimmed);
+      if (normalized) {
+        if (!seen.has(normalized)) {
+          mediaPaths.push(normalized);
+          seen.add(normalized);
+        }
+        continue;
+      }
+
+      try {
+        const moved = await UploadService.moveFromTemp("jobs", trimmed);
+        if (!seen.has(moved)) {
+          mediaPaths.push(moved);
+          seen.add(moved);
+        }
+      } catch (error) {
+        throw new ResponseError(400, "Gagal memproses media");
+      }
+    }
+
+    return mediaPaths;
+  }
 }
+

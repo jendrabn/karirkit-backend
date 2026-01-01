@@ -5,6 +5,7 @@ import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { UploadService } from "../upload.service";
 import { TemplateValidation } from "../../validations/admin/template.validation";
+import { isHttpUrl } from "../../utils/url.util";
 
 type TemplateListResult = {
   items: Template[];
@@ -134,7 +135,7 @@ export class TemplateService {
 
     // Move preview file from temp to permanent location if preview is provided
     let finalPreviewPath = requestData.preview;
-    if (requestData.preview) {
+    if (requestData.preview && !isHttpUrl(requestData.preview)) {
       try {
         finalPreviewPath = await UploadService.moveFromTemp(
           "templates",
@@ -191,7 +192,7 @@ export class TemplateService {
 
     // Move preview file from temp to permanent location if preview is provided
     let finalPreviewPath = requestData.preview;
-    if (requestData.preview) {
+    if (requestData.preview && !isHttpUrl(requestData.preview)) {
       try {
         finalPreviewPath = await UploadService.moveFromTemp(
           "templates",

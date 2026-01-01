@@ -58,7 +58,8 @@ async function main() {
         password: hashedPassword,
         role: "user",
         phone: "+1234567890",
-        avatar: "https://example.com/avatar1.jpg",
+        avatar:
+          "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -71,7 +72,8 @@ async function main() {
         password: hashedPassword,
         role: "user",
         phone: "+1234567891",
-        avatar: "https://example.com/avatar2.jpg",
+        avatar:
+          "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -84,7 +86,8 @@ async function main() {
         password: hashedPassword,
         role: "admin",
         phone: "+1234567892",
-        avatar: "https://example.com/avatar3.jpg",
+        avatar:
+          "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -206,7 +209,8 @@ async function main() {
         address: "123 Main St, New York, NY",
         about:
           "Experienced full stack developer with 5+ years of experience in web development.",
-        photo: "https://example.com/photo1.jpg",
+        photo:
+          "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=600&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -222,7 +226,8 @@ async function main() {
         address: "456 Oak Ave, San Francisco, CA",
         about:
           "Creative UI/UX designer with a passion for user-centered design.",
-        photo: "https://example.com/photo2.jpg",
+        photo:
+          "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -238,7 +243,8 @@ async function main() {
         address: "789 Pine Rd, Chicago, IL",
         about:
           "Experienced project manager with a track record of successful project delivery.",
-        photo: "https://example.com/photo3.jpg",
+        photo:
+          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -712,7 +718,8 @@ async function main() {
         year: 2023,
         liveUrl: "https://example-ecommerce.com",
         repoUrl: "https://github.com/johndoe/ecommerce",
-        cover: "https://example.com/ecommerce-cover.jpg",
+        cover:
+          "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -731,7 +738,8 @@ async function main() {
         month: 9,
         year: 2023,
         liveUrl: "https://example-banking.com",
-        cover: "https://example.com/banking-cover.jpg",
+        cover:
+          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -750,7 +758,8 @@ async function main() {
         month: 3,
         year: 2023,
         repoUrl: "https://github.com/adminuser/pm-tool",
-        cover: "https://example.com/pm-tool-cover.jpg",
+        cover:
+          "https://images.unsplash.com/photo-1489533119213-1c3f3c0ad5a0?auto=format&fit=crop&w=1200&q=80",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -762,7 +771,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[0].id,
-        path: "https://example.com/ecommerce-1.jpg",
+        path:
+          "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1100&q=80",
         caption: "Homepage design",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -771,7 +781,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[0].id,
-        path: "https://example.com/ecommerce-2.jpg",
+        path:
+          "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1100&q=80",
         caption: "Product listing page",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -780,7 +791,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[1].id,
-        path: "https://example.com/banking-1.jpg",
+        path:
+          "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1100&q=80",
         caption: "Login screen",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -789,7 +801,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[1].id,
-        path: "https://example.com/banking-2.jpg",
+        path:
+          "https://images.unsplash.com/photo-1493119508027-2b584f234d6c?auto=format&fit=crop&w=1100&q=80",
         caption: "Dashboard design",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -798,7 +811,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[2].id,
-        path: "https://example.com/pm-tool-1.jpg",
+        path:
+          "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1100&q=80",
         caption: "Project overview",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -807,7 +821,8 @@ async function main() {
     prisma.portfolioMedia.create({
       data: {
         portfolioId: portfolios[2].id,
-        path: "https://example.com/pm-tool-2.jpg",
+        path:
+          "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1100&q=80",
         caption: "Sprint planning view",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1064,7 +1079,8 @@ async function main() {
           "Learn the basics of React Hooks and how to use them in your applications.",
         content:
           "React Hooks revolutionized the way we write React components. In this article, we will explore the basic hooks like useState and useEffect...",
-        featuredImage: "https://example.com/react-hooks.jpg",
+        featuredImage:
+          "https://images.unsplash.com/photo-1488998527040-85054a85150e?auto=format&fit=crop&w=1200&q=80",
         status: "published",
         readTime: 8,
         views: 1250,
@@ -1083,7 +1099,8 @@ async function main() {
           "Tips and tricks for creating an impressive design portfolio that stands out.",
         content:
           "A well-crafted design portfolio is essential for showcasing your skills and attracting potential clients or employers...",
-        featuredImage: "https://example.com/design-portfolio.jpg",
+        featuredImage:
+          "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1200&q=80",
         status: "published",
         readTime: 6,
         views: 890,
@@ -1102,7 +1119,8 @@ async function main() {
           "Understanding the core principles of user-centered design and how to apply them.",
         content:
           "User-centered design puts the needs and preferences of users at the forefront of the design process...",
-        featuredImage: "https://example.com/ucd-principles.jpg",
+        featuredImage:
+          "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1200&q=80",
         status: "draft",
         readTime: 10,
         views: 0,
@@ -1210,7 +1228,8 @@ async function main() {
         slug: "tech-solutions-indonesia",
         description:
           "Perusahaan teknologi terkemuka di Indonesia yang fokus pada pengembangan solusi digital inovatif",
-        logo: "https://example.com/logos/tech-solutions.png",
+        logo:
+          "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=600&q=80",
         employeeSize: "fifty_one_to_two_hundred",
         businessSector: "Technology",
         websiteUrl: "https://techsolutions.co.id",
@@ -1225,7 +1244,8 @@ async function main() {
         slug: "digital-creative-agency",
         description:
           "Agency kreatif digital yang menyediakan layanan desain dan pengembangan web",
-        logo: "https://example.com/logos/digital-creative.png",
+        logo:
+          "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=600&q=80",
         employeeSize: "eleven_to_fifty",
         businessSector: "Design & Creative",
         websiteUrl: "https://digitalcreative.com",
@@ -1240,7 +1260,8 @@ async function main() {
         slug: "fintech-innovations",
         description:
           "Startup fintech yang mengembangkan solusi pembayaran digital untuk UMKM",
-        logo: "https://example.com/logos/fintech-innovations.png",
+        logo:
+          "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=600&q=80",
         employeeSize: "one_to_ten",
         businessSector: "Financial Technology",
         websiteUrl: "https://fintechinnovations.id",
@@ -1296,7 +1317,14 @@ async function main() {
         contactName: "HR Tech Solutions",
         contactEmail: "hr@techsolutions.co.id",
         contactPhone: "+6221-2345-6789",
-        poster: "https://example.com/posters/front-end-dev.jpg",
+        medias: {
+          create: [
+            {
+            path:
+              "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=80",
+            },
+          ],
+        },
         status: "published",
         expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         createdAt: new Date(),
@@ -1327,7 +1355,14 @@ async function main() {
         contactName: "Creative Director",
         contactEmail: "jobs@digitalcreative.com",
         contactPhone: "+6222-3456-7890",
-        poster: "https://example.com/posters/ui-ux-designer.jpg",
+        medias: {
+          create: [
+            {
+            path:
+              "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1000&q=80",
+            },
+          ],
+        },
         status: "published",
         expirationDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
         createdAt: new Date(),
@@ -1358,7 +1393,14 @@ async function main() {
         contactName: "CTO FinTech Innovations",
         contactEmail: "careers@fintechinnovations.id",
         contactPhone: "+6222-1234-5678",
-        poster: "https://example.com/posters/full-stack-fintech.jpg",
+        medias: {
+          create: [
+            {
+            path:
+              "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1000&q=80",
+            },
+          ],
+        },
         status: "published",
         expirationDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
         createdAt: new Date(),

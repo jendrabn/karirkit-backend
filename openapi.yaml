@@ -2871,10 +2871,14 @@ paths:
                 contact_phone:
                   type: string
                   nullable: true
-                poster:
-                  type: string
-                  format: binary
+                medias:
+                  type: array
                   nullable: true
+                  items:
+                    type: object
+                    properties:
+                      path:
+                        type: string
                 status:
                   type: string
                   enum: [draft, published, closed, archived]
@@ -3013,10 +3017,14 @@ paths:
                 contact_phone:
                   type: string
                   nullable: true
-                poster:
-                  type: string
-                  format: binary
+                medias:
+                  type: array
                   nullable: true
+                  items:
+                    type: object
+                    properties:
+                      path:
+                        type: string
                 status:
                   type: string
                   enum: [draft, published, closed, archived]
@@ -4284,7 +4292,7 @@ components:
       properties:
         degree:
           type: string
-          enum: [highschool, associate, bachelor, master, doctorate, other]
+          enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
         school_name:
           type: string
         school_location:
@@ -5264,6 +5272,15 @@ components:
                 $ref: "#/components/schemas/City"
             pagination:
               $ref: "#/components/schemas/Pagination"
+    JobMedia:
+      type: object
+      properties:
+        id:
+          type: string
+        job_id:
+          type: string
+        path:
+          type: string
     Job:
       type: object
       properties:
@@ -5316,9 +5333,10 @@ components:
         contact_phone:
           type: string
           nullable: true
-        poster:
-          type: string
-          nullable: true
+        medias:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobMedia"
         status:
           $ref: "#/components/schemas/JobStatus"
         expiration_date:
@@ -5406,10 +5424,14 @@ components:
         contact_phone:
           type: string
           nullable: true
-        poster:
-          type: string
-          nullable: true
-          description: Path to poster image (from temp upload)
+        medias:
+          type: array
+          description: List of media paths (from temp upload or URL)
+          items:
+            type: object
+            properties:
+              path:
+                type: string
         status:
           $ref: "#/components/schemas/JobStatus"
           default: draft
@@ -5482,10 +5504,14 @@ components:
         contact_phone:
           type: string
           nullable: true
-        poster:
-          type: string
-          nullable: true
-          description: Path to poster image (from temp upload)
+        medias:
+          type: array
+          description: List of media paths (from temp upload or URL)
+          items:
+            type: object
+            properties:
+              path:
+                type: string
         status:
           $ref: "#/components/schemas/JobStatus"
         expiration_date:
