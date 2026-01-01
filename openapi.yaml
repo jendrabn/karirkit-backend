@@ -16,6 +16,7 @@ tags:
   - name: Application Letters
   - name: Portfolios
   - name: CVs
+  - name: Documents
   - name: Public
   - name: Uploads
   - name: Blogs
@@ -1243,6 +1244,137 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /documents:
+    get:
+      tags: [Documents]
+      summary: List documents
+      description: List documents owned by the authenticated user with optional filtering.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SortOrder"
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/DocumentType"
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [uploaded_at, original_name, size, type]
+            default: uploaded_at
+          description: |
+            Field used for sorting. Combine with `sort_order` to get the desired order
+            (e.g., `sorted_by=uploaded_at` and `sort_order=desc` returns the newest uploads,
+            `sort_order=asc` gives the oldest first; `original_name` covers A–Z/Z–A, `size`
+            sorts by file size, and `type` sorts alphabetically by document type).
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Documents]
+      summary: Upload a document
+      description: >
+        Upload documents (PDF, Word, Excel, and similar files) or images for
+        job applications. Maximum file size is 25 MB. Optional compression
+        levels are supported for images today via Sharp; other formats are
+        preserved as provided.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: compression
+          in: query
+          schema:
+            type: string
+            enum: [auto, light, medium, strong]
+          description: Optional compression level (applies to images only at the moment).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/DocumentUploadRequest"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /documents/mass-delete:
+    delete:
+      tags: [Documents]
+      summary: Delete multiple documents
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentMassDeleteRequest"
+      responses:
+        "200":
+          description: Documents removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentMassDeleteResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /documents/{id}:
+    delete:
+      tags: [Documents]
+      summary: Delete a document
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Document deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /documents/{id}/download:
+    get:
+      tags: [Documents]
+      summary: Download a document
+      description: Retrieve the binary content for a stored document.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Binary stream of the document
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /dashboard:
     get:
       tags: [Dashboard]
@@ -4161,6 +4293,123 @@ components:
                 $ref: "#/components/schemas/ApplicationLetter"
             pagination:
               $ref: "#/components/schemas/Pagination"
+    DocumentType:
+      type: string
+      enum:
+        [
+          ktp,
+          kk,
+          sim,
+          paspor,
+          npwp,
+          bpjs_kesehatan,
+          bpjs_ketenagakerjaan,
+          ijazah,
+          transkrip,
+          kartu_pelajar,
+          kartu_mahasiswa,
+          pas_foto,
+          cv,
+          surat_lamaran,
+          portfolio,
+          cover_letter,
+          skck,
+          surat_keterangan_sehat,
+          surat_keterangan_kerja,
+          surat_pengalaman_kerja,
+          surat_rekomendasi,
+          paklaring,
+          surat_pengunduran_diri,
+          kontrak_kerja,
+          slip_gaji,
+          kartu_nama,
+          sertifikat,
+          sertifikat_pelatihan,
+          sertifikat_bahasa,
+          sertifikat_profesi,
+          sertifikat_vaksin,
+          surat_bebas_narkoba,
+          surat_domisili,
+          surat_keterangan_catatan_akademik,
+          surat_keterangan_lulus,
+          kartu_keluarga_sejahtera,
+          hasil_medical_checkup,
+          hasil_tes_psikologi,
+          hasil_tes_narkoba,
+          demo_reel,
+          karya_tulis,
+          publikasi,
+          piagam,
+          lainnya,
+        ]
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        original_name:
+          type: string
+        path:
+          type: string
+        mime_type:
+          type: string
+        size:
+          type: integer
+          description: File size in bytes
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DocumentResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Document"
+    DocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Document"
+            pagination:
+              $ref: "#/components/schemas/Pagination"
+    DocumentUploadRequest:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        file:
+          type: string
+          format: binary
+      required: [type, file]
+    DocumentMassDeleteRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+      required: [ids]
+    DocumentMassDeleteResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+            deleted_count:
+              type: integer
     PortfolioMedia:
       type: object
       properties:

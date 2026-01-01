@@ -14,9 +14,11 @@ import { UploadController } from "../controllers/upload.controller";
 import {
   handleTempUpload,
   handleBlogUpload,
+  handleDocumentUpload,
 } from "../middleware/upload.middleware";
 import { PortfolioController } from "../controllers/portfolio.controller";
 import { CvController } from "../controllers/cv.controller";
+import { DocumentController } from "../controllers/document.controller";
 import { PublicController } from "../controllers/public.controller";
 import { DashboardController } from "../controllers/dashboard.controller";
 import { BlogController } from "../controllers/blog.controller";
@@ -187,6 +189,26 @@ router.put("/cvs/:id", authMiddleware, CvController.update);
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
 router.get("/cvs/:id/download", authMiddleware, CvController.download);
+
+// Documents API
+router.get("/documents", authMiddleware, DocumentController.list);
+router.post(
+  "/documents",
+  authMiddleware,
+  handleDocumentUpload,
+  DocumentController.create
+);
+router.delete(
+  "/documents/mass-delete",
+  authMiddleware,
+  DocumentController.massDelete
+);
+router.delete("/documents/:id", authMiddleware, DocumentController.delete);
+router.get(
+  "/documents/:id/download",
+  authMiddleware,
+  DocumentController.download
+);
 
 // Blogs API
 router.get("/blogs", BlogController.list);

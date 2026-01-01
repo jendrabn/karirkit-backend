@@ -147,6 +147,69 @@ enum DownloadType {
   application_letter
 }
 
+enum DocumentType {
+  // Identitas
+  ktp
+  kk
+  sim
+  paspor
+  npwp
+  bpjs_kesehatan
+  bpjs_ketenagakerjaan
+
+  // Pendidikan
+  ijazah
+  transkrip
+  kartu_pelajar
+  kartu_mahasiswa
+
+  // Foto
+  pas_foto
+
+  // Lamaran kerja umum
+  cv
+  surat_lamaran
+  portfolio
+  cover_letter
+
+  // Surat keterangan & dokumen kerja
+  skck
+  surat_keterangan_sehat
+  surat_keterangan_kerja
+  surat_pengalaman_kerja
+  surat_rekomendasi
+  paklaring
+  surat_pengunduran_diri
+  kontrak_kerja
+  slip_gaji
+  kartu_nama
+
+  // Dokumen pendukung
+  sertifikat
+  sertifikat_pelatihan
+  sertifikat_bahasa
+  sertifikat_profesi
+  sertifikat_vaksin
+  surat_bebas_narkoba
+  surat_domisili
+  surat_keterangan_catatan_akademik
+  surat_keterangan_lulus
+  kartu_keluarga_sejahtera
+
+  // Medis / kesehatan (tambahan)
+  hasil_medical_checkup
+  hasil_tes_psikologi
+  hasil_tes_narkoba
+
+  // Portofolio kreatif / lainnya
+  demo_reel
+  karya_tulis
+  publikasi
+  piagam
+
+  lainnya
+}
+
 model User {
   id                 String    @id @default(uuid()) @db.VarChar(255)
   name               String    @db.VarChar(255)
@@ -167,6 +230,7 @@ model User {
 
   cvs                Cv[]
   downloadLogs       DownloadLog[]
+  documents          Document[]
   portfolios         Portfolio[]
   applications       Application[]
   applicationLetters ApplicationLetter[]
@@ -680,4 +744,21 @@ model DownloadLog {
   @@index([downloadedAt])
   @@index([userId, downloadedAt])
   @@map("download_logs")
+}
+
+model Document {
+  id           String       @id @default(uuid()) @db.VarChar(255)
+  userId       String       @map("user_id") @db.VarChar(255)
+  type         DocumentType
+  originalName String       @map("original_name") @db.VarChar(255)
+  path         String       @db.VarChar(500)
+  mimeType     String       @map("mime_type") @db.VarChar(255)
+  size         Int          @db.Int
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_documents_user_id")
+  @@map("documents")
 }

@@ -4,6 +4,7 @@ import { ResponseError } from "../utils/response-error.util";
 
 const MAX_TEMP_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_BLOG_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_DOCUMENT_UPLOAD_SIZE = 25 * 1024 * 1024; // 25 MB
 const documentMimeTypes = new Set([
   "application/pdf",
   "application/msword",
@@ -36,6 +37,25 @@ const tempUpload = multer({
       return;
     }
     cb(new ResponseError(400, "File must be an image, video, or document"));
+  },
+}).single("file");
+
+const isAllowedDocumentMime = (mime: string): boolean => {
+  const normalized = mime.toLowerCase();
+  return normalized.startsWith("image/") || documentMimeTypes.has(normalized);
+};
+
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_DOCUMENT_UPLOAD_SIZE,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedDocumentMime(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new ResponseError(400, "File must be an image or document"));
   },
 }).single("file");
 
@@ -92,4 +112,9 @@ export const handleTempUpload = createUploadMiddleware(
 export const handleBlogUpload = createUploadMiddleware(
   blogUpload,
   "File size must be less than or equal to 5 MB"
+);
+
+export const handleDocumentUpload = createUploadMiddleware(
+  documentUpload,
+  "File size must be less than or equal to 25 MB"
 );

@@ -229,6 +229,91 @@ export interface ApplicationLetterListResponse {
   };
 }
 
+export type DocumentType =
+  | "ktp"
+  | "kk"
+  | "sim"
+  | "paspor"
+  | "npwp"
+  | "bpjs_kesehatan"
+  | "bpjs_ketenagakerjaan"
+  | "ijazah"
+  | "transkrip"
+  | "kartu_pelajar"
+  | "kartu_mahasiswa"
+  | "pas_foto"
+  | "cv"
+  | "surat_lamaran"
+  | "portfolio"
+  | "cover_letter"
+  | "skck"
+  | "surat_keterangan_sehat"
+  | "surat_keterangan_kerja"
+  | "surat_pengalaman_kerja"
+  | "surat_rekomendasi"
+  | "paklaring"
+  | "surat_pengunduran_diri"
+  | "kontrak_kerja"
+  | "slip_gaji"
+  | "kartu_nama"
+  | "sertifikat"
+  | "sertifikat_pelatihan"
+  | "sertifikat_bahasa"
+  | "sertifikat_profesi"
+  | "sertifikat_vaksin"
+  | "surat_bebas_narkoba"
+  | "surat_domisili"
+  | "surat_keterangan_catatan_akademik"
+  | "surat_keterangan_lulus"
+  | "kartu_keluarga_sejahtera"
+  | "hasil_medical_checkup"
+  | "hasil_tes_psikologi"
+  | "hasil_tes_narkoba"
+  | "demo_reel"
+  | "karya_tulis"
+  | "publikasi"
+  | "piagam"
+  | "lainnya";
+
+export interface Document {
+  id?: string;
+  user_id?: string;
+  type?: DocumentType;
+  original_name?: string;
+  path?: string;
+  mime_type?: string;
+  size?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DocumentResponse {
+  data?: Document;
+}
+
+export interface DocumentListResponse {
+  data?: {
+    items?: Document[];
+    pagination?: Pagination;
+  };
+}
+
+export interface DocumentUploadRequest {
+  type: DocumentType;
+  file?: string;
+}
+
+export interface DocumentMassDeleteRequest {
+  ids: string[];
+}
+
+export interface DocumentMassDeleteResponse {
+  data?: {
+    message?: string;
+    deleted_count?: number;
+  };
+}
+
 export interface PortfolioMedia {
   id?: string;
   portfolio_id?: string;

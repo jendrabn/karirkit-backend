@@ -73,6 +73,8 @@ export class UploadService {
       quality?: number; // 25-100, default: 50
       webp?: boolean; // true/false, default: true
       format?: string; // e.g. "jpg,png,docx"
+      maxSize?: number; // maximum allowed file size in bytes
+      compressImage?: boolean; // disable image re-encoding when set to false
     } = {}
   ): Promise<UploadFileResult> {
     // Validate file exists
@@ -81,7 +83,11 @@ export class UploadService {
     }
 
     // Set default options
-    const quality = Math.min(100, Math.max(25, options.quality || 50));
+    const qualityOption = options.quality;
+    const quality =
+      typeof qualityOption === "number"
+        ? Math.min(100, Math.max(25, qualityOption))
+        : undefined;
     const webp = options.webp !== undefined ? options.webp : true;
 
     // Validation 1: Check if file type is allowed (image, video, document)
@@ -118,8 +124,8 @@ export class UploadService {
       }
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    // Validate file size (max 10MB by default)
+    const maxSize = options.maxSize ?? 10 * 1024 * 1024;
     if (file.size > maxSize) {
       throw new ResponseError(400, "Ukuran file tidak boleh lebih dari 10MB");
     }
@@ -131,7 +137,12 @@ export class UploadService {
       MIME_TYPE_TO_EXTENSION[file.mimetype] || path.extname(file.originalname);
 
     // Process image if applicable
-    if (ALLOWED_MIME_TYPES.image.includes(file.mimetype.toLowerCase())) {
+    const normalizedMime = file.mimetype.toLowerCase();
+    const compressImage = options.compressImage !== false;
+    const shouldProcessImage =
+      compressImage && ALLOWED_MIME_TYPES.image.includes(normalizedMime);
+
+    if (shouldProcessImage) {
       try {
         if (webp) {
           processedBuffer = await sharp(file.buffer)
@@ -140,11 +151,20 @@ export class UploadService {
           finalMimeType = "image/webp";
           extension = ".webp";
         } else if (
-          file.mimetype.toLowerCase() === "image/jpeg" ||
-          file.mimetype.toLowerCase() === "image/jpg"
+          (normalizedMime === "image/jpeg" ||
+            normalizedMime === "image/jpg") &&
+          quality !== undefined
         ) {
           processedBuffer = await sharp(file.buffer)
             .jpeg({ quality })
+            .toBuffer();
+        } else if (
+          normalizedMime === "image/png" &&
+          quality !== undefined
+        ) {
+          const pngQuality = Math.min(100, Math.max(1, quality));
+          processedBuffer = await sharp(file.buffer)
+            .png({ quality: pngQuality })
             .toBuffer();
         }
       } catch (error) {
