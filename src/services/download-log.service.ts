@@ -1,6 +1,13 @@
 import { prisma } from "../config/prisma.config";
 import { ResponseError } from "../utils/response-error.util";
-import { DownloadType, UserRole } from "../generated/prisma/client";
+import { DownloadType, UserRole, type Prisma } from "../generated/prisma/client";
+
+export interface DownloadStats {
+  daily_limit: number;
+  today_count: number;
+  remaining: number;
+  total_count: number;
+}
 
 export class DownloadLogService {
   static async checkDownloadLimit(userId: string): Promise<void> {
@@ -54,7 +61,7 @@ export class DownloadLogService {
     });
   }
 
-  static async getDownloadStats(userId: string) {
+  static async getDownloadStats(userId: string): Promise<DownloadStats> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { dailyDownloadLimit: true, role: true },
@@ -76,6 +83,12 @@ export class DownloadLogService {
       },
     });
 
+    const totalCount = await prisma.downloadLog.count({
+      where: {
+        userId: userId,
+      },
+    });
+
     return {
       daily_limit:
         user.role === UserRole.admin ? 999999 : user.dailyDownloadLimit,
@@ -84,6 +97,41 @@ export class DownloadLogService {
         user.role === UserRole.admin
           ? 999999
           : Math.max(0, user.dailyDownloadLimit - todayCount),
+      total_count: totalCount,
     };
+  }
+
+  static async countDownloadsByUsers(
+    userIds: string[],
+    since?: Date
+  ): Promise<Record<string, number>> {
+    if (userIds.length === 0) {
+      return {};
+    }
+
+    const where: Prisma.DownloadLogWhereInput = {
+      userId: { in: userIds },
+    };
+
+    if (since) {
+      where.downloadedAt = {
+        gte: since,
+      };
+    }
+
+    const groups = await prisma.downloadLog.groupBy({
+      by: ["userId"],
+      where,
+      _count: {
+        _all: true,
+      },
+    });
+
+    const result: Record<string, number> = {};
+    for (const group of groups) {
+      result[group.userId] = group._count._all;
+    }
+
+    return result;
   }
 }

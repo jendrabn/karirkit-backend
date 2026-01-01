@@ -12,35 +12,12 @@ import {
   ResetPasswordRequest,
 } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
+import { ensureAccountIsActive } from "../utils/account-status.util";
+import { toSafeUser, SafeUser } from "../utils/user.util";
 import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
-
-export type SafeUser = Omit<
-  User,
-  "password" | "createdAt" | "updatedAt" | "emailVerifiedAt"
-> & {
-  created_at: Date;
-  updated_at: Date;
-  email_verified_at: Date | null;
-};
-
-const toSafeUser = (user: User): SafeUser => {
-  const {
-    password: _password,
-    createdAt,
-    updatedAt,
-    emailVerifiedAt,
-    ...rest
-  } = user;
-  return {
-    ...rest,
-    created_at: createdAt,
-    updated_at: updatedAt,
-    email_verified_at: emailVerifiedAt,
-  };
-};
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
@@ -127,6 +104,8 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new ResponseError(401, "Kata sandi salah");
     }
+
+    ensureAccountIsActive(user);
 
     // If OTP is enabled, send OTP and return different response
     if (env.otp.enabled) {
@@ -256,6 +235,8 @@ export class AuthService {
         });
       }
     }
+
+    ensureAccountIsActive(user);
 
     const token = jwt.sign(
       {

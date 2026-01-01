@@ -4,20 +4,23 @@ import { prisma } from "../config/prisma.config";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
+import { DownloadLogService, type DownloadStats } from "./download-log.service";
 import { validate } from "../utils/validate.util";
 import { AccountValidation } from "../validations/account.validation";
 
 export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
   created_at: Date;
   updated_at: Date;
+  download_stats: DownloadStats;
 };
 
-const toSafeUser = (user: User): SafeUser => {
+const toSafeUser = (user: User, downloadStats: DownloadStats): SafeUser => {
   const { password: _password, createdAt, updatedAt, ...rest } = user;
   return {
     ...rest,
     created_at: createdAt,
     updated_at: updatedAt,
+    download_stats: downloadStats,
   };
 };
 
@@ -31,7 +34,8 @@ export class AccountService {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    return toSafeUser(user);
+    const downloadStats = await DownloadLogService.getDownloadStats(userId);
+    return toSafeUser(user, downloadStats);
   }
 
   static async updateMe(
@@ -129,7 +133,8 @@ export class AccountService {
       data: updateData,
     });
 
-    return toSafeUser(user);
+    const downloadStats = await DownloadLogService.getDownloadStats(userId);
+    return toSafeUser(user, downloadStats);
   }
 
   static async changePassword(

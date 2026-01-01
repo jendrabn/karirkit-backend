@@ -83,6 +83,30 @@ export class UserValidation {
     daily_download_limit: z.coerce.number().min(0).max(1000),
   });
 
+  static readonly UPDATE_STATUS = z.object({
+    status: z.enum(["active", "suspended", "banned"]),
+    status_reason: z
+      .string()
+      .max(500, "Alasan maksimal 500 karakter")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    suspended_until: z
+      .string()
+      .or(z.literal(""))
+      .nullable()
+      .optional()
+      .refine(
+        (value) => {
+          if (!value) {
+            return true;
+          }
+          return !Number.isNaN(Date.parse(value));
+        },
+        { message: "Format tanggal penangguhan tidak valid" }
+      ),
+  });
+
   static readonly MASS_DELETE = z.object({
     ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
   });

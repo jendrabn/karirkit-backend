@@ -5,6 +5,10 @@ import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
 import { z } from "zod";
 import { UserValidation } from "../../validations/admin/user.validation";
+import {
+  DownloadLogService,
+  type DownloadStats,
+} from "../../services/download-log.service";
 
 type SafeUser = {
   id: string;
@@ -15,8 +19,12 @@ type SafeUser = {
   phone: string | null;
   avatar: string | null;
   daily_download_limit: number;
+  status: string;
+  status_reason: string | null;
+  suspended_until: string | null;
   created_at: string;
   updated_at: string;
+  download_stats: DownloadStats;
 };
 
 type UserListResult = {
@@ -54,6 +62,67 @@ type UpdateDownloadLimitRequest = {
   daily_download_limit: number;
 };
 
+type UpdateUserStatusRequest = {
+  status: "active" | "suspended" | "banned";
+  status_reason?: string | null;
+  suspended_until?: string | null;
+};
+
+type RawUserRecord = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  phone: string | null;
+  avatar: string | null;
+  dailyDownloadLimit: number;
+  status: string;
+  statusReason: string | null;
+  suspendedUntil: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+
+const buildDownloadStats = (
+  user: RawUserRecord,
+  todayCounts: Record<string, number>,
+  totalCounts: Record<string, number>
+): DownloadStats => {
+  const limit = user.role === "admin" ? 999999 : user.dailyDownloadLimit;
+  const todayCount = todayCounts[user.id] ?? 0;
+  const totalCount = totalCounts[user.id] ?? 0;
+
+  return {
+    daily_limit: limit,
+    today_count: todayCount,
+    remaining:
+      limit === 999999 ? 999999 : Math.max(0, limit - todayCount),
+    total_count: totalCount,
+  };
+};
+
+const formatSafeUser = (
+  user: RawUserRecord,
+  downloadStats: DownloadStats
+): SafeUser => ({
+  id: user.id,
+  name: user.name,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  phone: user.phone,
+  avatar: user.avatar,
+  daily_download_limit: user.dailyDownloadLimit,
+  status: user.status,
+  status_reason: user.statusReason,
+  suspended_until: user.suspendedUntil
+    ? user.suspendedUntil.toISOString()
+    : null,
+  created_at: user.createdAt?.toISOString() || "",
+  updated_at: user.updatedAt?.toISOString() || "",
+  download_stats: downloadStats,
+});
 // Schemas moved to UserValidation
 
 const sortFieldMap = {
@@ -125,6 +194,9 @@ export class UserService {
           phone: true,
           avatar: true,
           dailyDownloadLimit: true,
+          status: true,
+          statusReason: true,
+          suspendedUntil: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -134,19 +206,20 @@ export class UserService {
     const totalPages =
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
+    const userIds = records.map((user) => user.id);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [todayCounts, totalCounts] = await Promise.all([
+      DownloadLogService.countDownloadsByUsers(userIds, today),
+      DownloadLogService.countDownloadsByUsers(userIds),
+    ]);
+
     return {
-      items: records.map((user) => ({
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        avatar: user.avatar,
-        daily_download_limit: user.dailyDownloadLimit,
-        created_at: user.createdAt?.toISOString() || "",
-        updated_at: user.updatedAt?.toISOString() || "",
-      })),
+      items: records.map((user) => {
+        const downloadStats = buildDownloadStats(user, todayCounts, totalCounts);
+        return formatSafeUser(user, downloadStats);
+      }),
       pagination: {
         page,
         per_page: perPage,
@@ -170,6 +243,9 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        status: true,
+        statusReason: true,
+        suspendedUntil: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -179,18 +255,8 @@ export class UserService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
-    return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      avatar: user.avatar,
-      daily_download_limit: user.dailyDownloadLimit,
-      created_at: user.createdAt?.toISOString() || "",
-      updated_at: user.updatedAt?.toISOString() || "",
-    };
+    const downloadStats = await DownloadLogService.getDownloadStats(id);
+    return formatSafeUser(user, downloadStats);
   }
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
@@ -238,23 +304,16 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        status: true,
+        statusReason: true,
+        suspendedUntil: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      avatar: user.avatar,
-      daily_download_limit: user.dailyDownloadLimit,
-      created_at: user.createdAt?.toISOString() || "",
-      updated_at: user.updatedAt?.toISOString() || "",
-    };
+    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
+    return formatSafeUser(user, downloadStats);
   }
 
   static async update(
@@ -347,23 +406,16 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        status: true,
+        statusReason: true,
+        suspendedUntil: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      avatar: user.avatar,
-      daily_download_limit: user.dailyDownloadLimit,
-      created_at: user.createdAt?.toISOString() || "",
-      updated_at: user.updatedAt?.toISOString() || "",
-    };
+    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
+    return formatSafeUser(user, downloadStats);
   }
 
   static async delete(id: string): Promise<void> {
@@ -439,22 +491,80 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        status: true,
+        statusReason: true,
+        suspendedUntil: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      avatar: user.avatar,
-      daily_download_limit: user.dailyDownloadLimit,
-      created_at: user.createdAt?.toISOString() || "",
-      updated_at: user.updatedAt?.toISOString() || "",
-    };
+    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
+    return formatSafeUser(user, downloadStats);
+  }
+
+  static async updateStatus(
+    id: string,
+    request: UpdateUserStatusRequest
+  ): Promise<SafeUser> {
+    const existingUser = await prisma.user.findFirst({
+      where: { id },
+    });
+
+    if (!existingUser) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    const requestData = validate(UserValidation.UPDATE_STATUS, request);
+
+    let suspendedUntil: Date | null = null;
+    if (
+      requestData.status === "suspended" &&
+      requestData.suspended_until &&
+      requestData.suspended_until.trim().length > 0
+    ) {
+      suspendedUntil = new Date(requestData.suspended_until);
+      if (Number.isNaN(suspendedUntil.getTime())) {
+        throw new ResponseError(400, "Tanggal penangguhan tidak valid");
+      }
+    }
+
+    let statusReason: string | null = null;
+    if (
+      requestData.status !== "active" &&
+      requestData.status_reason &&
+      requestData.status_reason.trim().length > 0
+    ) {
+      statusReason = requestData.status_reason.trim();
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        status: requestData.status,
+        statusReason,
+        suspendedUntil:
+          requestData.status === "suspended" ? suspendedUntil : null,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        role: true,
+        phone: true,
+        avatar: true,
+        dailyDownloadLimit: true,
+        status: true,
+        statusReason: true,
+        suspendedUntil: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
+    return formatSafeUser(user, downloadStats);
   }
 }

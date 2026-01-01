@@ -31,6 +31,13 @@ export interface Pagination {
   total_pages?: number;
 }
 
+export interface DownloadStats {
+  daily_limit?: number;
+  today_count?: number;
+  remaining?: number;
+  total_count?: number;
+}
+
 export interface User {
   id?: string;
   name?: string;
@@ -41,6 +48,7 @@ export interface User {
   avatar?: string | null;
   created_at?: string;
   updated_at?: string;
+  download_stats?: DownloadStats;
 }
 
 export interface RegisterRequest {
@@ -463,6 +471,10 @@ export interface UserResponse {
 
 export interface AuthUserResponse {
   data?: User;
+}
+
+export interface DownloadStatsResponse {
+  data?: DownloadStats;
 }
 
 export type BlogStatus = "draft" | "published" | "archived";

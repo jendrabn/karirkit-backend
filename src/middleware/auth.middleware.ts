@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import env from "../config/env.config";
 import { prisma } from "../config/prisma.config";
+import { ensureAccountIsActive } from "../utils/account-status.util";
+import { toSafeUser } from "../utils/user.util";
 import { ResponseError } from "../utils/response-error.util";
 
 const extractToken = (req: Request): string | null => {
@@ -17,11 +19,6 @@ const extractToken = (req: Request): string | null => {
   }
 
   return null;
-};
-
-const toSafeUser = <T extends { password?: string }>(user: T) => {
-  const { password: _password, ...safeUser } = user;
-  return safeUser;
 };
 
 export const authMiddleware = async (
@@ -55,6 +52,8 @@ export const authMiddleware = async (
     if (!user) {
       throw new ResponseError(401, "Unauthenticated");
     }
+
+    ensureAccountIsActive(user);
 
     req.user = toSafeUser(user);
     req.authToken = token;

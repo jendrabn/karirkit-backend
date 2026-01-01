@@ -18,6 +18,12 @@ enum UserRole {
   user
 }
 
+enum UserStatus {
+  active
+  suspended
+  banned
+}
+
 enum ProjectType {
   work
   freelance
@@ -155,6 +161,9 @@ model User {
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamp(0)
   dailyDownloadLimit Int       @default(10) @map("daily_download_limit") @db.Int
+  status             UserStatus @default(active)
+  statusReason       String?    @map("status_reason") @db.Text
+  suspendedUntil     DateTime?  @map("suspended_until") @db.Timestamp(0)
 
   cvs                Cv[]
   downloadLogs       DownloadLog[]

@@ -1615,6 +1615,36 @@ paths:
           $ref: "#/components/responses/NotFound"
         "400":
           $ref: "#/components/responses/ValidationError"
+  /admin/users/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Update user status (ban or suspend)
+      description: Change a user's account status, optionally adding a reason or suspension expiry
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserStatusRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -3654,11 +3684,25 @@ components:
         email_verified_at:
           type: string
           format: date-time
-          nullable: true
+        download_stats:
+          $ref: "#/components/schemas/DownloadStats"
         daily_download_limit:
           type: integer
           default: 10
           description: Daily download limit for CVs and Application Letters
+        status:
+          type: string
+          enum: [active, suspended, banned]
+          default: active
+        status_reason:
+          type: string
+          nullable: true
+          description: Optional reason provided by admin
+        suspended_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Suspension expiry timestamp (if applicable)
     RegisterRequest:
       type: object
       properties:
@@ -4865,6 +4909,23 @@ components:
           nullable: true
         daily_download_limit:
           type: integer
+    AdminUpdateUserStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, suspended, banned]
+          description: Desired account status
+        status_reason:
+          type: string
+          nullable: true
+          description: Optional reason explaining the action
+        suspended_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Suspension expiry timestamp (UTC)
+      required: [status]
     AdminUserListResponse:
       type: object
       properties:
@@ -5620,15 +5681,19 @@ components:
           minimum: 0
           maximum: 1000
       required: [daily_download_limit]
+    DownloadStats:
+      type: object
+      properties:
+        daily_limit:
+          type: integer
+        today_count:
+          type: integer
+        remaining:
+          type: integer
+        total_count:
+          type: integer
     DownloadStatsResponse:
       type: object
       properties:
         data:
-          type: object
-          properties:
-            daily_limit:
-              type: integer
-            today_count:
-              type: integer
-            remaining:
-              type: integer
+          $ref: "#/components/schemas/DownloadStats"

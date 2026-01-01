@@ -247,6 +247,12 @@ router.patch(
   adminMiddleware,
   UserController.updateDownloadLimit
 );
+router.patch(
+  "/admin/users/:id/status",
+  authMiddleware,
+  adminMiddleware,
+  UserController.updateStatus
+);
 router.delete(
   "/admin/users/:id",
   authMiddleware,
