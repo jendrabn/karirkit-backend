@@ -16,6 +16,8 @@ import createReport from "docx-templates";
 import type { Cv as CvResponse, Pagination } from "../types/api-schemas";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
+import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
+import env from "../config/env.config";
 import dayjs from "dayjs";
 import "dayjs/locale/id";
 import {
@@ -533,16 +535,33 @@ export class CvService {
     format?: string
   ): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
     const normalized = (format ?? "docx").toLowerCase();
-    if (normalized !== "docx") {
-      throw new ResponseError(400, "Hanya unduhan DOCX yang didukung saat ini");
+    const cv = await CvService.findOwnedCv(userId, id);
+    const docxBuffer = await CvService.renderDocx(cv);
+    const baseName = CvService.buildFileName(cv);
+
+    if (normalized === "pdf") {
+      if (!env.pdfDownloadEnabled) {
+        throw new ResponseError(
+          503,
+          "Fitur unduh PDF sedang dinonaktifkan. Silakan unduh dalam format DOCX."
+        );
+      }
+      const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
+      return {
+        buffer: pdfBuffer,
+        fileName: `${baseName}.pdf`,
+        mimeType: "application/pdf",
+      };
     }
 
-    const cv = await CvService.findOwnedCv(userId, id);
-    const buffer = await CvService.renderDocx(cv);
-    const fileName = `${CvService.buildFileName(cv)}.docx`;
+    if (normalized !== "docx") {
+      throw new ResponseError(400, "Format unduhan tidak didukung");
+    }
+
+    const fileName = `${baseName}.docx`;
 
     return {
-      buffer,
+      buffer: docxBuffer,
       fileName,
       mimeType:
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

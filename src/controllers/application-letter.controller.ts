@@ -77,10 +77,16 @@ export class ApplicationLetterController {
 
   static async download(req: Request, res: Response, next: NextFunction) {
     try {
+      const rawFormat = Array.isArray(req.query.format)
+        ? req.query.format[0]
+        : req.query.format;
+      const format = typeof rawFormat === "string" ? rawFormat : undefined;
+
       await DownloadLogService.checkDownloadLimit(req.user!.id);
-      const document = await ApplicationLetterService.generateDocx(
+      const document = await ApplicationLetterService.download(
         req.user!.id,
-        req.params.id
+        req.params.id,
+        format
       );
 
       await DownloadLogService.logDownload(

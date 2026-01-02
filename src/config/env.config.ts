@@ -124,6 +124,8 @@ const env = {
     process.env.GHOSTSCRIPT_JPEG_QUALITY,
     60
   ),
+  libreOfficeCommand: process.env.LIBREOFFICE_COMMAND ?? "soffice",
+  pdfDownloadEnabled: process.env.PDF_DOWNLOAD_ENABLED !== "false",
 };
 
 export default env;

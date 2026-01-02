@@ -19,6 +19,8 @@ import {
   type MassDeleteInput,
 } from "../validations/application-letter.validation";
 import { ResponseError } from "../utils/response-error.util";
+import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
+import env from "../config/env.config";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -287,17 +289,40 @@ export class ApplicationLetterService {
     return ApplicationLetterService.toResponse(duplicate);
   }
 
-  static async generateDocx(
+  static async download(
     userId: string,
-    id: string
+    id: string,
+    format?: string
   ): Promise<GeneratedDocument> {
+    const normalized = (format ?? "docx").toLowerCase();
     const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
-    const buffer = await ApplicationLetterService.renderDocx(letter);
+    const docxBuffer = await ApplicationLetterService.renderDocx(letter);
+    const baseName = ApplicationLetterService.buildFileName(letter);
+
+    if (normalized === "pdf") {
+      if (!env.pdfDownloadEnabled) {
+        throw new ResponseError(
+          503,
+          "Fitur unduh PDF sedang dinonaktifkan. Silakan unduh dalam format DOCX."
+        );
+      }
+      const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
+      return {
+        buffer: pdfBuffer,
+        mimeType: "application/pdf",
+        fileName: `${baseName}.pdf`,
+      };
+    }
+
+    if (normalized !== "docx") {
+      throw new ResponseError(400, "Format unduhan tidak didukung");
+    }
+
     return {
-      buffer,
+      buffer: docxBuffer,
       mimeType:
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      fileName: `${ApplicationLetterService.buildFileName(letter)}.docx`,
+      fileName: `${baseName}.docx`,
     };
   }
 
