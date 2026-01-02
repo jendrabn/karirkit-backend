@@ -491,6 +491,14 @@ export interface CvOrganization {
   description?: string | null;
 }
 
+export interface CvProject {
+  name?: string;
+  description?: string | null;
+  year?: number;
+  repo_url?: string | null;
+  live_url?: string | null;
+}
+
 export interface Cv {
   id?: string;
   user_id?: string;
@@ -518,6 +526,7 @@ export interface Cv {
   awards?: CvAward[];
   social_links?: CvSocialLink[];
   organizations?: CvOrganization[];
+  projects?: CvProject[];
 }
 
 export interface CvPayload {
@@ -537,6 +546,7 @@ export interface CvPayload {
   awards?: CvAward[];
   social_links?: CvSocialLink[];
   organizations?: CvOrganization[];
+  projects?: CvProject[];
 }
 
 export interface CvResponse {

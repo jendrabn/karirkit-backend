@@ -112,6 +112,14 @@ const organizationSchema = z.object({
   description: nullableTrimmedString(2000),
 });
 
+const projectSchema = z.object({
+  name: trimmedString(),
+  description: nullableTrimmedString(2000),
+  year: yearSchema,
+  repo_url: nullableTrimmedString(2000),
+  live_url: nullableTrimmedString(2000),
+});
+
 const payloadSchema = z.object({
   name: trimmedString(),
   headline: trimmedString(),
@@ -129,6 +137,7 @@ const payloadSchema = z.object({
   awards: z.array(awardSchema).optional(),
   social_links: z.array(socialLinkSchema).optional(),
   organizations: z.array(organizationSchema).optional(),
+  projects: z.array(projectSchema).optional(),
 });
 
 const listQuerySchema = z.object({
@@ -165,4 +174,5 @@ export type CvSkillPayloadInput = z.infer<typeof skillSchema>;
 export type CvAwardPayloadInput = z.infer<typeof awardSchema>;
 export type CvSocialLinkPayloadInput = z.infer<typeof socialLinkSchema>;
 export type CvOrganizationPayloadInput = z.infer<typeof organizationSchema>;
+export type CvProjectPayloadInput = z.infer<typeof projectSchema>;
 export type MassDeleteInput = z.infer<typeof CvValidation.MASS_DELETE>;

@@ -4,6 +4,7 @@ import type {
   CvCertificate as PrismaCvCertificate,
   CvEducation as PrismaCvEducation,
   CvExperience as PrismaCvExperience,
+  CvProject as PrismaCvProject,
   CvSkill as PrismaCvSkill,
   CvSocialLink as PrismaCvSocialLink,
   CvOrganization as PrismaCvOrganization,
@@ -29,6 +30,7 @@ import {
   type CvListQueryInput,
   type CvOrganizationPayloadInput,
   type CvPayloadInput,
+  type CvProjectPayloadInput,
   type CvSkillPayloadInput,
   type CvSocialLinkPayloadInput,
 } from "../validations/cv.validation";
@@ -53,6 +55,7 @@ type CvWithRelations = PrismaCv & {
   awards: PrismaCvAward[];
   socialLinks: PrismaCvSocialLink[];
   organizations: PrismaCvOrganization[];
+  projects: PrismaCvProject[];
 };
 
 type PhotoChange = {
@@ -95,6 +98,9 @@ const relationInclude = {
   },
   organizations: {
     orderBy: [{ startYear: "desc" as const }, { createdAt: "desc" as const }],
+  },
+  projects: {
+    orderBy: [{ year: "desc" as const }, { createdAt: "desc" as const }],
   },
 } satisfies Prisma.CvInclude;
 
@@ -239,6 +245,16 @@ export class CvService {
                   })),
                 }
               : undefined,
+          projects:
+            payload.projects && payload.projects.length
+              ? {
+                  create: payload.projects.map((record) => ({
+                    ...CvService.mapProjectCreate(record),
+                    createdAt: now,
+                    updatedAt: now,
+                  })),
+                }
+              : undefined,
         },
         include: relationInclude,
       });
@@ -348,6 +364,18 @@ export class CvService {
           await tx.cvOrganization.createMany({
             data: payload.organizations.map((record) => ({
               ...CvService.mapOrganizationCreate(record),
+              cvId: id,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          });
+        }
+
+        await tx.cvProject.deleteMany({ where: { cvId: id } });
+        if (payload.projects?.length) {
+          await tx.cvProject.createMany({
+            data: payload.projects.map((record) => ({
+              ...CvService.mapProjectCreate(record),
               cvId: id,
               createdAt: now,
               updatedAt: now,
@@ -522,6 +550,15 @@ export class CvService {
             description: record.description,
           })),
         },
+        projects: {
+          create: source.projects.map((record) => ({
+            name: record.name,
+            description: record.description,
+            year: record.year,
+            repoUrl: record.repoUrl,
+            liveUrl: record.liveUrl,
+          })),
+        },
       },
       include: relationInclude,
     });
@@ -680,6 +717,18 @@ export class CvService {
       endYear: record.end_year ?? null,
       isCurrent: record.is_current,
       description: record.description ?? null,
+    };
+  }
+
+  private static mapProjectCreate(
+    record: CvProjectPayloadInput
+  ): Prisma.CvProjectCreateWithoutCvInput {
+    return {
+      name: record.name,
+      description: record.description ?? null,
+      year: record.year,
+      repoUrl: record.repo_url ?? null,
+      liveUrl: record.live_url ?? null,
     };
   }
 
@@ -988,6 +1037,14 @@ export class CvService {
         description: record.description,
         description_points: CvService.splitDescriptionLines(record.description),
       })),
+      projects: cv.projects.map((record) => ({
+        name: record.name,
+        description: record.description,
+        year: record.year,
+        repo_url: record.repoUrl,
+        live_url: record.liveUrl,
+        description_points: CvService.splitDescriptionLines(record.description),
+      })),
     };
   }
 
@@ -1291,6 +1348,15 @@ export class CvService {
         end_year: record.endYear ?? null,
         is_current: record.isCurrent,
         description: record.description ?? null,
+      })),
+      projects: cv.projects.map((record) => ({
+        id: record.id,
+        cv_id: record.cvId,
+        name: record.name,
+        description: record.description ?? null,
+        year: record.year,
+        repo_url: record.repoUrl ?? null,
+        live_url: record.liveUrl ?? null,
       })),
     };
   }

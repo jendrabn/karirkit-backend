@@ -30,6 +30,7 @@ async function main() {
   await prisma.portfolioMedia.deleteMany();
   await prisma.portfolio.deleteMany();
   await prisma.cvOrganization.deleteMany();
+  await prisma.cvProject.deleteMany();
   await prisma.cvSocialLink.deleteMany();
   await prisma.cvAward.deleteMany();
   await prisma.cvSkill.deleteMany();
@@ -695,6 +696,49 @@ async function main() {
         startYear: 2018,
         isCurrent: true,
         description: "Active member of PMI local chapter",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+  ]);
+
+  // Create CV Projects
+  await Promise.all([
+    prisma.cvProject.create({
+      data: {
+        cvId: cvs[0].id,
+        name: "Analytics Dashboard",
+        description:
+          "Built a real-time analytics dashboard for operations.\nImplemented role-based access and drill-down reports.",
+        year: 2022,
+        repoUrl: "https://github.com/johndoe/analytics-dashboard",
+        liveUrl: "https://analytics.example.com",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.cvProject.create({
+      data: {
+        cvId: cvs[1].id,
+        name: "Design System Revamp",
+        description:
+          "Created a scalable design system for web and mobile.\nStandardized components and typography guidelines.",
+        year: 2023,
+        repoUrl: "https://github.com/janesmith/design-system",
+        liveUrl: "https://designsystem.example.com",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.cvProject.create({
+      data: {
+        cvId: cvs[2].id,
+        name: "PMO Reporting Suite",
+        description:
+          "Launched KPI reporting suite for executive stakeholders.\nAutomated monthly reporting pipeline.",
+        year: 2021,
+        repoUrl: "https://github.com/adminuser/pmo-reporting",
+        liveUrl: "https://reports.example.com",
         createdAt: new Date(),
         updatedAt: new Date(),
       },

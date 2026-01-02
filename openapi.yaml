@@ -4705,6 +4705,14 @@ components:
         end_year: { type: integer, nullable: true }
         is_current: { type: boolean }
         description: { type: string, nullable: true }
+    CvProject:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        year: { type: integer }
+        repo_url: { type: string, nullable: true }
+        live_url: { type: string, nullable: true }
     Cv:
       type: object
       properties:
@@ -4757,6 +4765,9 @@ components:
         organizations:
           type: array
           items: { $ref: "#/components/schemas/CvOrganization" }
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/CvProject" }
     CvPayload:
       type: object
       properties:
@@ -4796,6 +4807,9 @@ components:
         organizations:
           type: array
           items: { $ref: "#/components/schemas/CvOrganization" }
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/CvProject" }
       required: [name, headline, email, phone, address, about, template_id]
     CvResponse:
       type: object
