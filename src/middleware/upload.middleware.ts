@@ -1,10 +1,11 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction, Express } from "express";
 import multer, { MulterError } from "multer";
 import { ResponseError } from "../utils/response-error.util";
 
 const MAX_TEMP_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_BLOG_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_DOCUMENT_UPLOAD_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_DOCUMENT_UPLOAD_COUNT = 20;
 const documentMimeTypes = new Set([
   "application/pdf",
   "application/msword",
@@ -57,7 +58,7 @@ const documentUpload = multer({
     }
     cb(new ResponseError(400, "File must be an image or document"));
   },
-}).single("file");
+}).any();
 
 const createUploadMiddleware = (
   uploadFn: (req: Request, res: Response, cb: (err?: unknown) => void) => void,
@@ -115,6 +116,30 @@ export const handleBlogUpload = createUploadMiddleware(
 );
 
 export const handleDocumentUpload = createUploadMiddleware(
-  documentUpload,
+  (req, res, cb) => {
+    documentUpload(req, res, (err?: unknown) => {
+      if (err) {
+        cb(err);
+        return;
+      }
+
+      const files = req.files;
+      let totalFiles = 0;
+      if (Array.isArray(files)) {
+        totalFiles = files.length;
+      } else if (files && typeof files === "object") {
+        totalFiles = Object.values(
+          files as Record<string, Express.Multer.File[]>
+        ).reduce((sum, arr) => sum + (arr?.length ?? 0), 0);
+      }
+
+      if (totalFiles > MAX_DOCUMENT_UPLOAD_COUNT) {
+        cb(new ResponseError(400, "Maksimal 20 file per unggahan"));
+        return;
+      }
+
+      cb();
+    });
+  },
   "File size must be less than or equal to 25 MB"
 );

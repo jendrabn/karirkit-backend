@@ -151,17 +151,13 @@ export class UploadService {
           finalMimeType = "image/webp";
           extension = ".webp";
         } else if (
-          (normalizedMime === "image/jpeg" ||
-            normalizedMime === "image/jpg") &&
+          (normalizedMime === "image/jpeg" || normalizedMime === "image/jpg") &&
           quality !== undefined
         ) {
           processedBuffer = await sharp(file.buffer)
             .jpeg({ quality })
             .toBuffer();
-        } else if (
-          normalizedMime === "image/png" &&
-          quality !== undefined
-        ) {
+        } else if (normalizedMime === "image/png" && quality !== undefined) {
           const pngQuality = Math.min(100, Math.max(1, quality));
           processedBuffer = await sharp(file.buffer)
             .png({ quality: pngQuality })

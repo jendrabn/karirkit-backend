@@ -1282,12 +1282,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Documents]
-      summary: Upload a document
-      description: >
-        Upload documents (PDF, Word, Excel, and similar files) or images for
-        job applications. Maximum file size is 25 MB. Optional compression
-        levels are supported for images today via Sharp; other formats are
-        preserved as provided.
+      summary: Upload documents
+      description: |
+        Upload satu atau banyak dokumen (PDF, Word, Excel, dan sejenisnya) atau gambar.
+        - Maksimal size per file: 25 MB.
+        - Kompresi gambar (jpeg/png) mengikuti level `compression`.
+        - Kompresi PDF memakai Ghostscript jika diaktifkan (`PDF_COMPRESSION_ENABLED=true`).
+        - Jika mengunggah banyak file:
+            * `merge=true` → semua file (PDF/gambar) digabung jadi satu PDF.
+            * `merge=false` (default) → tiap file disimpan sebagai dokumen terpisah dan respons berisi array dokumen.
       security:
         - sessionCookie: []
       parameters:
@@ -1296,7 +1299,15 @@ paths:
           schema:
             type: string
             enum: [auto, light, medium, strong]
-          description: Optional compression level (applies to images only at the moment).
+          description: Optional compression level (gambar memakai Sharp; PDF memakai Ghostscript jika diaktifkan).
+        - name: merge
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: >
+            true untuk menggabungkan banyak file menjadi satu PDF; false (default)
+            untuk menyimpan tiap file sebagai dokumen terpisah.
       requestBody:
         required: true
         content:
@@ -1305,11 +1316,13 @@ paths:
               $ref: "#/components/schemas/DocumentUploadRequest"
       responses:
         "201":
-          description: Document created
+          description: Dokumen berhasil diunggah (objek tunggal atau array bila multi-file tanpa merge)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentResponse"
+                oneOf:
+                  - $ref: "#/components/schemas/DocumentResponse"
+                  - $ref: "#/components/schemas/DocumentBatchResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -4371,6 +4384,13 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/Document"
+    DocumentBatchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Document"
     DocumentListResponse:
       type: object
       properties:
@@ -4388,10 +4408,25 @@ components:
       properties:
         type:
           $ref: "#/components/schemas/DocumentType"
+        name:
+          type: string
+          description: |
+            Opsional. Nama dokumen yang diinginkan.
+            - Untuk unggah tunggal: menimpa nama asli.
+            - Untuk merge banyak file: menjadi nama output PDF (jika tanpa ekstensi, otomatis ditambah .pdf).
         file:
           type: string
           format: binary
-      required: [type, file]
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Kirim banyak file dengan field `files[]`.
+      description: Wajib salah satu `file` atau `files` berisi minimal satu item.
+      anyOf:
+        - required: [type, file]
+        - required: [type, files]
     DocumentMassDeleteRequest:
       type: object
       properties:

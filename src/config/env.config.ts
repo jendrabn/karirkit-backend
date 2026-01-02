@@ -112,6 +112,18 @@ const env = {
     expiresInSeconds: parseNumber(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
     resendCooldownInSeconds: parseNumber(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
   },
+  ghostscriptCommand: process.env.GHOSTSCRIPT_COMMAND ?? "gs",
+  pdfCompressionEnabled: process.env.PDF_COMPRESSION_ENABLED === "true",
+  ghostscriptPdfSettings:
+    process.env.GHOSTSCRIPT_PDFSETTINGS ?? "/screen",
+  ghostscriptColorResolution: parseNumber(
+    process.env.GHOSTSCRIPT_COLOR_RESOLUTION,
+    96
+  ),
+  ghostscriptJpegQuality: parseNumber(
+    process.env.GHOSTSCRIPT_JPEG_QUALITY,
+    60
+  ),
 };
 
 export default env;

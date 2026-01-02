@@ -22,22 +22,51 @@ export class DocumentController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      if (!req.file) {
+      const filesFromMulter =
+        (req.files as Express.Multer.File[]) ||
+        ((req.files as Record<string, Express.Multer.File[]>)?.files ?? []);
+      const singleFile =
+        (req.file as Express.Multer.File | undefined) ||
+        ((req.files as Record<string, Express.Multer.File[]>)?.file?.[0] ??
+          undefined);
+      const files: Express.Multer.File[] = [];
+      if (Array.isArray(filesFromMulter)) {
+        files.push(...filesFromMulter);
+      }
+      if (singleFile) {
+        files.push(singleFile);
+      }
+      if (files.length === 0) {
         throw new ResponseError(400, "File diperlukan");
       }
 
       const compression = DocumentController.parseCompression(
         req.query.compression
       );
+      const merge = DocumentController.parseMergeFlag(req.query.merge);
 
-      const document = await DocumentService.create(
-        req.user!.id,
-        req.body,
-        req.file,
-        compression
-      );
+      const document = await (merge && files.length > 1
+        ? DocumentService.createMerged(
+            req.user!.id,
+            req.body,
+            files,
+            compression
+          )
+        : files.length > 1
+        ? DocumentService.createMany(
+            req.user!.id,
+            req.body,
+            files,
+            compression
+          )
+        : DocumentService.create(
+            req.user!.id,
+            req.body,
+            files[0],
+            compression
+          ));
 
-      sendSuccess(res, document, 201);
+      sendSuccess(res, document as any, 201);
     } catch (error) {
       next(error);
     }
@@ -108,6 +137,31 @@ export class DocumentController {
     }
 
     return normalized as DocumentCompressionLevel;
+  }
+
+  private static parseMergeFlag(value: unknown): boolean {
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw === "boolean") {
+      return raw;
+    }
+
+    if (typeof raw !== "string") {
+      throw new ResponseError(400, "Opsi merge tidak valid");
+    }
+
+    const normalized = raw.trim().toLowerCase();
+    if (["1", "true", "yes"].includes(normalized)) {
+      return true;
+    }
+    if (["0", "false", "no", ""].includes(normalized)) {
+      return false;
+    }
+
+    throw new ResponseError(400, "Opsi merge tidak dikenal");
   }
 
   private static buildContentDisposition(fileName: string): string {

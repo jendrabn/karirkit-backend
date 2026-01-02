@@ -19,6 +19,12 @@ const paginationSchema = z.object({
 
 const uploadSchema = z.object({
   type: z.nativeEnum(DocumentType),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Nama minimal 1 karakter")
+    .max(255, "Nama maksimal 255 karakter")
+    .optional(),
 });
 
 const massDeleteSchema = z.object({
