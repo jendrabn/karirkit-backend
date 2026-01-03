@@ -1,20 +1,60 @@
 import z from "zod";
+import { Gender, Platform } from "../generated/prisma/client";
+
+const trimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(1, "Field ini wajib diisi")
+    .max(max, `Maksimal ${max} karakter`);
+
+const optionalTrimmedString = (min = 1, max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(min, `Minimal ${min} karakter`)
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .optional();
+
+const nullableTrimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .nullable()
+    .optional();
+
+const nullableDateString = () =>
+  z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || !Number.isNaN(Date.parse(value)),
+      "Format tanggal tidak valid"
+    )
+    .or(z.literal(""))
+    .nullable()
+    .optional();
+
+const genderSchema = z
+  .nativeEnum(Gender)
+  .or(z.literal(""))
+  .nullable()
+  .optional();
+
+const socialLinkSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  platform: z.nativeEnum(Platform),
+  url: trimmedString(500).url("Format URL tidak valid"),
+});
 
 export class AccountValidation {
   static readonly UPDATE_ME = z
     .object({
-      name: z
-        .string()
-        .min(3, "Nama minimal 3 karakter")
-        .max(100, "Nama maksimal 100 karakter")
-        .or(z.literal(""))
-        .optional(),
-      username: z
-        .string()
-        .min(3, "Username minimal 3 karakter")
-        .max(100, "Username maksimal 100 karakter")
-        .or(z.literal(""))
-        .optional(),
+      name: optionalTrimmedString(3, 100),
+      username: optionalTrimmedString(3, 100),
       email: z
         .string()
         .email("Format email tidak valid")
@@ -28,13 +68,13 @@ export class AccountValidation {
         .or(z.literal(""))
         .nullable()
         .optional(),
-      avatar: z
-        .string()
-        .min(1, "Avatar minimal 1 karakter")
-        .max(255, "Avatar maksimal 255 karakter")
-        .or(z.literal(""))
-        .nullable()
-        .optional(),
+      headline: nullableTrimmedString(255),
+      bio: nullableTrimmedString(5000),
+      location: nullableTrimmedString(255),
+      gender: genderSchema,
+      birth_date: nullableDateString(),
+      social_links: z.array(socialLinkSchema).optional(),
+      avatar: nullableTrimmedString(255),
     })
     .refine(
       (data) => Object.values(data).some((value) => value !== undefined),

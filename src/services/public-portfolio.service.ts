@@ -19,6 +19,14 @@ type PublicUserProfile = {
   username: string;
   avatar: string | null;
   headline: string | null;
+  bio: string | null;
+  location: string | null;
+  social_links: {
+    id: string;
+    user_id: string;
+    platform: string;
+    url: string;
+  }[];
 };
 
 const publicPortfolioInclude = {
@@ -81,24 +89,31 @@ export class PublicPortfolioService {
       where: {
         username,
       },
+      include: {
+        socialLinks: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        },
+      },
     });
 
     if (!user) {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
-    const latestCv = await prisma.cv.findFirst({
-      where: { userId: user.id },
-      orderBy: [{ updatedAt: "desc" as const }, { createdAt: "desc" as const }],
-      select: { headline: true },
-    });
-
     const profile: PublicUserProfile = {
       id: user.id,
       name: user.name,
       username: user.username,
       avatar: user.avatar ?? null,
-      headline: latestCv?.headline ?? null,
+      headline: user.headline ?? null,
+      bio: user.bio ?? null,
+      location: user.location ?? null,
+      social_links: user.socialLinks.map((record) => ({
+        id: record.id,
+        user_id: record.userId,
+        platform: record.platform,
+        url: record.url,
+      })),
     };
 
     return { user: profile, userId: user.id };

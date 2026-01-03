@@ -4058,6 +4058,57 @@ components:
     WorkSystem:
       type: string
       enum: [onsite, hybrid, remote]
+    Platform:
+      type: string
+      enum:
+        # Profesional & portofolio umum
+        - linkedin
+        - website
+        - blog
+        - portfolio
+        # Developer
+        - github
+        - gitlab
+        - bitbucket
+        - stackoverflow
+        - devto
+        - hashnode
+        - medium
+        # Coding challenge
+        - leetcode
+        - hackerrank
+        - codewars
+        - topcoder
+        # Data/AI
+        - kaggle
+        # Desain & kreatif
+        - behance
+        - dribbble
+        - figma
+        - adobe_portfolio
+        - artstation
+        # Video / konten
+        - youtube
+        - vimeo
+        - tiktok
+        - twitch
+        # Sosial
+        - x
+        - instagram
+        - facebook
+        - threads
+        # Komunitas & komunikasi
+        - discord
+        - telegram
+        - whatsapp
+        - line
+        - wechat
+        - skype
+        # Akademik (opsional tapi bagus)
+        - google_scholar
+        - orcid
+        - researchgate
+        - arxiv
     Application:
       type: object
       properties:
@@ -4763,56 +4814,7 @@ components:
       type: object
       properties:
         platform:
-          type: string
-          enum:
-            # Profesional & portofolio umum
-            - linkedin
-            - website
-            - blog
-            - portfolio
-            # Developer
-            - github
-            - gitlab
-            - bitbucket
-            - stackoverflow
-            - devto
-            - hashnode
-            - medium
-            # Coding challenge
-            - leetcode
-            - hackerrank
-            - codewars
-            - topcoder
-            # Data/AI
-            - kaggle
-            # Desain & kreatif
-            - behance
-            - dribbble
-            - figma
-            - adobe_portfolio
-            - artstation
-            # Video / konten
-            - youtube
-            - vimeo
-            - tiktok
-            - twitch
-            # Sosial
-            - x
-            - instagram
-            - facebook
-            - threads
-            # Komunitas & komunikasi
-            - discord
-            - telegram
-            - whatsapp
-            - line
-            - wechat
-            - skype
-            # Akademik (opsional tapi bagus)
-            - google_scholar
-            - orcid
-            - researchgate
-            - arxiv
+          $ref: "#/components/schemas/Platform"
         url: { type: string }
     CvOrganization:
       type: object

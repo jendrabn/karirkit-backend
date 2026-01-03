@@ -3,6 +3,7 @@ import { AccountService } from "../services/account.service";
 import { UploadService } from "../services/upload.service";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { sendSuccess } from "../utils/response-builder.util";
+import { ResponseError } from "../utils/response-error.util";
 
 export class AccountController {
   static async me(req: Request, res: Response, next: NextFunction) {
@@ -27,6 +28,13 @@ export class AccountController {
 
       // Prepare payload with avatar path if uploaded
       const payload = { ...req.body } as UpdateMeRequest;
+      if (typeof payload.social_links === "string") {
+        try {
+          payload.social_links = JSON.parse(payload.social_links);
+        } catch (error) {
+          throw new ResponseError(400, "Format social_links tidak valid");
+        }
+      }
       if (avatarPath) {
         payload.avatar = avatarPath;
       }

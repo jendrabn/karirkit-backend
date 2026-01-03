@@ -5,6 +5,7 @@ import {
   SkillLevel,
   OrganizationType,
   Language,
+  Platform,
 } from "../generated/prisma/client";
 
 const trimmedString = (max = 255) =>
@@ -95,7 +96,7 @@ const awardSchema = z.object({
 });
 
 const socialLinkSchema = z.object({
-  platform: trimmedString(),
+  platform: z.nativeEnum(Platform),
   url: trimmedString(2000),
 });
 

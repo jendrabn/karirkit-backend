@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { Platform, PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcrypt";
 import provinces from "../src/data/provinces.json";
 import cities from "../src/data/cities.json";
@@ -615,7 +615,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[0].id,
-        platform: "linkedin",
+        platform: Platform.linkedin,
         url: "https://linkedin.com/in/johndoe",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -624,7 +624,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[0].id,
-        platform: "github",
+        platform: Platform.github,
         url: "https://github.com/johndoe",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -633,7 +633,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[1].id,
-        platform: "linkedin",
+        platform: Platform.linkedin,
         url: "https://linkedin.com/in/janesmith",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -642,7 +642,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[1].id,
-        platform: "dribbble",
+        platform: Platform.dribbble,
         url: "https://dribbble.com/janesmith",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -651,7 +651,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[2].id,
-        platform: "linkedin",
+        platform: Platform.linkedin,
         url: "https://linkedin.com/in/adminuser",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -660,7 +660,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[2].id,
-        platform: "x",
+        platform: Platform.x,
         url: "https://twitter.com/adminuser",
         createdAt: new Date(),
         updatedAt: new Date(),

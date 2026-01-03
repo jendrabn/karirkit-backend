@@ -50,14 +50,24 @@ export interface User {
   username?: string;
   email?: string;
   phone?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  gender?: "male" | "female" | null;
+  birth_date?: string | null;
   role?: "user" | "admin";
   avatar?: string | null;
   created_at?: string;
   updated_at?: string;
+  email_verified_at?: string | null;
   download_stats?: DownloadStats;
   daily_download_limit?: number;
   document_storage_limit?: number;
   document_storage_stats?: DocumentStorageStats;
+  social_links?: UserSocialLink[];
+  status?: "active" | "suspended" | "banned";
+  status_reason?: string | null;
+  suspended_until?: string | null;
 }
 
 export interface RegisterRequest {
@@ -83,6 +93,23 @@ export interface UpdateMeRequest {
   email?: string;
   phone?: string | null;
   avatar?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  gender?: "male" | "female" | null;
+  birth_date?: string | null;
+  social_links?: {
+    id?: string | null;
+    platform: string;
+    url: string;
+  }[];
+}
+
+export interface UserSocialLink {
+  id?: string;
+  user_id?: string;
+  platform?: string;
+  url?: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -398,6 +425,9 @@ export interface PublicPortfolioResponse {
       username?: string;
       avatar?: string | null;
       headline?: string | null;
+      bio?: string | null;
+      location?: string | null;
+      social_links?: UserSocialLink[];
     };
     portfolios?: Portfolio[];
   };
@@ -411,6 +441,9 @@ export interface PublicPortfolioDetailResponse {
       username?: string;
       avatar?: string | null;
       headline?: string | null;
+      bio?: string | null;
+      location?: string | null;
+      social_links?: UserSocialLink[];
     };
     portfolio?: Portfolio;
   };
