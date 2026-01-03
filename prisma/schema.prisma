@@ -80,6 +80,65 @@ enum MaritalStatus {
   widowed
 }
 
+enum Platform {
+  // Profesional & portofolio umum
+  linkedin
+  website
+  blog
+  portfolio
+
+  // Developer
+  github
+  gitlab
+  bitbucket
+  stackoverflow
+  devto
+  hashnode
+  medium
+
+  // Coding challenge
+  leetcode
+  hackerrank
+  codewars
+  topcoder
+
+  // Data/AI
+  kaggle
+
+  // Desain & kreatif
+  behance
+  dribbble
+  figma
+  adobe_portfolio
+  artstation
+
+  // Video / konten
+  youtube
+  vimeo
+  tiktok
+  twitch
+
+  // Sosial
+  x
+  instagram
+  facebook
+  threads
+
+  // Komunitas & komunikasi
+  discord
+  telegram
+  whatsapp
+  line
+  wechat
+  skype
+
+  // Akademik (opsional tapi bagus)
+  google_scholar
+  orcid
+  researchgate
+  arxiv
+}
+
 enum Degree {
   middle_school
   high_school
@@ -211,23 +270,28 @@ enum DocumentType {
 }
 
 model User {
-  id                 String    @id @default(uuid()) @db.VarChar(255)
-  name               String    @db.VarChar(255)
-  username           String    @unique @db.VarChar(255)
-  email              String    @unique @db.VarChar(255)
-  password           String    @db.VarChar(255)
-  role               UserRole  @default(user)
-  phone              String?   @db.VarChar(255)
-  googleId           String?   @map("google_id") @db.VarChar(255)
-  avatar             String?   @db.VarChar(255)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
-  emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamp(0)
-  dailyDownloadLimit Int       @default(10) @map("daily_download_limit") @db.Int
-  documentStorageLimit Int     @default(104857600) @map("document_storage_limit") @db.Int
-  status             UserStatus @default(active)
-  statusReason       String?    @map("status_reason") @db.Text
-  suspendedUntil     DateTime?  @map("suspended_until") @db.Timestamp(0)
+  id                   String     @id @default(uuid()) @db.VarChar(255)
+  name                 String     @db.VarChar(255)
+  username             String     @unique @db.VarChar(255)
+  email                String     @unique @db.VarChar(255)
+  password             String     @db.VarChar(255)
+  role                 UserRole   @default(user)
+  phone                String?    @db.VarChar(255)
+  headline             String?    @db.VarChar(255)
+  bio                  String?    @db.Text
+  location             String?    @db.VarChar(255)
+  gender               Gender?
+  birthDate            DateTime?  @map("birth_date") @db.Date
+  googleId             String?    @map("google_id") @db.VarChar(255)
+  avatar               String?    @db.VarChar(255)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+  emailVerifiedAt      DateTime?  @map("email_verified_at") @db.Timestamp(0)
+  dailyDownloadLimit   Int        @default(10) @map("daily_download_limit") @db.Int
+  documentStorageLimit Int        @default(104857600) @map("document_storage_limit") @db.Int
+  status               UserStatus @default(active)
+  statusReason         String?    @map("status_reason") @db.Text
+  suspendedUntil       DateTime?  @map("suspended_until") @db.Timestamp(0)
 
   cvs                Cv[]
   downloadLogs       DownloadLog[]
@@ -237,6 +301,7 @@ model User {
   applicationLetters ApplicationLetter[]
   blogs              Blog[]
   otps               Otp[]
+  socialLinks        UserSocialLink[]
 
   @@map("users")
 }
@@ -466,7 +531,7 @@ model CvAward {
 model CvSocialLink {
   id        String   @id @default(uuid()) @db.VarChar(255)
   cvId      String   @map("cv_id") @db.VarChar(255)
-  platform  String   @db.VarChar(255)
+  platform  Platform
   url       String   @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
@@ -780,4 +845,19 @@ model Document {
 
   @@index([userId], map: "idx_documents_user_id")
   @@map("documents")
+}
+
+model UserSocialLink {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  userId    String   @map("user_id") @db.VarChar(255)
+  platform  Platform
+  url       String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_user_social_links_user_id")
+  @@index([platform], map: "idx_user_social_links_platform")
+  @@map("user_social_links")
 }

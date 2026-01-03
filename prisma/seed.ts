@@ -59,6 +59,11 @@ async function main() {
         password: hashedPassword,
         role: "user",
         phone: "+1234567890",
+        headline: "Full Stack Developer & Tech Enthusiast",
+        bio: "Passionate full stack developer with expertise in React, Node.js, and cloud technologies. Love building scalable applications and solving complex problems.",
+        location: "San Francisco, CA",
+        gender: "male",
+        birthDate: new Date("1990-05-15"),
         avatar:
           "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
@@ -73,6 +78,11 @@ async function main() {
         password: hashedPassword,
         role: "user",
         phone: "+1234567891",
+        headline: "Senior UI/UX Designer & Creative Director",
+        bio: "Creative designer with a passion for creating beautiful and functional user experiences. Specialized in mobile and web design.",
+        location: "New York, NY",
+        gender: "female",
+        birthDate: new Date("1992-08-22"),
         avatar:
           "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
@@ -87,6 +97,11 @@ async function main() {
         password: hashedPassword,
         role: "admin",
         phone: "+1234567892",
+        headline: "System Administrator & Project Manager",
+        bio: "Experienced project manager and system administrator with a focus on scalable infrastructure and team leadership.",
+        location: "Chicago, IL",
+        gender: "male",
+        birthDate: new Date("1985-03-10"),
         avatar:
           "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
         createdAt: new Date(),
@@ -600,7 +615,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[0].id,
-        platform: "LinkedIn",
+        platform: "linkedin",
         url: "https://linkedin.com/in/johndoe",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -609,7 +624,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[0].id,
-        platform: "GitHub",
+        platform: "github",
         url: "https://github.com/johndoe",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -618,7 +633,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[1].id,
-        platform: "LinkedIn",
+        platform: "linkedin",
         url: "https://linkedin.com/in/janesmith",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -627,7 +642,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[1].id,
-        platform: "Dribbble",
+        platform: "dribbble",
         url: "https://dribbble.com/janesmith",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -636,7 +651,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[2].id,
-        platform: "LinkedIn",
+        platform: "linkedin",
         url: "https://linkedin.com/in/adminuser",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -645,7 +660,7 @@ async function main() {
     prisma.cvSocialLink.create({
       data: {
         cvId: cvs[2].id,
-        platform: "Twitter",
+        platform: "x",
         url: "https://twitter.com/adminuser",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1198,6 +1213,112 @@ async function main() {
       data: {
         blogId: blogs[2].id,
         tagId: blogTags[2].id, // Node.js
+      },
+    }),
+  ]);
+
+  // Create User Social Links
+  await Promise.all([
+    // John Doe's social links
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[0].id,
+        platform: "linkedin",
+        url: "https://linkedin.com/in/johndoe",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[0].id,
+        platform: "github",
+        url: "https://github.com/johndoe",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[0].id,
+        platform: "x",
+        url: "https://twitter.com/johndoe",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[0].id,
+        platform: "website",
+        url: "https://johndoe.dev",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    // Jane Smith's social links
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[1].id,
+        platform: "linkedin",
+        url: "https://linkedin.com/in/janesmith",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[1].id,
+        platform: "dribbble",
+        url: "https://dribbble.com/janesmith",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[1].id,
+        platform: "behance",
+        url: "https://behance.net/janesmith",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[1].id,
+        platform: "instagram",
+        url: "https://instagram.com/janesmith.design",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    // Admin User's social links
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[2].id,
+        platform: "linkedin",
+        url: "https://linkedin.com/in/adminuser",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[2].id,
+        platform: "x",
+        url: "https://twitter.com/adminuser",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }),
+    prisma.userSocialLink.create({
+      data: {
+        userId: users[2].id,
+        platform: "medium",
+        url: "https://medium.com/@adminuser",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     }),
   ]);

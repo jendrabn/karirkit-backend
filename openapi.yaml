@@ -155,7 +155,99 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateMeRequest"
+              type: object
+              properties:
+                name:
+                  type: string
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  nullable: true
+                headline:
+                  type: string
+                  nullable: true
+                bio:
+                  type: string
+                  nullable: true
+                location:
+                  type: string
+                  nullable: true
+                gender:
+                  type: string
+                  enum: [male, female]
+                  nullable: true
+                birth_date:
+                  type: string
+                  format: date
+                  nullable: true
+                social_links:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: "ID of existing social link to update, omit for new links"
+                        nullable: true
+                      platform:
+                        type: string
+                        enum:
+                          # Profesional & portofolio umum
+                          - linkedin
+                          - website
+                          - blog
+                          - portfolio
+                          # Developer
+                          - github
+                          - gitlab
+                          - bitbucket
+                          - stackoverflow
+                          - devto
+                          - hashnode
+                          - medium
+                          # Coding challenge
+                          - leetcode
+                          - hackerrank
+                          - codewars
+                          - topcoder
+                          # Data/AI
+                          - kaggle
+                          # Desain & kreatif
+                          - behance
+                          - dribbble
+                          - figma
+                          - adobe_portfolio
+                          - artstation
+                          # Video / konten
+                          - youtube
+                          - vimeo
+                          - tiktok
+                          - twitch
+                          # Sosial
+                          - x
+                          - instagram
+                          - facebook
+                          - threads
+                          # Komunitas & komunikasi
+                          - discord
+                          - telegram
+                          - whatsapp
+                          - line
+                          - wechat
+                          - skype
+                          # Akademik (opsional tapi bagus)
+                          - google_scholar
+                          - orcid
+                          - researchgate
+                          - arxiv
+                      url:
+                        type: string
+                        format: uri
+                    required: [platform, url]
           multipart/form-data:
             schema:
               type: object
@@ -3740,6 +3832,23 @@ components:
         phone:
           type: string
           nullable: true
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [male, female]
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
         role:
           type: string
           enum: [user, admin]
@@ -3767,6 +3876,10 @@ components:
           description: Total document storage limit in bytes
         document_storage_stats:
           $ref: "#/components/schemas/DocumentStorageStats"
+        social_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSocialLink"
         status:
           type: string
           enum: [active, suspended, banned]
@@ -3821,6 +3934,23 @@ components:
           format: email
         phone:
           type: string
+          nullable: true
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [male, female]
+          nullable: true
+        birth_date:
+          type: string
+          format: date
           nullable: true
         avatar:
           type: string
@@ -4525,8 +4655,14 @@ components:
                 id: { type: string }
                 name: { type: string }
                 username: { type: string }
-                avatar: { type: string, nullable: true }
                 headline: { type: string, nullable: true }
+                bio: { type: string, nullable: true }
+                location: { type: string, nullable: true }
+                avatar: { type: string, nullable: true }
+                social_links:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/UserSocialLink"
             portfolios:
               type: array
               items:
@@ -4543,8 +4679,14 @@ components:
                 id: { type: string }
                 name: { type: string }
                 username: { type: string }
-                avatar: { type: string, nullable: true }
                 headline: { type: string, nullable: true }
+                bio: { type: string, nullable: true }
+                location: { type: string, nullable: true }
+                avatar: { type: string, nullable: true }
+                social_links:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/UserSocialLink"
             portfolio:
               $ref: "#/components/schemas/Portfolio"
     CvEducation:
@@ -4620,7 +4762,57 @@ components:
     CvSocialLink:
       type: object
       properties:
-        platform: { type: string }
+        platform:
+          type: string
+          enum:
+            # Profesional & portofolio umum
+            - linkedin
+            - website
+            - blog
+            - portfolio
+            # Developer
+            - github
+            - gitlab
+            - bitbucket
+            - stackoverflow
+            - devto
+            - hashnode
+            - medium
+            # Coding challenge
+            - leetcode
+            - hackerrank
+            - codewars
+            - topcoder
+            # Data/AI
+            - kaggle
+            # Desain & kreatif
+            - behance
+            - dribbble
+            - figma
+            - adobe_portfolio
+            - artstation
+            # Video / konten
+            - youtube
+            - vimeo
+            - tiktok
+            - twitch
+            # Sosial
+            - x
+            - instagram
+            - facebook
+            - threads
+            # Komunitas & komunikasi
+            - discord
+            - telegram
+            - whatsapp
+            - line
+            - wechat
+            - skype
+            # Akademik (opsional tapi bagus)
+            - google_scholar
+            - orcid
+            - researchgate
+            - arxiv
         url: { type: string }
     CvOrganization:
       type: object
@@ -5107,6 +5299,23 @@ components:
         phone:
           type: string
           nullable: true
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [male, female]
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
         role:
           type: string
           enum: [user, admin]
@@ -5134,6 +5343,23 @@ components:
           format: email
         phone:
           type: string
+          nullable: true
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [male, female]
+          nullable: true
+        birth_date:
+          type: string
+          format: date
           nullable: true
         role:
           type: string
@@ -5928,3 +6154,69 @@ components:
         remaining:
           type: integer
           description: Remaining storage in bytes
+    UserSocialLink:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        platform:
+          type: string
+          enum:
+            # Profesional & portofolio umum
+            - linkedin
+            - website
+            - blog
+            - portfolio
+            # Developer
+            - github
+            - gitlab
+            - bitbucket
+            - stackoverflow
+            - devto
+            - hashnode
+            - medium
+            # Coding challenge
+            - leetcode
+            - hackerrank
+            - codewars
+            - topcoder
+            # Data/AI
+            - kaggle
+            # Desain & kreatif
+            - behance
+            - dribbble
+            - figma
+            - adobe_portfolio
+            - artstation
+            # Video / konten
+            - youtube
+            - vimeo
+            - tiktok
+            - twitch
+            # Sosial
+            - x
+            - instagram
+            - facebook
+            - threads
+            # Komunitas & komunikasi
+            - discord
+            - telegram
+            - whatsapp
+            - line
+            - wechat
+            - skype
+            # Akademik (opsional tapi bagus)
+            - google_scholar
+            - orcid
+            - researchgate
+            - arxiv
+        url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
