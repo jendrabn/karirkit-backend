@@ -22,6 +22,15 @@ import env from "../config/env.config";
 import dayjs from "dayjs";
 import "dayjs/locale/id";
 import {
+  type LabelLanguage,
+  DEGREE_LABELS,
+  JOB_TYPE_LABELS,
+  ORGANIZATION_TYPE_LABELS,
+  PLATFORM_LABELS,
+  PROJECT_LINK_LABELS,
+  SKILL_LEVEL_LABELS,
+} from "../constants/cv-labels";
+import {
   CvValidation,
   type CvAwardPayloadInput,
   type CvCertificatePayloadInput,
@@ -943,6 +952,7 @@ export class CvService {
     const templatePath = path.join(process.cwd(), "public", template.path);
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
+    console.log(context);
     const additionalJsContext = cv.photo
       ? CvService.buildAdditionalJsContext()
       : undefined;
@@ -960,6 +970,8 @@ export class CvService {
   }
 
   private static buildTemplateContext(cv: CvWithRelations) {
+    const language = CvService.normalizeLanguage(cv.language);
+
     return {
       name: cv.name.toUpperCase(),
       headline: cv.headline,
@@ -972,13 +984,13 @@ export class CvService {
       about: cv.about,
       photo_path: cv.photo ?? "",
       educations: cv.educations.map((record) => ({
-        degree: record.degree,
+        degree: CvService.getDegreeLabel(record.degree, language),
         school_name: record.schoolName,
         school_location: record.schoolLocation,
         major: record.major,
-        start_month: CvService.formatMonth(record.startMonth),
+        start_month: CvService.formatMonth(record.startMonth, language),
         start_year: record.startYear,
-        end_month: CvService.formatMonth(record.endMonth),
+        end_month: CvService.formatMonth(record.endMonth, language),
         end_year: record.endYear,
         is_current: record.isCurrent,
         gpa: record.gpa,
@@ -987,9 +999,9 @@ export class CvService {
       certificates: cv.certificates.map((record) => ({
         title: record.title,
         issuer: record.issuer,
-        issue_month: CvService.formatMonth(record.issueMonth),
+        issue_month: CvService.formatMonth(record.issueMonth, language),
         issue_year: record.issueYear,
-        expiry_month: CvService.formatMonth(record.expiryMonth),
+        expiry_month: CvService.formatMonth(record.expiryMonth, language),
         expiry_year: record.expiryYear,
         no_expiry: record.noExpiry,
         credential_id: record.credentialId,
@@ -1000,10 +1012,10 @@ export class CvService {
         job_title: record.jobTitle,
         company_name: record.companyName,
         company_location: record.companyLocation,
-        job_type: record.jobType,
-        start_month: CvService.formatMonth(record.startMonth),
+        job_type: CvService.getJobTypeLabel(record.jobType, language),
+        start_month: CvService.formatMonth(record.startMonth, language),
         start_year: record.startYear,
-        end_month: CvService.formatMonth(record.endMonth),
+        end_month: CvService.formatMonth(record.endMonth, language),
         end_year: record.endYear,
         is_current: record.isCurrent,
         description: record.description,
@@ -1011,7 +1023,7 @@ export class CvService {
       })),
       skills: cv.skills.map((record) => ({
         name: record.name,
-        level: record.level,
+        level: CvService.getSkillLevelLabel(record.level, language),
       })),
       awards: cv.awards.map((record) => ({
         title: record.title,
@@ -1020,31 +1032,47 @@ export class CvService {
         year: record.year,
       })),
       social_links: cv.socialLinks.map((record) => ({
-        platform: record.platform,
+        platform: CvService.getPlatformLabel(record.platform, language),
         url: record.url,
-        label: CvService.buildSocialLinkLabel(record.url),
+        label: CvService.getPlatformLabel(record.platform, language),
       })),
       organizations: cv.organizations.map((record) => ({
         organization_name: record.organizationName,
         role_title: record.roleTitle,
-        organization_type: record.organizationType,
+        organization_type: CvService.getOrganizationTypeLabel(
+          record.organizationType,
+          language
+        ),
         location: record.location,
-        start_month: CvService.formatMonth(record.startMonth),
+        start_month: CvService.formatMonth(record.startMonth, language),
         start_year: record.startYear,
-        end_month: CvService.formatMonth(record.endMonth),
+        end_month: CvService.formatMonth(record.endMonth, language),
         end_year: record.endYear,
         is_current: record.isCurrent,
         description: record.description,
         description_points: CvService.splitDescriptionLines(record.description),
       })),
-      projects: cv.projects.map((record) => ({
-        name: record.name,
-        description: record.description,
-        year: record.year,
-        repo_url: record.repoUrl,
-        live_url: record.liveUrl,
-        description_points: CvService.splitDescriptionLines(record.description),
-      })),
+      projects: cv.projects.map((record) => {
+        const repoLabel = record.repoUrl
+          ? CvService.getProjectLinkLabel("repo", language)
+          : "";
+        const liveLabel = record.liveUrl
+          ? CvService.getProjectLinkLabel("live", language)
+          : "";
+
+        return {
+          name: record.name,
+          description: record.description,
+          year: record.year,
+          repo_url: record.repoUrl,
+          repo_label: repoLabel,
+          live_url: record.liveUrl,
+          live_label: liveLabel,
+          description_points: CvService.splitDescriptionLines(
+            record.description
+          ),
+        };
+      }),
     };
   }
 
@@ -1076,15 +1104,88 @@ export class CvService {
     };
   }
 
-  private static formatMonth(value?: number | null): string {
+  private static formatMonth(
+    value?: number | null,
+    language: LabelLanguage = "id"
+  ): string {
     if (!value || value < 1 || value > 12) {
       return "";
     }
     return dayjs()
       .set("date", 1)
       .set("month", value - 1)
-      .locale("id")
+      .locale(language === "en" ? "en" : "id")
       .format("MMM");
+  }
+
+  private static normalizeLanguage(value?: string | null): LabelLanguage {
+    return value === "en" ? "en" : "id";
+  }
+
+  private static getDegreeLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, DEGREE_LABELS, language);
+  }
+
+  private static getJobTypeLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, JOB_TYPE_LABELS, language);
+  }
+
+  private static getSkillLevelLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, SKILL_LEVEL_LABELS, language);
+  }
+
+  private static getOrganizationTypeLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, ORGANIZATION_TYPE_LABELS, language);
+  }
+
+  private static getPlatformLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, PLATFORM_LABELS, language);
+  }
+
+  private static getProjectLinkLabel(
+    value: "repo" | "live",
+    language: LabelLanguage = "id"
+  ): string {
+    return PROJECT_LINK_LABELS[language]?.[value] ?? value;
+  }
+
+  private static getEnumLabel(
+    value: string | null | undefined,
+    labels: Record<LabelLanguage, Record<string, string>>,
+    language: LabelLanguage
+  ): string {
+    if (!value) {
+      return "";
+    }
+
+    return (
+      labels[language]?.[value] ??
+      labels.en?.[value] ??
+      CvService.toTitleCase(value)
+    );
+  }
+
+  private static toTitleCase(value: string): string {
+    return value
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part[0].toUpperCase() + part.slice(1).toLowerCase())
+      .join(" ");
   }
 
   private static async createPhotoImage(photoPath?: string | null): Promise<{
