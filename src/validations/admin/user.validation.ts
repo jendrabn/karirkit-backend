@@ -46,6 +46,12 @@ export class UserValidation {
       .max(1000)
       .default(10)
       .optional(),
+    document_storage_limit: z.coerce
+      .number()
+      .min(0)
+      .max(10 * 1024)
+      .default(100)
+      .optional(),
   });
 
   static readonly UPDATE = z.object({
@@ -77,20 +83,13 @@ export class UserValidation {
     role: z.enum(["user", "admin"]).optional(),
     avatar: z.string().or(z.literal("")).nullable().optional(),
     daily_download_limit: z.coerce.number().min(0).max(1000).optional(),
-  });
-
-  static readonly UPDATE_DOWNLOAD_LIMIT = z.object({
-    daily_download_limit: z.coerce.number().min(0).max(1000),
-  });
-
-  static readonly UPDATE_STATUS = z.object({
-    status: z.enum(["active", "suspended", "banned"]),
-    status_reason: z
-      .string()
-      .max(500, "Alasan maksimal 500 karakter")
-      .or(z.literal(""))
-      .nullable()
+    document_storage_limit: z.coerce
+      .number()
+      .min(0)
+      .max(10 * 1024)
       .optional(),
+    status: z.enum(["active", "suspended", "banned"]).optional(),
+    status_reason: z.string().max(500).or(z.literal("")).nullable().optional(),
     suspended_until: z
       .string()
       .or(z.literal(""))

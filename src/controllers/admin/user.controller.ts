@@ -56,33 +56,4 @@ export class UserController {
       next(error);
     }
   }
-
-  static async updateDownloadLimit(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const user = await UserService.updateDownloadLimit(
-        req.params.id,
-        req.body
-      );
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async updateStatus(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const user = await UserService.updateStatus(req.params.id, req.body);
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
 }

@@ -116,9 +116,39 @@ type DocumentDownloadResult = {
   fileName: string;
 };
 
+export type DocumentStorageStats = {
+  limit: number;
+  used: number;
+  remaining: number;
+};
+
 const execFileAsync = promisify(execFile);
 
 export class DocumentService {
+  static async getStorageStats(userId: string): Promise<DocumentStorageStats> {
+    const [user, usage] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { documentStorageLimit: true },
+      }),
+      prisma.document.aggregate({
+        where: { userId },
+        _sum: { size: true },
+      }),
+    ]);
+
+    if (!user) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    const used = usage._sum.size ?? 0;
+    const limit = user.documentStorageLimit;
+    return {
+      limit,
+      used,
+      remaining: Math.max(0, limit - used),
+    };
+  }
   static async list(
     userId: string,
     query: unknown
@@ -194,6 +224,7 @@ export class DocumentService {
 
     const payload = DocumentService.validateUploadPayload(request);
     const uploadResult = await DocumentService.handleSingleFile(
+      userId,
       file,
       compression
     );
@@ -221,6 +252,7 @@ export class DocumentService {
 
     for (const file of files) {
       const uploadResult = await DocumentService.handleSingleFile(
+        userId,
         file,
         compression
       );
@@ -261,6 +293,8 @@ export class DocumentService {
       uploadOptions
     );
     const mergedName = DocumentService.resolveMergedName(payload.name);
+
+    await DocumentService.assertStorageLimit(userId, mergedBuffer.length);
 
     const stored = await DocumentService.writeBufferToDisk(
       mergedBuffer,
@@ -351,6 +385,42 @@ export class DocumentService {
     return validate(DocumentValidation.UPLOAD, request);
   }
 
+  private static async assertStorageLimit(
+    userId: string,
+    additionalBytes: number
+  ): Promise<void> {
+    if (additionalBytes <= 0) {
+      return;
+    }
+
+    const [user, usage] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { documentStorageLimit: true },
+      }),
+      prisma.document.aggregate({
+        where: { userId },
+        _sum: { size: true },
+      }),
+    ]);
+
+    if (!user) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    const currentUsage = usage._sum.size ?? 0;
+    if (currentUsage + additionalBytes > user.documentStorageLimit) {
+      const limitMb = Math.max(
+        1,
+        Math.floor(user.documentStorageLimit / (1024 * 1024))
+      );
+      throw new ResponseError(
+        400,
+        `Batas penyimpanan dokumen tercapai. Kuota Anda ${limitMb} MB.`
+      );
+    }
+  }
+
   private static buildUploadOptions(
     mimetype: string,
     compression?: DocumentCompressionLevel
@@ -385,6 +455,7 @@ export class DocumentService {
   }
 
   private static async handleSingleFile(
+    userId: string,
     file: Express.Multer.File,
     compression?: DocumentCompressionLevel
   ): Promise<UploadResult> {
@@ -392,10 +463,11 @@ export class DocumentService {
       file.mimetype,
       compression
     );
-    return DocumentService.processAndStoreFile(file, uploadOptions);
+    return DocumentService.processAndStoreFile(userId, file, uploadOptions);
   }
 
   private static async processAndStoreFile(
+    userId: string,
     file: Express.Multer.File,
     options: UploadOptions
   ): Promise<UploadResult> {
@@ -430,6 +502,8 @@ export class DocumentService {
       finalMimeType = "application/pdf";
       extension = ".pdf";
     }
+
+    await DocumentService.assertStorageLimit(userId, processedBuffer.length);
 
     const uploadDir = path.join(process.cwd(), "public", DOCUMENT_DIRECTORY);
     await fs.mkdir(uploadDir, { recursive: true });

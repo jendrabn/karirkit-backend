@@ -3,7 +3,6 @@ import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma.config";
 import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
-import { z } from "zod";
 import { UserValidation } from "../../validations/admin/user.validation";
 import {
   DownloadLogService,
@@ -19,6 +18,12 @@ type SafeUser = {
   phone: string | null;
   avatar: string | null;
   daily_download_limit: number;
+  document_storage_limit: number;
+  document_storage_stats: {
+    limit: number;
+    used: number;
+    remaining: number;
+  };
   status: string;
   status_reason: string | null;
   suspended_until: string | null;
@@ -46,6 +51,7 @@ type CreateUserRequest = {
   role?: "user" | "admin";
   avatar?: string | null;
   daily_download_limit?: number;
+  document_storage_limit?: number;
 };
 
 type UpdateUserRequest = {
@@ -56,14 +62,8 @@ type UpdateUserRequest = {
   role?: "user" | "admin";
   avatar?: string | null;
   daily_download_limit?: number;
-};
-
-type UpdateDownloadLimitRequest = {
-  daily_download_limit: number;
-};
-
-type UpdateUserStatusRequest = {
-  status: "active" | "suspended" | "banned";
+  document_storage_limit?: number;
+  status?: "active" | "suspended" | "banned";
   status_reason?: string | null;
   suspended_until?: string | null;
 };
@@ -77,12 +77,16 @@ type RawUserRecord = {
   phone: string | null;
   avatar: string | null;
   dailyDownloadLimit: number;
+  documentStorageLimit: number;
   status: string;
   statusReason: string | null;
   suspendedUntil: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
+
+const DEFAULT_DOCUMENT_STORAGE_LIMIT = 100 * 1024 * 1024;
+const BYTES_PER_MB = 1024 * 1024;
 
 const buildDownloadStats = (
   user: RawUserRecord,
@@ -104,7 +108,8 @@ const buildDownloadStats = (
 
 const formatSafeUser = (
   user: RawUserRecord,
-  downloadStats: DownloadStats
+  downloadStats: DownloadStats,
+  storageUsed: number
 ): SafeUser => ({
   id: user.id,
   name: user.name,
@@ -114,6 +119,11 @@ const formatSafeUser = (
   phone: user.phone,
   avatar: user.avatar,
   daily_download_limit: user.dailyDownloadLimit,
+  document_storage_limit: user.documentStorageLimit,
+  document_storage_stats: buildDocumentStorageStats(
+    user.documentStorageLimit,
+    storageUsed
+  ),
   status: user.status,
   status_reason: user.statusReason,
   suspended_until: user.suspendedUntil
@@ -123,6 +133,23 @@ const formatSafeUser = (
   updated_at: user.updatedAt?.toISOString() || "",
   download_stats: downloadStats,
 });
+
+const buildDocumentStorageStats = (
+  limit: number,
+  used: number
+): { limit: number; used: number; remaining: number } => ({
+  limit,
+  used,
+  remaining: Math.max(0, limit - used),
+});
+
+const getStorageUsageForUser = async (userId: string): Promise<number> => {
+  const usage = await prisma.document.aggregate({
+    where: { userId },
+    _sum: { size: true },
+  });
+  return usage._sum.size ?? 0;
+};
 // Schemas moved to UserValidation
 
 const sortFieldMap = {
@@ -194,6 +221,7 @@ export class UserService {
           phone: true,
           avatar: true,
           dailyDownloadLimit: true,
+          documentStorageLimit: true,
           status: true,
           statusReason: true,
           suspendedUntil: true,
@@ -210,15 +238,34 @@ export class UserService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayCounts, totalCounts] = await Promise.all([
+    const [todayCounts, totalCounts, storageUsageRows] = await Promise.all([
       DownloadLogService.countDownloadsByUsers(userIds, today),
       DownloadLogService.countDownloadsByUsers(userIds),
+      userIds.length
+        ? prisma.document.groupBy({
+            by: ["userId"],
+            where: { userId: { in: userIds } },
+            _sum: { size: true },
+          })
+        : Promise.resolve([]),
     ]);
+
+    const storageUsage = storageUsageRows.reduce<Record<string, number>>(
+      (acc, row) => {
+        acc[row.userId] = row._sum.size ?? 0;
+        return acc;
+      },
+      {}
+    );
 
     return {
       items: records.map((user) => {
         const downloadStats = buildDownloadStats(user, todayCounts, totalCounts);
-        return formatSafeUser(user, downloadStats);
+        return formatSafeUser(
+          user,
+          downloadStats,
+          storageUsage[user.id] ?? 0
+        );
       }),
       pagination: {
         page,
@@ -243,6 +290,7 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        documentStorageLimit: true,
         status: true,
         statusReason: true,
         suspendedUntil: true,
@@ -255,8 +303,11 @@ export class UserService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
-    const downloadStats = await DownloadLogService.getDownloadStats(id);
-    return formatSafeUser(user, downloadStats);
+    const [downloadStats, storageUsed] = await Promise.all([
+      DownloadLogService.getDownloadStats(id),
+      getStorageUsageForUser(id),
+    ]);
+    return formatSafeUser(user, downloadStats, storageUsed);
   }
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
@@ -292,6 +343,10 @@ export class UserService {
         role: requestData.role,
         avatar: requestData.avatar ?? null,
         dailyDownloadLimit: requestData.daily_download_limit ?? 10,
+        documentStorageLimit:
+          requestData.document_storage_limit === undefined
+            ? DEFAULT_DOCUMENT_STORAGE_LIMIT
+            : Math.floor(requestData.document_storage_limit * BYTES_PER_MB),
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -304,6 +359,7 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        documentStorageLimit: true,
         status: true,
         statusReason: true,
         suspendedUntil: true,
@@ -312,8 +368,11 @@ export class UserService {
       },
     });
 
-    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
-    return formatSafeUser(user, downloadStats);
+    const [downloadStats, storageUsed] = await Promise.all([
+      DownloadLogService.getDownloadStats(user.id),
+      getStorageUsageForUser(user.id),
+    ]);
+    return formatSafeUser(user, downloadStats, storageUsed);
   }
 
   static async update(
@@ -394,6 +453,51 @@ export class UserService {
       updateData.dailyDownloadLimit = requestData.daily_download_limit;
     }
 
+    if (requestData.document_storage_limit !== undefined) {
+      updateData.documentStorageLimit = Math.floor(
+        requestData.document_storage_limit * BYTES_PER_MB
+      );
+    }
+
+    if (
+      requestData.status === undefined &&
+      (requestData.status_reason !== undefined ||
+        requestData.suspended_until !== undefined)
+    ) {
+      throw new ResponseError(
+        400,
+        "Status wajib diisi untuk memperbarui alasan atau tanggal penangguhan"
+      );
+    }
+
+    if (requestData.status !== undefined) {
+      let suspendedUntil: Date | null = null;
+      if (
+        requestData.status === "suspended" &&
+        requestData.suspended_until &&
+        requestData.suspended_until.trim().length > 0
+      ) {
+        suspendedUntil = new Date(requestData.suspended_until);
+        if (Number.isNaN(suspendedUntil.getTime())) {
+          throw new ResponseError(400, "Tanggal penangguhan tidak valid");
+        }
+      }
+
+      let statusReason: string | null = null;
+      if (
+        requestData.status !== "active" &&
+        requestData.status_reason &&
+        requestData.status_reason.trim().length > 0
+      ) {
+        statusReason = requestData.status_reason.trim();
+      }
+
+      updateData.status = requestData.status;
+      updateData.statusReason = statusReason;
+      updateData.suspendedUntil =
+        requestData.status === "suspended" ? suspendedUntil : null;
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -406,6 +510,7 @@ export class UserService {
         phone: true,
         avatar: true,
         dailyDownloadLimit: true,
+        documentStorageLimit: true,
         status: true,
         statusReason: true,
         suspendedUntil: true,
@@ -414,8 +519,11 @@ export class UserService {
       },
     });
 
-    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
-    return formatSafeUser(user, downloadStats);
+    const [downloadStats, storageUsed] = await Promise.all([
+      DownloadLogService.getDownloadStats(user.id),
+      getStorageUsageForUser(user.id),
+    ]);
+    return formatSafeUser(user, downloadStats, storageUsed);
   }
 
   static async delete(id: string): Promise<void> {
@@ -463,108 +571,4 @@ export class UserService {
     };
   }
 
-  static async updateDownloadLimit(
-    id: string,
-    request: UpdateDownloadLimitRequest
-  ): Promise<SafeUser> {
-    const existingUser = await prisma.user.findFirst({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const requestData = validate(UserValidation.UPDATE_DOWNLOAD_LIMIT, request);
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        dailyDownloadLimit: requestData.daily_download_limit,
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        phone: true,
-        avatar: true,
-        dailyDownloadLimit: true,
-        status: true,
-        statusReason: true,
-        suspendedUntil: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
-    return formatSafeUser(user, downloadStats);
-  }
-
-  static async updateStatus(
-    id: string,
-    request: UpdateUserStatusRequest
-  ): Promise<SafeUser> {
-    const existingUser = await prisma.user.findFirst({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const requestData = validate(UserValidation.UPDATE_STATUS, request);
-
-    let suspendedUntil: Date | null = null;
-    if (
-      requestData.status === "suspended" &&
-      requestData.suspended_until &&
-      requestData.suspended_until.trim().length > 0
-    ) {
-      suspendedUntil = new Date(requestData.suspended_until);
-      if (Number.isNaN(suspendedUntil.getTime())) {
-        throw new ResponseError(400, "Tanggal penangguhan tidak valid");
-      }
-    }
-
-    let statusReason: string | null = null;
-    if (
-      requestData.status !== "active" &&
-      requestData.status_reason &&
-      requestData.status_reason.trim().length > 0
-    ) {
-      statusReason = requestData.status_reason.trim();
-    }
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        status: requestData.status,
-        statusReason,
-        suspendedUntil:
-          requestData.status === "suspended" ? suspendedUntil : null,
-        updatedAt: new Date(),
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        phone: true,
-        avatar: true,
-        dailyDownloadLimit: true,
-        status: true,
-        statusReason: true,
-        suspendedUntil: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    const downloadStats = await DownloadLogService.getDownloadStats(user.id);
-    return formatSafeUser(user, downloadStats);
-  }
 }

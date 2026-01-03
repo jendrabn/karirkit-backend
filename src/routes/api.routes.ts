@@ -85,11 +85,6 @@ router.put(
   authMiddleware,
   AccountController.changePassword
 );
-router.get(
-  "/account/download-stats",
-  authMiddleware,
-  AccountController.getDownloadStats
-);
 
 // OTP API
 router.post("/auth/verify-otp", loginRateLimiter, AuthController.verifyOtp);
@@ -262,18 +257,6 @@ router.put(
   authMiddleware,
   adminMiddleware,
   UserController.update
-);
-router.patch(
-  "/admin/users/:id/download-limit",
-  authMiddleware,
-  adminMiddleware,
-  UserController.updateDownloadLimit
-);
-router.patch(
-  "/admin/users/:id/status",
-  authMiddleware,
-  adminMiddleware,
-  UserController.updateStatus
 );
 router.delete(
   "/admin/users/:id",

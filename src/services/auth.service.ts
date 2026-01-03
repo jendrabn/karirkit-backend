@@ -18,15 +18,23 @@ import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
+import {
+  DocumentService,
+  type DocumentStorageStats,
+} from "./document.service";
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
   env.googleClientSecret
 );
 
+type AuthUser = SafeUser & {
+  document_storage_stats: DocumentStorageStats;
+};
+
 interface LoginResult {
   token: string;
-  user: SafeUser;
+  user: AuthUser;
   expires_at?: number;
 }
 
@@ -39,7 +47,7 @@ interface OtpLoginResult {
 }
 
 export class AuthService {
-  static async register(request: RegisterRequest): Promise<SafeUser> {
+  static async register(request: RegisterRequest): Promise<AuthUser> {
     const requestData = validate(AuthValidation.REGISTER, request);
 
     const totalUserWithSameEmail = await prisma.user.count({
@@ -72,7 +80,11 @@ export class AuthService {
       },
     });
 
-    return toSafeUser(user);
+    const storageStats = await DocumentService.getStorageStats(user.id);
+    return {
+      ...toSafeUser(user),
+      document_storage_stats: storageStats,
+    };
   }
 
   static async login(
@@ -142,7 +154,11 @@ export class AuthService {
 
     return {
       token,
-      user: toSafeUser(user),
+      user: {
+        ...toSafeUser(user),
+        document_storage_stats:
+          await DocumentService.getStorageStats(user.id),
+      },
       expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }
@@ -252,7 +268,11 @@ export class AuthService {
 
     return {
       token,
-      user: toSafeUser(user),
+      user: {
+        ...toSafeUser(user),
+        document_storage_stats:
+          await DocumentService.getStorageStats(user.id),
+      },
       expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };
   }

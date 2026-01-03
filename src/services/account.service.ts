@@ -5,6 +5,10 @@ import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
 import { DownloadLogService, type DownloadStats } from "./download-log.service";
+import {
+  DocumentService,
+  type DocumentStorageStats,
+} from "./document.service";
 import { validate } from "../utils/validate.util";
 import { AccountValidation } from "../validations/account.validation";
 
@@ -12,15 +16,21 @@ export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
   created_at: Date;
   updated_at: Date;
   download_stats: DownloadStats;
+  document_storage_stats: DocumentStorageStats;
 };
 
-const toSafeUser = (user: User, downloadStats: DownloadStats): SafeUser => {
+const toSafeUser = (
+  user: User,
+  downloadStats: DownloadStats,
+  storageStats: DocumentStorageStats
+): SafeUser => {
   const { password: _password, createdAt, updatedAt, ...rest } = user;
   return {
     ...rest,
     created_at: createdAt,
     updated_at: updatedAt,
     download_stats: downloadStats,
+    document_storage_stats: storageStats,
   };
 };
 
@@ -34,8 +44,11 @@ export class AccountService {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    const downloadStats = await DownloadLogService.getDownloadStats(userId);
-    return toSafeUser(user, downloadStats);
+    const [downloadStats, storageStats] = await Promise.all([
+      DownloadLogService.getDownloadStats(userId),
+      DocumentService.getStorageStats(userId),
+    ]);
+    return toSafeUser(user, downloadStats, storageStats);
   }
 
   static async updateMe(
@@ -133,8 +146,11 @@ export class AccountService {
       data: updateData,
     });
 
-    const downloadStats = await DownloadLogService.getDownloadStats(userId);
-    return toSafeUser(user, downloadStats);
+    const [downloadStats, storageStats] = await Promise.all([
+      DownloadLogService.getDownloadStats(userId),
+      DocumentService.getStorageStats(userId),
+    ]);
+    return toSafeUser(user, downloadStats, storageStats);
   }
 
   static async changePassword(

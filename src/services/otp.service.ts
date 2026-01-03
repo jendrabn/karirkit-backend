@@ -8,6 +8,7 @@ import { ResponseError } from "../utils/response-error.util";
 import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
+import { DocumentService } from "./document.service";
 
 export class OtpService {
   static async generateOtpCode(): Promise<string> {
@@ -168,6 +169,7 @@ export class OtpService {
     );
 
     const decoded = jwt.decode(token) as JwtPayload | null;
+    const storageStats = await DocumentService.getStorageStats(user.id);
 
     return {
       token,
@@ -181,6 +183,7 @@ export class OtpService {
         avatar: user.avatar,
         created_at: user.createdAt,
         updated_at: user.updatedAt,
+        document_storage_stats: storageStats,
       },
       expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
     };

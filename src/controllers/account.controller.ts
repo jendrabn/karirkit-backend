@@ -3,8 +3,6 @@ import { AccountService } from "../services/account.service";
 import { UploadService } from "../services/upload.service";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { sendSuccess } from "../utils/response-builder.util";
-import { ResponseError } from "../utils/response-error.util";
-import { DownloadLogService } from "../services/download-log.service";
 
 export class AccountController {
   static async me(req: Request, res: Response, next: NextFunction) {
@@ -56,16 +54,4 @@ export class AccountController {
     }
   }
 
-  static async getDownloadStats(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const stats = await DownloadLogService.getDownloadStats(req.user!.id);
-      sendSuccess(res, stats);
-    } catch (error) {
-      next(error);
-    }
-  }
 }

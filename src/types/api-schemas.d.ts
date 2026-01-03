@@ -38,6 +38,12 @@ export interface DownloadStats {
   total_count?: number;
 }
 
+export interface DocumentStorageStats {
+  limit?: number;
+  used?: number;
+  remaining?: number;
+}
+
 export interface User {
   id?: string;
   name?: string;
@@ -49,6 +55,9 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   download_stats?: DownloadStats;
+  daily_download_limit?: number;
+  document_storage_limit?: number;
+  document_storage_stats?: DocumentStorageStats;
 }
 
 export interface RegisterRequest {
@@ -566,10 +575,6 @@ export interface UserResponse {
 
 export interface AuthUserResponse {
   data?: User;
-}
-
-export interface DownloadStatsResponse {
-  data?: DownloadStats;
 }
 
 export type BlogStatus = "draft" | "published" | "archived";
