@@ -23,7 +23,7 @@ const sortFieldMap = {
 } as const;
 
 type JobMediaPayload = {
-  path: string;
+  path?: string | null;
 };
 
 export class AdminJobService {
@@ -655,11 +655,13 @@ export class AdminJobService {
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
       medias: job.medias
-        ? job.medias.map((media) => ({
+        ? job.medias.map(
+            (media: { id: string; jobId: string; path: string }) => ({
             id: media.id,
             job_id: media.jobId,
             path: media.path,
-          }))
+          })
+        )
         : [],
       company: job.company || null,
       job_role: job.jobRole || null,
@@ -703,7 +705,7 @@ export class AdminJobService {
     const seen = new Set<string>();
 
     for (const entry of entries) {
-      const trimmed = entry.path.trim();
+      const trimmed = entry.path?.trim() ?? "";
       if (!trimmed) {
         continue;
       }

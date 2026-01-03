@@ -12,11 +12,25 @@ import {
 import { validate } from "../utils/validate.util";
 import { AccountValidation } from "../validations/account.validation";
 
-export type SafeUser = Omit<User, "password" | "createdAt" | "updatedAt"> & {
+export type SafeUser = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: User["role"];
+  phone: string | null;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  gender: User["gender"] | null;
+  avatar: string | null;
+  status: User["status"];
   created_at: string | null;
   updated_at: string | null;
   birth_date: string | null;
   email_verified_at: string | null;
+  status_reason: string | null;
+  suspended_until: string | null;
   daily_download_limit: number;
   document_storage_limit: number;
   social_links: {

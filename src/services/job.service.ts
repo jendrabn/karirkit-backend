@@ -329,11 +329,13 @@ export class JobService {
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
       medias: job.medias
-        ? job.medias.map((media) => ({
+        ? job.medias.map(
+            (media: { id: string; jobId: string; path: string }) => ({
             id: media.id,
             job_id: media.jobId,
             path: media.path,
-          }))
+          })
+        )
         : [],
       company: job.company ? JobService.toCompanyResponse(job.company) : null,
       job_role: job.jobRole ? JobService.toJobRoleResponse(job.jobRole) : null,
