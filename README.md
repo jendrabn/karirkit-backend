@@ -28,6 +28,37 @@ REST API untuk KarirKit yang mencakup autentikasi, aplikasi pekerjaan, surat lam
 - MariaDB 10.6+
 - Redis 6+
 - npm atau yarn
+- (Opsional untuk fitur PDF) Ghostscript dan LibreOffice
+
+## Dependency untuk PDF (Ghostscript + LibreOffice)
+
+Fitur konversi DOCX ke PDF membutuhkan Ghostscript dan LibreOffice terpasang di server.
+
+### Windows
+
+Opsi 1: Chocolatey
+```bash
+choco install ghostscript libreoffice-fresh -y
+```
+
+Opsi 2: Installer resmi
+- Ghostscript: https://www.ghostscript.com/download/gsdnld.html
+- LibreOffice: https://www.libreoffice.org/download/download/
+
+Pastikan `gswin64c` (Ghostscript) dan `soffice` (LibreOffice) tersedia di PATH.
+
+### Ubuntu Server
+
+```bash
+sudo apt update
+sudo apt install -y ghostscript libreoffice
+```
+
+Verifikasi instalasi:
+```bash
+gs --version
+soffice --version
+```
 
 ## Installation
 
