@@ -92,6 +92,19 @@ export class BlogController {
     }
   }
 
+  static async popular(req: Request, res: Response, next: NextFunction) {
+    try {
+      let limit = parseInt(req.query.limit as string) || 4;
+      limit = Math.min(Math.max(limit, 1), 20);
+
+      const window = (req.query.window as string) || "7d";
+      const blogs = await BlogService.getPopular(limit, window);
+      sendSuccess(res, blogs);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getRelatedBlogs(
     req: Request,
     res: Response,

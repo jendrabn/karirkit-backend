@@ -9,6 +9,7 @@ import type {
   BlogCategory,
   BlogTag,
   Pagination,
+  PublicUserProfile,
 } from "../types/api-schemas";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
@@ -24,6 +25,22 @@ import { ResponseError } from "../utils/response-error.util";
 type BlogListResult = {
   items: BlogResponse[];
   pagination: Pagination;
+};
+
+type BlogUserWithSocialLinks = {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string | null;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  socialLinks?: {
+    id: string;
+    userId: string;
+    platform: string;
+    url: string;
+  }[];
 };
 
 type BlogMutableFields = Omit<
@@ -115,6 +132,18 @@ export class BlogService {
               name: true,
               username: true,
               avatar: true,
+              headline: true,
+              bio: true,
+              location: true,
+              socialLinks: {
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  userId: true,
+                  platform: true,
+                  url: true,
+                },
+              },
             },
           },
           category: true,
@@ -154,6 +183,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -246,6 +287,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -268,6 +321,18 @@ export class BlogService {
           name: true,
           username: true,
           avatar: true,
+          headline: true,
+          bio: true,
+          location: true,
+          socialLinks: {
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            select: {
+              id: true,
+              userId: true,
+              platform: true,
+              url: true,
+            },
+          },
         },
       },
       category: true,
@@ -371,6 +436,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -503,9 +580,30 @@ export class BlogService {
     };
   }
 
+  private static toPublicUser(
+    user: BlogUserWithSocialLinks
+  ): PublicUserProfile {
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar ?? null,
+      headline: user.headline ?? null,
+      bio: user.bio ?? null,
+      location: user.location ?? null,
+      social_links:
+        user.socialLinks?.map((record) => ({
+          id: record.id,
+          user_id: record.userId,
+          platform: record.platform,
+          url: record.url,
+        })) ?? [],
+    };
+  }
+
   private static toResponse(
     blog: PrismaBlog & {
-      user?: any;
+      user?: BlogUserWithSocialLinks;
       category?: PrismaBlogCategory;
       tags?: { tag: PrismaBlogTag }[];
     }
@@ -525,7 +623,7 @@ export class BlogService {
       created_at: blog.createdAt?.toISOString(),
       updated_at: blog.updatedAt?.toISOString(),
       published_at: blog.publishedAt?.toISOString() ?? null,
-      user: blog.user ?? null,
+      user: blog.user ? BlogService.toPublicUser(blog.user) : undefined,
       category: blog.category
         ? BlogService.toCategoryResponse(blog.category, 0)
         : null,
@@ -555,6 +653,69 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return blogs.map((blog) => BlogService.toResponse(blog));
+  }
+
+  static async getPopular(
+    limit: number,
+    window: string
+  ): Promise<BlogResponse[]> {
+    const take = Math.min(Math.max(limit, 1), 20);
+    const days = BlogService.parsePopularWindow(window);
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const blogs = await prisma.blog.findMany({
+      where: {
+        status: "published",
+        publishedAt: {
+          gte: since,
+        },
+      },
+      orderBy: [{ views: "desc" }, { publishedAt: "desc" }],
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -632,6 +793,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -644,5 +817,17 @@ export class BlogService {
     });
 
     return relatedBlogs.map((blog) => BlogService.toResponse(blog));
+  }
+
+  private static parsePopularWindow(value: string): number {
+    switch (value) {
+      case "1d":
+        return 1;
+      case "30d":
+        return 30;
+      case "7d":
+      default:
+        return 7;
+    }
   }
 }

@@ -9,6 +9,7 @@ import type {
   BlogCategory,
   BlogTag,
   Pagination,
+  PublicUserProfile,
 } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
@@ -22,6 +23,22 @@ import { BlogValidation } from "../../validations/admin/blog.validation";
 type BlogListResult = {
   items: BlogResponse[];
   pagination: Pagination;
+};
+
+type BlogUserWithSocialLinks = {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string | null;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  socialLinks?: {
+    id: string;
+    userId: string;
+    platform: string;
+    url: string;
+  }[];
 };
 
 type CreateBlogRequest = {
@@ -125,6 +142,18 @@ export class BlogService {
               name: true,
               username: true,
               avatar: true,
+              headline: true,
+              bio: true,
+              location: true,
+              socialLinks: {
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  userId: true,
+                  platform: true,
+                  url: true,
+                },
+              },
             },
           },
           category: true,
@@ -163,6 +192,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -274,6 +315,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -425,6 +478,18 @@ export class BlogService {
             name: true,
             username: true,
             avatar: true,
+            headline: true,
+            bio: true,
+            location: true,
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              select: {
+                id: true,
+                userId: true,
+                platform: true,
+                url: true,
+              },
+            },
           },
         },
         category: true,
@@ -489,9 +554,28 @@ export class BlogService {
     return blog;
   }
 
+  private static toPublicUser(user: BlogUserWithSocialLinks): PublicUserProfile {
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar ?? null,
+      headline: user.headline ?? null,
+      bio: user.bio ?? null,
+      location: user.location ?? null,
+      social_links:
+        user.socialLinks?.map((record) => ({
+          id: record.id,
+          user_id: record.userId,
+          platform: record.platform,
+          url: record.url,
+        })) ?? [],
+    };
+  }
+
   private static toResponse(
     blog: PrismaBlog & {
-      user?: any;
+      user?: BlogUserWithSocialLinks;
       category?: PrismaBlogCategory;
       tags?: { tag: PrismaBlogTag }[];
     }
@@ -511,7 +595,7 @@ export class BlogService {
       created_at: blog.createdAt?.toISOString(),
       updated_at: blog.updatedAt?.toISOString(),
       published_at: blog.publishedAt?.toISOString() ?? null,
-      user: blog.user ?? null,
+      user: blog.user ? BlogService.toPublicUser(blog.user) : undefined,
       category: blog.category
         ? BlogService.toCategoryResponse(blog.category)
         : null,

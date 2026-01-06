@@ -208,10 +208,14 @@ router.get(
 // Blogs API
 router.get("/blogs", BlogController.list);
 router.get("/blogs/latest", BlogController.latest);
+router.get("/blogs/popular", BlogController.popular);
 router.get("/blogs/categories", BlogController.getCategories);
 router.get("/blogs/tags", BlogController.getTags);
 router.get("/blogs/:slug", BlogController.getBySlug);
 router.get("/blogs/:slug/related", BlogController.getRelatedBlogs);
+
+// Public CV API
+router.get("/cv/:slug", CvController.getPublicBySlug);
 
 // Blogs API
 router.post("/blogs", authMiddleware, BlogController.create);

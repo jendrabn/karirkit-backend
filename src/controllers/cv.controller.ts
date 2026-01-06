@@ -24,6 +24,19 @@ export class CvController {
     }
   }
 
+  static async getPublicBySlug(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const cv = await CvService.getPublicBySlug(req.params.slug);
+      sendSuccess(res, cv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
       const cv = await CvService.create(req.user!.id, req.body);

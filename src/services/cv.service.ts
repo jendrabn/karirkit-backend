@@ -28,6 +28,7 @@ import {
   ORGANIZATION_TYPE_LABELS,
   PLATFORM_LABELS,
   PROJECT_LINK_LABELS,
+  SKILL_CATEGORY_LABELS,
   SKILL_LEVEL_LABELS,
 } from "../constants/cv-labels";
 import {
@@ -177,11 +178,13 @@ export class CvService {
     const payload: CvPayloadInput = validate(CvValidation.PAYLOAD, request);
     const photoChange = await CvService.preparePhoto(userId, payload.photo);
     const now = new Date();
+    const slug = await CvService.buildUniqueCvSlug(userId);
     try {
       const cv = await prisma.cv.create({
         data: {
           ...CvService.mapPayloadToData(payload, photoChange.path),
           userId,
+          slug,
           createdAt: now,
           updatedAt: now,
           educations:
@@ -280,6 +283,30 @@ export class CvService {
     return await CvService.toResponse(cv);
   }
 
+  static async getPublicBySlug(slug: string): Promise<CvResponse> {
+    const cv = await prisma.cv.findFirst({
+      where: {
+        slug,
+        visibility: "public",
+      },
+      include: relationInclude,
+    });
+
+    if (!cv) {
+      throw new ResponseError(404, "CV tidak ditemukan");
+    }
+
+    await prisma.cv.update({
+      where: { id: cv.id },
+      data: { views: { increment: 1 } },
+    });
+
+    return await CvService.toResponse({
+      ...cv,
+      views: cv.views + 1,
+    } as CvWithRelations);
+  }
+
   static async update(
     userId: string,
     id: string,
@@ -287,6 +314,24 @@ export class CvService {
   ): Promise<CvResponse> {
     const existing = await CvService.findOwnedCv(userId, id);
     const payload: CvPayloadInput = validate(CvValidation.PAYLOAD, request);
+    let slug: string | undefined;
+    if (payload.slug !== undefined) {
+      const sanitized = CvService.sanitizeSlug(payload.slug);
+      if (!sanitized) {
+        throw new ResponseError(400, "Slug tidak valid");
+      }
+      const slugExists = await prisma.cv.findFirst({
+        where: {
+          slug: sanitized,
+          NOT: { id },
+        },
+        select: { id: true },
+      });
+      if (slugExists) {
+        throw new ResponseError(400, "Slug sudah digunakan");
+      }
+      slug = sanitized;
+    }
     const photoChange = await CvService.preparePhoto(
       userId,
       payload.photo,
@@ -396,6 +441,7 @@ export class CvService {
           where: { id },
           data: {
             ...CvService.mapPayloadToData(payload, photoChange.path),
+            slug,
             updatedAt: now,
           },
           include: relationInclude,
@@ -468,10 +514,15 @@ export class CvService {
   static async duplicate(userId: string, id: string): Promise<CvResponse> {
     const source = await CvService.findOwnedCv(userId, id);
     const now = new Date();
+    const slug = await CvService.buildUniqueCvSlug(userId);
 
     const duplicated = await prisma.cv.create({
       data: {
         userId,
+        templateId: source.templateId ?? null,
+        slug,
+        visibility: source.visibility,
+        views: 0,
         name: source.name,
         headline: source.headline,
         email: source.email,
@@ -529,6 +580,7 @@ export class CvService {
           create: source.skills.map((record) => ({
             name: record.name,
             level: record.level,
+            skillCategory: record.skillCategory,
           })),
         },
         awards: {
@@ -572,7 +624,7 @@ export class CvService {
       include: relationInclude,
     });
 
-    return await CvService.toResponse(duplicated);
+    return await CvService.toResponse(duplicated as CvWithRelations);
   }
 
   static async download(
@@ -628,7 +680,45 @@ export class CvService {
       photo,
       templateId: payload.template_id,
       language: payload.language,
+      visibility: payload.visibility,
     };
+  }
+
+  private static async buildUniqueCvSlug(userId: string): Promise<string> {
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+      select: { username: true },
+    });
+
+    if (!user?.username) {
+      throw new ResponseError(404, "Pengguna tidak ditemukan");
+    }
+
+    const base = CvService.sanitizeSlug(
+      `${user.username}-${Date.now().toString()}`
+    );
+    let slug = base || "cv";
+    let suffix = 0;
+
+    while (
+      await prisma.cv.findFirst({
+        where: { slug },
+        select: { id: true },
+      })
+    ) {
+      suffix += 1;
+      slug = `${base}-${suffix}`;
+    }
+
+    return slug;
+  }
+
+  private static sanitizeSlug(value: string): string {
+    const normalized = value?.trim().toLowerCase() ?? "";
+    return normalized
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-");
   }
 
   private static mapEducationCreate(
@@ -689,6 +779,7 @@ export class CvService {
     return {
       name: record.name,
       level: record.level,
+      skillCategory: record.skill_category,
     };
   }
 
@@ -1024,7 +1115,12 @@ export class CvService {
       skills: cv.skills.map((record) => ({
         name: record.name,
         level: CvService.getSkillLevelLabel(record.level, language),
+        category: CvService.getSkillCategoryLabel(
+          record.skillCategory,
+          language
+        ),
       })),
+      skills_by_category: CvService.groupSkillsByCategory(cv.skills, language),
       awards: cv.awards.map((record) => ({
         title: record.title,
         issuer: record.issuer,
@@ -1143,6 +1239,13 @@ export class CvService {
     return CvService.getEnumLabel(value, SKILL_LEVEL_LABELS, language);
   }
 
+  private static getSkillCategoryLabel(
+    value?: string | null,
+    language: LabelLanguage = "id"
+  ): string {
+    return CvService.getEnumLabel(value, SKILL_CATEGORY_LABELS, language);
+  }
+
   private static getOrganizationTypeLabel(
     value?: string | null,
     language: LabelLanguage = "id"
@@ -1162,6 +1265,31 @@ export class CvService {
     language: LabelLanguage = "id"
   ): string {
     return PROJECT_LINK_LABELS[language]?.[value] ?? value;
+  }
+
+  private static groupSkillsByCategory(
+    skills: PrismaCvSkill[],
+    language: LabelLanguage
+  ): { label: string; skills: string[] }[] {
+    const grouped = new Map<string, string[]>();
+
+    for (const skill of skills) {
+      const label = CvService.getSkillCategoryLabel(
+        skill.skillCategory,
+        language
+      );
+      const bucket = grouped.get(label);
+      if (bucket) {
+        bucket.push(skill.name);
+      } else {
+        grouped.set(label, [skill.name]);
+      }
+    }
+
+    return Array.from(grouped.entries()).map(([label, entries]) => ({
+      label,
+      skills: entries,
+    }));
   }
 
   private static getEnumLabel(
@@ -1354,6 +1482,7 @@ export class CvService {
     return {
       id: cv.id,
       user_id: cv.userId,
+      slug: cv.slug,
       name: cv.name,
       headline: cv.headline,
       email: cv.email,
@@ -1361,6 +1490,8 @@ export class CvService {
       address: cv.address,
       about: cv.about,
       photo: cv.photo ?? null,
+      visibility: cv.visibility,
+      views: cv.views,
       template_id: cv.templateId ?? null,
       language: cv.language,
       template: template
@@ -1421,6 +1552,7 @@ export class CvService {
         cv_id: record.cvId,
         name: record.name,
         level: record.level,
+        skill_category: record.skillCategory,
       })),
       awards: cv.awards.map((record) => ({
         id: record.id,

@@ -3,6 +3,8 @@ import {
   Degree,
   JobType,
   SkillLevel,
+  SkillCategory,
+  CvVisibility,
   OrganizationType,
   Language,
   Platform,
@@ -86,6 +88,7 @@ const experienceSchema = z.object({
 const skillSchema = z.object({
   name: trimmedString(),
   level: z.nativeEnum(SkillLevel),
+  skill_category: z.nativeEnum(SkillCategory).default("other"),
 });
 
 const awardSchema = z.object({
@@ -121,6 +124,8 @@ const projectSchema = z.object({
   live_url: nullableTrimmedString(2000),
 });
 
+const slugSchema = z.string().trim().min(1, "Slug wajib diisi").max(255);
+
 const payloadSchema = z.object({
   name: trimmedString(),
   headline: trimmedString(),
@@ -129,6 +134,8 @@ const payloadSchema = z.object({
   address: trimmedString(),
   about: trimmedString(5000),
   photo: nullableTrimmedString(),
+  slug: slugSchema.optional(),
+  visibility: z.nativeEnum(CvVisibility).optional(),
   template_id: z.string().uuid("ID template tidak valid"),
   language: z.nativeEnum(Language).default("id"),
   educations: z.array(educationSchema).optional(),

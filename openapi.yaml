@@ -1320,6 +1320,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /cv/{slug}:
+    get:
+      tags: [Public]
+      summary: Public CV detail by slug
+      description: Public CV detail for online access (visibility must be public)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public CV detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CvResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /documents:
     get:
       tags: [Documents]
@@ -1559,6 +1579,34 @@ paths:
       responses:
         "200":
           description: Latest blogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Blog"
+  /blogs/popular:
+    get:
+      tags: [Blogs]
+      summary: Get popular blogs
+      description: Get popular published blogs by views within a time window
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 4
+        - name: window
+          in: query
+          schema:
+            type: string
+            enum: [1d, 7d, 30d]
+            default: 7d
+      responses:
+        "200":
+          description: Popular blogs
           content:
             application/json:
               schema:
@@ -3893,6 +3941,31 @@ components:
           format: date-time
           nullable: true
           description: Suspension expiry timestamp (if applicable)
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        social_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSocialLink"
     RegisterRequest:
       type: object
       properties:
@@ -4796,6 +4869,170 @@ components:
         end_year: { type: integer, nullable: true }
         is_current: { type: boolean }
         description: { type: string, nullable: true }
+    SkillCategory:
+      type: string
+      enum:
+        # umum
+        - software
+        - tools
+        - hard_skill
+        - soft_skill
+        - other
+        # office & admin
+        - ms_office
+        - google_workspace
+        - data_entry
+        - administration
+        - secretarial
+        - document_management
+        - archiving
+        - scheduling
+        - virtual_assistant
+        # communication & people
+        - communication
+        - public_speaking
+        - presentation
+        - negotiation
+        - customer_service
+        - sales
+        - business_development
+        - leadership
+        - teamwork
+        - problem_solving
+        - time_management
+        - critical_thinking
+        - training_facilitation
+        - coaching_mentoring
+        # languages
+        - language
+        - translation
+        - interpretation
+        # software engineering
+        - programming_language
+        - web_development
+        - mobile_development
+        - backend_development
+        - frontend_development
+        - fullstack_development
+        - api_development
+        - system_design
+        - algorithms
+        - data_structures
+        - version_control
+        - code_review
+        - refactoring
+        # frameworks / platforms
+        - framework_library
+        - cms
+        - ecommerce_platform
+        # data & ai
+        - data_analysis
+        - data_science
+        - machine_learning
+        - deep_learning
+        - nlp
+        - computer_vision
+        - data_engineering
+        - etl_elt
+        - business_intelligence
+        - statistics
+        - experimentation_ab_testing
+        - analytics
+        # database
+        - database_sql
+        - database_nosql
+        - data_warehouse
+        - data_lake
+        # devops / infra
+        - devops
+        - ci_cd
+        - containerization
+        - orchestration
+        - cloud_computing
+        - linux
+        - networking
+        - site_reliability
+        - monitoring_observability
+        - infrastructure_as_code
+        # security
+        - cybersecurity
+        - app_security
+        - network_security
+        - iam_security
+        - vulnerability_management
+        - penetration_testing
+        # qa
+        - quality_assurance
+        - manual_testing
+        - automation_testing
+        - performance_testing
+        - test_management
+        # design & creative
+        - ui_ux_design
+        - product_design
+        - graphic_design
+        - branding
+        - illustration
+        - video_editing
+        - motion_graphics
+        - photography
+        - copywriting
+        - content_writing
+        - content_strategy
+        # product / project / ops
+        - product_management
+        - project_management
+        - program_management
+        - agile_scrum
+        - business_analysis
+        - process_improvement
+        - operations
+        - strategy_planning
+        - okr_kpi
+        # marketing
+        - digital_marketing
+        - social_media
+        - seo
+        - sem_ppc
+        - email_marketing
+        - performance_marketing
+        - brand_marketing
+        - market_research
+        - pr_communications
+        - community_management
+        # finance / accounting
+        - finance
+        - accounting
+        - bookkeeping
+        - taxation
+        - budgeting_forecasting
+        - financial_analysis
+        - audit_compliance
+        # hr
+        - human_resources
+        - recruitment
+        - people_operations
+        - payroll
+        - learning_development
+        # legal / compliance
+        - legal
+        - contract_management
+        - compliance
+        - risk_management
+        # supply chain / logistics
+        - procurement
+        - inventory_management
+        - supply_chain
+        - logistics
+        - warehouse_management
+        - shipping_fulfillment
+        # industry-specific (opsional)
+        - healthcare
+        - education
+        - hospitality
+        - retail
+        - manufacturing
+        - construction
     CvSkill:
       type: object
       properties:
@@ -4803,6 +5040,11 @@ components:
         level:
           type: string
           enum: [beginner, intermediate, advanced, expert]
+        skill_category:
+          $ref: "#/components/schemas/SkillCategory"
+    CvVisibility:
+      type: string
+      enum: [private, public]
     CvAward:
       type: object
       properties:
@@ -4844,6 +5086,7 @@ components:
       properties:
         id: { type: string }
         user_id: { type: string }
+        slug: { type: string }
         name: { type: string }
         headline: { type: string }
         email: { type: string }
@@ -4851,6 +5094,9 @@ components:
         address: { type: string }
         about: { type: string }
         photo: { type: string, nullable: true }
+        visibility:
+          $ref: "#/components/schemas/CvVisibility"
+        views: { type: integer }
         template_id:
           type: string
           format: uuid
@@ -4904,6 +5150,11 @@ components:
         address: { type: string }
         about: { type: string }
         photo: { type: string, nullable: true }
+        slug:
+          type: string
+          description: Optional custom slug (will be sanitized & must be unique)
+        visibility:
+          $ref: "#/components/schemas/CvVisibility"
         language:
           type: string
           enum: [en, id]
@@ -5174,7 +5425,7 @@ components:
           format: date-time
           nullable: true
         user:
-          $ref: "#/components/schemas/User"
+          $ref: "#/components/schemas/PublicUserProfile"
         category:
           $ref: "#/components/schemas/BlogCategory"
         tags:

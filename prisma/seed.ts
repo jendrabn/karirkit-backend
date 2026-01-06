@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { Platform, PrismaClient } from "../src/generated/prisma/client";
+import {
+  CvVisibility,
+  Platform,
+  PrismaClient,
+  SkillCategory,
+} from "../src/generated/prisma/client";
 import bcrypt from "bcrypt";
 import provinces from "../src/data/provinces.json";
 import cities from "../src/data/cities.json";
@@ -15,6 +20,15 @@ const adapter = new PrismaMariaDb({
 });
 
 const prisma = new PrismaClient({ adapter });
+
+const buildCvSlug = (username: string, index: number) => {
+  const base = `${username}-${Date.now()}-${index}`;
+  return base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+};
 
 async function main() {
   console.log("Start seeding...");
@@ -218,6 +232,9 @@ async function main() {
       data: {
         userId: users[0].id,
         templateId: templates[0].id,
+        slug: buildCvSlug(users[0].username, 1),
+        visibility: CvVisibility.public,
+        views: 12,
         name: "John Doe CV",
         headline: "Full Stack Developer",
         email: "john@example.com",
@@ -235,6 +252,9 @@ async function main() {
       data: {
         userId: users[1].id,
         templateId: templates[2].id,
+        slug: buildCvSlug(users[1].username, 2),
+        visibility: CvVisibility.public,
+        views: 7,
         name: "Jane Smith CV",
         headline: "UI/UX Designer",
         email: "jane@example.com",
@@ -252,6 +272,9 @@ async function main() {
       data: {
         userId: users[2].id,
         templateId: templates[0].id,
+        slug: buildCvSlug(users[2].username, 3),
+        visibility: CvVisibility.private,
+        views: 0,
         name: "Admin User CV",
         headline: "Project Manager",
         email: "admin@example.com",
@@ -494,6 +517,7 @@ async function main() {
         cvId: cvs[0].id,
         name: "JavaScript",
         level: "expert",
+        skillCategory: SkillCategory.programming_language,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -503,6 +527,7 @@ async function main() {
         cvId: cvs[0].id,
         name: "React",
         level: "advanced",
+        skillCategory: SkillCategory.framework_library,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -512,6 +537,7 @@ async function main() {
         cvId: cvs[0].id,
         name: "Node.js",
         level: "advanced",
+        skillCategory: SkillCategory.backend_development,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -521,6 +547,7 @@ async function main() {
         cvId: cvs[1].id,
         name: "Figma",
         level: "expert",
+        skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -530,6 +557,7 @@ async function main() {
         cvId: cvs[1].id,
         name: "Adobe XD",
         level: "advanced",
+        skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -539,6 +567,7 @@ async function main() {
         cvId: cvs[1].id,
         name: "Sketch",
         level: "intermediate",
+        skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -548,6 +577,7 @@ async function main() {
         cvId: cvs[2].id,
         name: "Project Management",
         level: "expert",
+        skillCategory: SkillCategory.project_management,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -557,6 +587,7 @@ async function main() {
         cvId: cvs[2].id,
         name: "Agile",
         level: "advanced",
+        skillCategory: SkillCategory.agile_scrum,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -566,6 +597,7 @@ async function main() {
         cvId: cvs[2].id,
         name: "Scrum",
         level: "advanced",
+        skillCategory: SkillCategory.agile_scrum,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

@@ -112,6 +112,17 @@ export interface UserSocialLink {
   url?: string;
 }
 
+export interface PublicUserProfile {
+  id?: string;
+  name?: string;
+  username?: string;
+  avatar?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  social_links?: UserSocialLink[];
+}
+
 export interface ForgotPasswordRequest {
   email: string;
 }
@@ -419,32 +430,14 @@ export interface PortfolioListResponse {
 
 export interface PublicPortfolioResponse {
   data?: {
-    user?: {
-      id?: string;
-      name?: string;
-      username?: string;
-      avatar?: string | null;
-      headline?: string | null;
-      bio?: string | null;
-      location?: string | null;
-      social_links?: UserSocialLink[];
-    };
+    user?: PublicUserProfile;
     portfolios?: Portfolio[];
   };
 }
 
 export interface PublicPortfolioDetailResponse {
   data?: {
-    user?: {
-      id?: string;
-      name?: string;
-      username?: string;
-      avatar?: string | null;
-      headline?: string | null;
-      bio?: string | null;
-      location?: string | null;
-      social_links?: UserSocialLink[];
-    };
+    user?: PublicUserProfile;
     portfolio?: Portfolio;
   };
 }
@@ -501,6 +494,7 @@ export interface CvExperience {
 export interface CvSkill {
   name?: string;
   level?: "beginner" | "intermediate" | "advanced" | "expert";
+  skill_category?: SkillCategory;
 }
 
 export interface CvAward {
@@ -514,6 +508,150 @@ export interface CvSocialLink {
   platform?: string;
   url?: string;
 }
+
+export type SkillCategory =
+  | "software"
+  | "tools"
+  | "hard_skill"
+  | "soft_skill"
+  | "other"
+  | "ms_office"
+  | "google_workspace"
+  | "data_entry"
+  | "administration"
+  | "secretarial"
+  | "document_management"
+  | "archiving"
+  | "scheduling"
+  | "virtual_assistant"
+  | "communication"
+  | "public_speaking"
+  | "presentation"
+  | "negotiation"
+  | "customer_service"
+  | "sales"
+  | "business_development"
+  | "leadership"
+  | "teamwork"
+  | "problem_solving"
+  | "time_management"
+  | "critical_thinking"
+  | "training_facilitation"
+  | "coaching_mentoring"
+  | "language"
+  | "translation"
+  | "interpretation"
+  | "programming_language"
+  | "web_development"
+  | "mobile_development"
+  | "backend_development"
+  | "frontend_development"
+  | "fullstack_development"
+  | "api_development"
+  | "system_design"
+  | "algorithms"
+  | "data_structures"
+  | "version_control"
+  | "code_review"
+  | "refactoring"
+  | "framework_library"
+  | "cms"
+  | "ecommerce_platform"
+  | "data_analysis"
+  | "data_science"
+  | "machine_learning"
+  | "deep_learning"
+  | "nlp"
+  | "computer_vision"
+  | "data_engineering"
+  | "etl_elt"
+  | "business_intelligence"
+  | "statistics"
+  | "experimentation_ab_testing"
+  | "analytics"
+  | "database_sql"
+  | "database_nosql"
+  | "data_warehouse"
+  | "data_lake"
+  | "devops"
+  | "ci_cd"
+  | "containerization"
+  | "orchestration"
+  | "cloud_computing"
+  | "linux"
+  | "networking"
+  | "site_reliability"
+  | "monitoring_observability"
+  | "infrastructure_as_code"
+  | "cybersecurity"
+  | "app_security"
+  | "network_security"
+  | "iam_security"
+  | "vulnerability_management"
+  | "penetration_testing"
+  | "quality_assurance"
+  | "manual_testing"
+  | "automation_testing"
+  | "performance_testing"
+  | "test_management"
+  | "ui_ux_design"
+  | "product_design"
+  | "graphic_design"
+  | "branding"
+  | "illustration"
+  | "video_editing"
+  | "motion_graphics"
+  | "photography"
+  | "copywriting"
+  | "content_writing"
+  | "content_strategy"
+  | "product_management"
+  | "project_management"
+  | "program_management"
+  | "agile_scrum"
+  | "business_analysis"
+  | "process_improvement"
+  | "operations"
+  | "strategy_planning"
+  | "okr_kpi"
+  | "digital_marketing"
+  | "social_media"
+  | "seo"
+  | "sem_ppc"
+  | "email_marketing"
+  | "performance_marketing"
+  | "brand_marketing"
+  | "market_research"
+  | "pr_communications"
+  | "community_management"
+  | "finance"
+  | "accounting"
+  | "bookkeeping"
+  | "taxation"
+  | "budgeting_forecasting"
+  | "financial_analysis"
+  | "audit_compliance"
+  | "human_resources"
+  | "recruitment"
+  | "people_operations"
+  | "payroll"
+  | "learning_development"
+  | "legal"
+  | "contract_management"
+  | "compliance"
+  | "risk_management"
+  | "procurement"
+  | "inventory_management"
+  | "supply_chain"
+  | "logistics"
+  | "warehouse_management"
+  | "shipping_fulfillment"
+  | "healthcare"
+  | "education"
+  | "hospitality"
+  | "retail"
+  | "manufacturing"
+  | "construction";
 
 export interface CvOrganization {
   organization_name?: string;
@@ -541,9 +679,12 @@ export interface CvProject {
   live_url?: string | null;
 }
 
+export type CvVisibility = "private" | "public";
+
 export interface Cv {
   id?: string;
   user_id?: string;
+  slug?: string;
   name?: string;
   headline?: string;
   email?: string;
@@ -551,6 +692,8 @@ export interface Cv {
   address?: string;
   about?: string;
   photo?: string | null;
+  visibility?: CvVisibility;
+  views?: number;
   template_id?: string | null;
   language?: "en" | "id";
   template?: {
@@ -579,6 +722,8 @@ export interface CvPayload {
   address: string;
   about: string;
   photo?: string | null;
+  slug?: string;
+  visibility?: CvVisibility;
   template_id?: string | null;
   language?: "en" | "id";
   educations?: CvEducation[];
@@ -678,7 +823,7 @@ export interface Blog {
   created_at?: string;
   updated_at?: string;
   published_at?: string | null;
-  user?: User;
+  user?: PublicUserProfile;
   category?: BlogCategory | null;
   tags?: BlogTag[];
 }

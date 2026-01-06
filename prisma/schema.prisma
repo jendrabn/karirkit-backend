@@ -173,6 +173,193 @@ enum SkillLevel {
   expert
 }
 
+enum SkillCategory {
+  // umum
+  software
+  tools
+  hard_skill
+  soft_skill
+  other
+
+  // office & admin
+  ms_office
+  google_workspace
+  data_entry
+  administration
+  secretarial
+  document_management
+  archiving
+  scheduling
+  virtual_assistant
+
+  // communication & people
+  communication
+  public_speaking
+  presentation
+  negotiation
+  customer_service
+  sales
+  business_development
+  leadership
+  teamwork
+  problem_solving
+  time_management
+  critical_thinking
+  training_facilitation
+  coaching_mentoring
+
+  // languages
+  language
+  translation
+  interpretation
+
+  // software engineering
+  programming_language
+  web_development
+  mobile_development
+  backend_development
+  frontend_development
+  fullstack_development
+  api_development
+  system_design
+  algorithms
+  data_structures
+  version_control
+  code_review
+  refactoring
+
+  // frameworks / platforms
+  framework_library
+  cms
+  ecommerce_platform
+
+  // data & ai
+  data_analysis
+  data_science
+  machine_learning
+  deep_learning
+  nlp
+  computer_vision
+  data_engineering
+  etl_elt
+  business_intelligence
+  statistics
+  experimentation_ab_testing
+  analytics
+
+  // database
+  database_sql
+  database_nosql
+  data_warehouse
+  data_lake
+
+  // devops / infra
+  devops
+  ci_cd
+  containerization
+  orchestration
+  cloud_computing
+  linux
+  networking
+  site_reliability
+  monitoring_observability
+  infrastructure_as_code
+
+  // security
+  cybersecurity
+  app_security
+  network_security
+  iam_security
+  vulnerability_management
+  penetration_testing
+
+  // qa
+  quality_assurance
+  manual_testing
+  automation_testing
+  performance_testing
+  test_management
+
+  // design & creative
+  ui_ux_design
+  product_design
+  graphic_design
+  branding
+  illustration
+  video_editing
+  motion_graphics
+  photography
+  copywriting
+  content_writing
+  content_strategy
+
+  // product / project / ops
+  product_management
+  project_management
+  program_management
+  agile_scrum
+  business_analysis
+  process_improvement
+  operations
+  strategy_planning
+  okr_kpi
+
+  // marketing
+  digital_marketing
+  social_media
+  seo
+  sem_ppc
+  email_marketing
+  performance_marketing
+  brand_marketing
+  market_research
+  pr_communications
+  community_management
+
+  // finance / accounting
+  finance
+  accounting
+  bookkeeping
+  taxation
+  budgeting_forecasting
+  financial_analysis
+  audit_compliance
+
+  // hr
+  human_resources
+  recruitment
+  people_operations
+  payroll
+  learning_development
+
+  // legal / compliance
+  legal
+  contract_management
+  compliance
+  risk_management
+
+  // supply chain / logistics
+  procurement
+  inventory_management
+  supply_chain
+  logistics
+  warehouse_management
+  shipping_fulfillment
+
+  // industry-specific (opsional)
+  healthcare
+  education
+  hospitality
+  retail
+  manufacturing
+  construction
+}
+
+enum CvVisibility {
+  private
+  public
+}
+
 enum Language {
   en
   id
@@ -318,6 +505,9 @@ model Cv {
   about      String   @db.Text
   photo      String?  @db.VarChar(255)
   language   Language @default(id)
+  slug       String   @unique(map: "uq_cvs_slug") @db.VarChar(255)
+  visibility CvVisibility @default(private)
+  views      Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
@@ -499,12 +689,13 @@ model CvExperience {
 }
 
 model CvSkill {
-  id        String     @id @default(uuid()) @db.VarChar(255)
-  cvId      String     @map("cv_id") @db.VarChar(255)
-  name      String     @db.VarChar(255)
-  level     SkillLevel
-  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+  id            String        @id @default(uuid()) @db.VarChar(255)
+  cvId          String        @map("cv_id") @db.VarChar(255)
+  name          String        @db.VarChar(255)
+  level         SkillLevel
+  skillCategory SkillCategory @default(other) @map("skill_category")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
