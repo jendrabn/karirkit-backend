@@ -34,9 +34,10 @@ app.use(cookieParser());
 app.use(bigIntMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
-app.use(express.static(publicDirectory));
+app.use(express.static(publicDirectory, { index: false }));
 
 app.use("/docs", docsMiddleware, renderDocs);
+app.get("/", notFoundHandler);
 app.use("/", routes);
 app.use(notFoundHandler);
 app.use(errorHandler);
