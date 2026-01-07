@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { ResponseError } from "../utils/response-error.util";
+import { isHttpUrl } from "../utils/url.util";
 
 // Allowed file types
 const ALLOWED_MIME_TYPES = {
@@ -201,9 +202,18 @@ export class UploadService {
       throw new ResponseError(400, "FilePath diperlukan");
     }
 
-    const fileName = path.basename(filePath);
+    const trimmed = filePath.trim();
+    if (!trimmed) {
+      throw new ResponseError(400, "FilePath diperlukan");
+    }
 
-    const sourcePath = path.join(process.cwd(), "public", filePath);
+    if (isHttpUrl(trimmed)) {
+      return trimmed;
+    }
+
+    const fileName = path.basename(trimmed);
+
+    const sourcePath = path.join(process.cwd(), "public", trimmed);
 
     const destDir = path.join(
       process.cwd(),

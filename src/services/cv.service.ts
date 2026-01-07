@@ -21,6 +21,7 @@ import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import dayjs from "dayjs";
 import "dayjs/locale/id";
+import { isHttpUrl } from "../utils/url.util";
 import {
   type LabelLanguage,
   DEGREE_LABELS,
@@ -456,6 +457,48 @@ export class CvService {
     }
   }
 
+  static async updateSlugVisibility(
+    userId: string,
+    id: string,
+    request: unknown
+  ): Promise<CvResponse> {
+    await CvService.findOwnedCv(userId, id);
+    const payload = validate(CvValidation.SLUG_VISIBILITY, request);
+    const updateData: Prisma.CvUpdateInput = {
+      updatedAt: new Date(),
+    };
+
+    if (payload.slug !== undefined) {
+      const sanitized = CvService.sanitizeSlug(payload.slug);
+      if (!sanitized) {
+        throw new ResponseError(400, "Slug tidak valid");
+      }
+      const slugExists = await prisma.cv.findFirst({
+        where: {
+          slug: sanitized,
+          NOT: { id },
+        },
+        select: { id: true },
+      });
+      if (slugExists) {
+        throw new ResponseError(400, "Slug sudah digunakan");
+      }
+      updateData.slug = sanitized;
+    }
+
+    if (payload.visibility !== undefined) {
+      updateData.visibility = payload.visibility;
+    }
+
+    const cv = await prisma.cv.update({
+      where: { id },
+      data: updateData,
+      include: relationInclude,
+    });
+
+    return await CvService.toResponse(cv);
+  }
+
   static async delete(userId: string, id: string): Promise<void> {
     const cv = await CvService.findOwnedCv(userId, id);
     await prisma.cv.delete({
@@ -856,12 +899,12 @@ export class CvService {
     input: string | null | undefined,
     currentPhoto?: string | null
   ): Promise<PhotoChange> {
-    const normalizedCurrent =
-      CvService.normalizePublicPath(currentPhoto) ?? null;
+    const normalizedCurrent = CvService.normalizePublicPath(currentPhoto);
+    const existingValue = normalizedCurrent ?? currentPhoto?.trim() ?? null;
 
     if (input === undefined) {
       return {
-        path: normalizedCurrent,
+        path: existingValue,
         created: [],
         obsolete: [],
       };
@@ -876,6 +919,21 @@ export class CvService {
     }
 
     const trimmed = input.trim();
+    if (isHttpUrl(trimmed)) {
+      if ((currentPhoto?.trim() ?? "") === trimmed) {
+        return {
+          path: trimmed,
+          created: [],
+          obsolete: [],
+        };
+      }
+
+      return {
+        path: trimmed,
+        created: [],
+        obsolete: normalizedCurrent ? [normalizedCurrent] : [],
+      };
+    }
     const normalizedInput = CvService.normalizePublicPath(trimmed);
 
     if (normalizedInput) {

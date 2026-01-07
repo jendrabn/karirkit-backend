@@ -1,4 +1,50 @@
 import { z } from "zod";
+import { Gender, Platform } from "../../generated/prisma/client";
+
+const trimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(1, "Field ini wajib diisi")
+    .max(max, `Maksimal ${max} karakter`);
+
+const optionalTrimmedString = (min = 1, max = 255) =>
+  z
+    .string()
+    .trim()
+    .min(min, `Minimal ${min} karakter`)
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .optional();
+
+const nullableTrimmedString = (max = 255) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Maksimal ${max} karakter`)
+    .or(z.literal(""))
+    .nullable()
+    .optional();
+
+const nullableDateString = () =>
+  z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || !Number.isNaN(Date.parse(value)),
+      "Format tanggal tidak valid"
+    )
+    .or(z.literal(""))
+    .nullable()
+    .optional();
+
+const genderSchema = z.nativeEnum(Gender).or(z.literal("")).nullable().optional();
+
+const socialLinkSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  platform: z.nativeEnum(Platform),
+  url: trimmedString(500).url("Format URL tidak valid"),
+});
 
 export class UserValidation {
   static readonly LIST_QUERY = z.object({
@@ -15,14 +61,8 @@ export class UserValidation {
   });
 
   static readonly CREATE = z.object({
-    name: z
-      .string()
-      .min(3, "Nama minimal 3 karakter")
-      .max(100, "Nama maksimal 100 karakter"),
-    username: z
-      .string()
-      .min(3, "Username minimal 3 karakter")
-      .max(100, "Username maksimal 100 karakter"),
+    name: trimmedString(100).min(3, "Nama minimal 3 karakter"),
+    username: trimmedString(100).min(3, "Username minimal 3 karakter"),
     email: z
       .string()
       .email("Format email tidak valid")
@@ -38,6 +78,11 @@ export class UserValidation {
       .or(z.literal(""))
       .nullable()
       .optional(),
+    headline: nullableTrimmedString(255),
+    bio: nullableTrimmedString(5000),
+    location: nullableTrimmedString(255),
+    gender: genderSchema,
+    birth_date: nullableDateString(),
     role: z.enum(["user", "admin"]).default("user"),
     avatar: z.string().or(z.literal("")).nullable().optional(),
     daily_download_limit: z.coerce
@@ -52,21 +97,12 @@ export class UserValidation {
       .max(10 * 1024)
       .default(100)
       .optional(),
+    social_links: z.array(socialLinkSchema).optional(),
   });
 
   static readonly UPDATE = z.object({
-    name: z
-      .string()
-      .min(3, "Nama minimal 3 karakter")
-      .max(100, "Nama maksimal 100 karakter")
-      .or(z.literal(""))
-      .optional(),
-    username: z
-      .string()
-      .min(3, "Username minimal 3 karakter")
-      .max(100, "Username maksimal 100 karakter")
-      .or(z.literal(""))
-      .optional(),
+    name: optionalTrimmedString(3, 100),
+    username: optionalTrimmedString(3, 100),
     email: z
       .string()
       .email("Format email tidak valid")
@@ -80,6 +116,11 @@ export class UserValidation {
       .or(z.literal(""))
       .nullable()
       .optional(),
+    headline: nullableTrimmedString(255),
+    bio: nullableTrimmedString(5000),
+    location: nullableTrimmedString(255),
+    gender: genderSchema,
+    birth_date: nullableDateString(),
     role: z.enum(["user", "admin"]).optional(),
     avatar: z.string().or(z.literal("")).nullable().optional(),
     daily_download_limit: z.coerce.number().min(0).max(1000).optional(),
@@ -88,6 +129,7 @@ export class UserValidation {
       .min(0)
       .max(10 * 1024)
       .optional(),
+    social_links: z.array(socialLinkSchema).optional(),
     status: z.enum(["active", "suspended", "banned"]).optional(),
     status_reason: z.string().max(500).or(z.literal("")).nullable().optional(),
     suspended_until: z
@@ -104,6 +146,33 @@ export class UserValidation {
         },
         { message: "Format tanggal penangguhan tidak valid" }
       ),
+  });
+
+  static readonly STATUS_UPDATE = z.object({
+    status: z.enum(["active", "suspended", "banned"]),
+    status_reason: z.string().max(500).or(z.literal("")).nullable().optional(),
+    suspended_until: z
+      .string()
+      .or(z.literal(""))
+      .nullable()
+      .optional()
+      .refine(
+        (value) => {
+          if (!value) {
+            return true;
+          }
+          return !Number.isNaN(Date.parse(value));
+        },
+        { message: "Format tanggal penangguhan tidak valid" }
+      ),
+  });
+
+  static readonly DAILY_DOWNLOAD_LIMIT_UPDATE = z.object({
+    daily_download_limit: z.coerce.number().min(0).max(1000),
+  });
+
+  static readonly STORAGE_LIMIT_UPDATE = z.object({
+    document_storage_limit: z.coerce.number().min(0).max(10 * 1024),
   });
 
   static readonly MASS_DELETE = z.object({

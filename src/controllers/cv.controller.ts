@@ -55,6 +55,23 @@ export class CvController {
     }
   }
 
+  static async updateSlugVisibility(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const cv = await CvService.updateSlugVisibility(
+        req.user!.id,
+        req.params.id,
+        req.body
+      );
+      sendSuccess(res, cv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await CvService.delete(req.user!.id, req.params.id);

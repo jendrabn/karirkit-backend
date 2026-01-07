@@ -181,6 +181,11 @@ router.post("/cvs", authMiddleware, CvController.create);
 router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
 router.get("/cvs/:id", authMiddleware, CvController.get);
 router.put("/cvs/:id", authMiddleware, CvController.update);
+router.patch(
+  "/cvs/:id/visibilty",
+  authMiddleware,
+  CvController.updateSlugVisibility
+);
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
 router.get("/cvs/:id/download", authMiddleware, CvController.download);
@@ -261,6 +266,24 @@ router.put(
   authMiddleware,
   adminMiddleware,
   UserController.update
+);
+router.patch(
+  "/admin/users/:id/status",
+  authMiddleware,
+  adminMiddleware,
+  UserController.updateStatus
+);
+router.patch(
+  "/admin/users/:id/daily-download-limit",
+  authMiddleware,
+  adminMiddleware,
+  UserController.updateDailyDownloadLimit
+);
+router.patch(
+  "/admin/users/:id/storage-download-limit",
+  authMiddleware,
+  adminMiddleware,
+  UserController.updateStorageLimit
 );
 router.delete(
   "/admin/users/:id",

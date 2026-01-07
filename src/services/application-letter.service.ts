@@ -19,6 +19,7 @@ import {
   type MassDeleteInput,
 } from "../validations/application-letter.validation";
 import { ResponseError } from "../utils/response-error.util";
+import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 
@@ -411,6 +412,14 @@ export class ApplicationLetterService {
     if (!trimmed) {
       await ApplicationLetterService.deleteSignatureFile(currentSignature);
       return "";
+    }
+
+    if (isHttpUrl(trimmed)) {
+      if ((currentSignature?.trim() ?? "") === trimmed) {
+        return trimmed;
+      }
+      await ApplicationLetterService.deleteSignatureFile(currentSignature);
+      return trimmed;
     }
 
     const normalizedExisting =

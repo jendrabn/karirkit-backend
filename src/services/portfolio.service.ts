@@ -21,6 +21,7 @@ import {
 } from "../validations/portfolio.validation";
 import { ResponseError } from "../utils/response-error.util";
 import { slugify } from "../utils/slugify.util";
+import { isHttpUrl } from "../utils/url.util";
 
 type PortfolioListResult = {
   items: PortfolioSchema[];
@@ -470,6 +471,14 @@ export class PortfolioService {
       };
     }
 
+    if (isHttpUrl(trimmed)) {
+      return {
+        path: trimmed,
+        created: [],
+        obsolete: normalizedCurrent ? [normalizedCurrent] : [],
+      };
+    }
+
     const normalizedInput =
       PortfolioService.normalizePortfolioPublicPath(trimmed);
     if (normalizedInput) {
@@ -512,6 +521,14 @@ export class PortfolioService {
 
     for (const entry of entries) {
       const trimmedPath = entry.path.trim();
+      if (isHttpUrl(trimmedPath)) {
+        medias.push({
+          path: trimmedPath,
+          caption: PortfolioService.normalizeCaption(entry.caption),
+        });
+        retained.add(trimmedPath);
+        continue;
+      }
       const normalizedFinal =
         PortfolioService.normalizePortfolioPublicPath(trimmedPath);
 

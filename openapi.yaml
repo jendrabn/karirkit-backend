@@ -1207,17 +1207,28 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-    delete:
+  /cvs/{id}/visibilty:
+    patch:
       tags: [CVs]
-      summary: Delete CV
-      description: Permanently remove the CV and all associated sections.
+      summary: Update CV slug and visibility
+      description: Update only the CV `slug` and/or `visibility`.
       security:
         - sessionCookie: []
       parameters:
         - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CvSlugVisibilityPayload"
       responses:
-        "204":
-          description: Deleted
+        "200":
+          description: Updated CV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CvResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1856,6 +1867,93 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/users/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Update user status
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserStatusRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+  /admin/users/{id}/daily-download-limit:
+    patch:
+      tags: [Admin]
+      summary: Update daily download limit
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserDailyDownloadLimitRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+  /admin/users/{id}/storage-download-limit:
+    patch:
+      tags: [Admin]
+      summary: Update document storage limit
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserStorageLimitRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -5188,6 +5286,14 @@ components:
           type: array
           items: { $ref: "#/components/schemas/CvProject" }
       required: [name, headline, email, phone, address, about, template_id]
+    CvSlugVisibilityPayload:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Optional custom slug (will be sanitized & must be unique)
+        visibility:
+          $ref: "#/components/schemas/CvVisibility"
     CvResponse:
       type: object
       properties:
@@ -5537,6 +5643,64 @@ components:
                 admin:
                   type: integer
               description: Distribution of users by role
+    AdminUserSocialLinkPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum:
+            # Profesional & portofolio umum
+            - linkedin
+            - website
+            - blog
+            - portfolio
+            # Developer
+            - github
+            - gitlab
+            - bitbucket
+            - stackoverflow
+            - devto
+            - hashnode
+            - medium
+            # Coding challenge
+            - leetcode
+            - hackerrank
+            - codewars
+            - topcoder
+            # Data/AI
+            - kaggle
+            # Desain & kreatif
+            - behance
+            - dribbble
+            - figma
+            - adobe_portfolio
+            - artstation
+            # Video / konten
+            - youtube
+            - vimeo
+            - tiktok
+            - twitch
+            # Sosial
+            - x
+            - instagram
+            - facebook
+            - threads
+            # Komunitas & komunikasi
+            - discord
+            - telegram
+            - whatsapp
+            - line
+            - wechat
+            - skype
+            # Akademik (opsional tapi bagus)
+            - google_scholar
+            - orcid
+            - researchgate
+            - arxiv
+        url:
+          type: string
     AdminCreateUserRequest:
       type: object
       properties:
@@ -5583,6 +5747,10 @@ components:
           type: integer
           default: 100
           description: Document storage limit in MB
+        social_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserSocialLinkPayload"
       required: [name, username, email, password]
     AdminUpdateUserRequest:
       type: object
@@ -5625,6 +5793,10 @@ components:
         document_storage_limit:
           type: integer
           description: Document storage limit in MB
+        social_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserSocialLinkPayload"
         status:
           type: string
           enum: [active, suspended, banned]
@@ -5637,6 +5809,35 @@ components:
           format: date-time
           nullable: true
           description: Suspension expiry timestamp (UTC)
+    AdminUpdateUserStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, suspended, banned]
+        status_reason:
+          type: string
+          nullable: true
+          description: Optional reason provided by admin
+        suspended_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Suspension expiry timestamp (UTC)
+      required: [status]
+    AdminUpdateUserDailyDownloadLimitRequest:
+      type: object
+      properties:
+        daily_download_limit:
+          type: integer
+      required: [daily_download_limit]
+    AdminUpdateUserStorageLimitRequest:
+      type: object
+      properties:
+        document_storage_limit:
+          type: integer
+          description: Document storage limit in MB
+      required: [document_storage_limit]
     AdminUserListResponse:
       type: object
       properties:

@@ -167,10 +167,20 @@ const massDeleteSchema = z.object({
   ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
 });
 
+const slugVisibilitySchema = z
+  .object({
+    slug: slugSchema.optional(),
+    visibility: z.nativeEnum(CvVisibility).optional(),
+  })
+  .refine((value) => value.slug !== undefined || value.visibility !== undefined, {
+    message: "Minimal salah satu field harus diisi",
+  });
+
 export class CvValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
   static readonly MASS_DELETE = massDeleteSchema;
+  static readonly SLUG_VISIBILITY = slugVisibilitySchema;
 }
 
 export type CvPayloadInput = z.infer<typeof payloadSchema>;
@@ -184,3 +194,4 @@ export type CvSocialLinkPayloadInput = z.infer<typeof socialLinkSchema>;
 export type CvOrganizationPayloadInput = z.infer<typeof organizationSchema>;
 export type CvProjectPayloadInput = z.infer<typeof projectSchema>;
 export type MassDeleteInput = z.infer<typeof CvValidation.MASS_DELETE>;
+export type CvSlugVisibilityInput = z.infer<typeof slugVisibilitySchema>;
