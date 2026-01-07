@@ -3988,16 +3988,14 @@ components:
           type: string
           nullable: true
         gender:
-          type: string
-          enum: [male, female]
+          $ref: "#/components/schemas/Gender"
           nullable: true
         birth_date:
           type: string
           format: date
           nullable: true
         role:
-          type: string
-          enum: [user, admin]
+          $ref: "#/components/schemas/UserRole"
         avatar:
           type: string
           nullable: true
@@ -4018,8 +4016,8 @@ components:
           description: Daily download limit for CVs and Application Letters
         document_storage_limit:
           type: integer
-          default: 104857600
-          description: Total document storage limit in bytes
+          default: 100
+          description: Total document storage limit in MB
         document_storage_stats:
           $ref: "#/components/schemas/DocumentStorageStats"
         social_links:
@@ -4027,8 +4025,7 @@ components:
           items:
             $ref: "#/components/schemas/UserSocialLink"
         status:
-          type: string
-          enum: [active, suspended, banned]
+          $ref: "#/components/schemas/UserStatus"
           default: active
         status_reason:
           type: string
@@ -4116,8 +4113,7 @@ components:
           type: string
           nullable: true
         gender:
-          type: string
-          enum: [male, female]
+          $ref: "#/components/schemas/Gender"
           nullable: true
         birth_date:
           type: string
@@ -4280,6 +4276,42 @@ components:
         - orcid
         - researchgate
         - arxiv
+    ApplicationStatus:
+      type: string
+      enum: [draft, submitted, administration_screening, hr_screening, online_test, psychological_test, technical_test, hr_interview, user_interview, final_interview, offering, mcu, onboarding, accepted, rejected]
+    ApplicationResultStatus:
+      type: string
+      enum: [pending, passed, failed]
+    OrganizationType:
+      type: string
+      enum: [student, community, professional, volunteer, other]
+    TemplateType:
+      type: string
+      enum: [cv, application_letter]
+    OtpPurpose:
+      type: string
+      enum: [login_verification]
+    DownloadType:
+      type: string
+      enum: [cv, application_letter]
+    Degree:
+      type: string
+      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+    Gender:
+      type: string
+      enum: [male, female]
+    MaritalStatus:
+      type: string
+      enum: [single, married, widowed]
+    UserRole:
+      type: string
+      enum: [admin, user]
+    UserStatus:
+      type: string
+      enum: [active, suspended, banned]
+    Language:
+      type: string
+      enum: [en, id]
     Application:
       type: object
       properties:
@@ -4312,10 +4344,9 @@ components:
           type: string
           format: date
         status:
-          type: string
+          $ref: "#/components/schemas/ApplicationStatus"
         result_status:
-          type: string
-          enum: [pending, passed, failed]
+          $ref: "#/components/schemas/ApplicationResultStatus"
         contact_name:
           type: string
           nullable: true
@@ -4372,10 +4403,9 @@ components:
           type: string
           format: date
         status:
-          type: string
+          $ref: "#/components/schemas/ApplicationStatus"
         result_status:
-          type: string
-          enum: [pending, passed, failed]
+          $ref: "#/components/schemas/ApplicationResultStatus"
         contact_name:
           type: string
           nullable: true
@@ -4456,11 +4486,9 @@ components:
         birth_place_date:
           type: string
         gender:
-          type: string
-          enum: [male, female]
+          $ref: "#/components/schemas/Gender"
         marital_status:
-          type: string
-          enum: [single, married, widowed]
+          $ref: "#/components/schemas/MaritalStatus"
         education:
           type: string
         phone:
@@ -4510,8 +4538,7 @@ components:
             path:
               type: string
             type:
-              type: string
-              enum: [cv, application_letter]
+              $ref: "#/components/schemas/TemplateType"
           description: Template details
         created_at:
           type: string
@@ -4524,8 +4551,8 @@ components:
       properties:
         name: { type: string }
         birth_place_date: { type: string }
-        gender: { type: string, enum: [male, female] }
-        marital_status: { type: string, enum: [single, married, widowed] }
+        gender: { $ref: "#/components/schemas/Gender" }
+        marital_status: { $ref: "#/components/schemas/MaritalStatus" }
         education: { type: string }
         phone: { type: string }
         email: { type: string }
@@ -4545,8 +4572,7 @@ components:
           type: string
           nullable: true
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
           default: en
         template_id:
           type: string
@@ -4915,8 +4941,7 @@ components:
       type: object
       properties:
         degree:
-          type: string
-          enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+          $ref: "#/components/schemas/Degree"
         school_name:
           type: string
         school_location:
@@ -5162,8 +5187,7 @@ components:
         organization_name: { type: string }
         role_title: { type: string }
         organization_type:
-          type: string
-          enum: [student, community, professional, volunteer, other]
+          $ref: "#/components/schemas/OrganizationType"
         location: { type: string }
         start_month: { type: integer }
         start_year: { type: integer }
@@ -5254,8 +5278,7 @@ components:
         visibility:
           $ref: "#/components/schemas/CvVisibility"
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
           default: en
         template_id:
           type: string
@@ -5726,16 +5749,14 @@ components:
           type: string
           nullable: true
         gender:
-          type: string
-          enum: [male, female]
+          $ref: "#/components/schemas/Gender"
           nullable: true
         birth_date:
           type: string
           format: date
           nullable: true
         role:
-          type: string
-          enum: [user, admin]
+          $ref: "#/components/schemas/UserRole"
           default: user
         avatar:
           type: string
@@ -5775,16 +5796,14 @@ components:
           type: string
           nullable: true
         gender:
-          type: string
-          enum: [male, female]
+          $ref: "#/components/schemas/Gender"
           nullable: true
         birth_date:
           type: string
           format: date
           nullable: true
         role:
-          type: string
-          enum: [user, admin]
+          $ref: "#/components/schemas/UserRole"
         avatar:
           type: string
           nullable: true
@@ -5798,8 +5817,7 @@ components:
           items:
             $ref: "#/components/schemas/AdminUserSocialLinkPayload"
         status:
-          type: string
-          enum: [active, suspended, banned]
+          $ref: "#/components/schemas/UserStatus"
         status_reason:
           type: string
           nullable: true
@@ -5813,8 +5831,7 @@ components:
       type: object
       properties:
         status:
-          type: string
-          enum: [active, suspended, banned]
+          $ref: "#/components/schemas/UserStatus"
         status_reason:
           type: string
           nullable: true
@@ -5860,11 +5877,9 @@ components:
         slug:
           type: string
         type:
-          type: string
-          enum: [cv, application_letter]
+          $ref: "#/components/schemas/TemplateType"
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
           default: en
         path:
           type: string
@@ -5894,11 +5909,9 @@ components:
         slug:
           type: string
         type:
-          type: string
-          enum: [cv, application_letter]
+          $ref: "#/components/schemas/TemplateType"
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
           default: en
         path:
           type: string
@@ -5919,11 +5932,9 @@ components:
         slug:
           type: string
         type:
-          type: string
-          enum: [cv, application_letter]
+          $ref: "#/components/schemas/TemplateType"
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
         path:
           type: string
           description: Path to the template file (from temp upload)
@@ -6076,11 +6087,9 @@ components:
         slug:
           type: string
         type:
-          type: string
-          enum: [cv, application_letter]
+          $ref: "#/components/schemas/TemplateType"
         language:
-          type: string
-          enum: [en, id]
+          $ref: "#/components/schemas/Language"
           default: en
         preview:
           type: string
@@ -6112,18 +6121,7 @@ components:
       enum: [draft, published, closed, archived]
     EducationLevel:
       type: string
-      enum:
-        [
-          middle_school,
-          high_school,
-          associate_d1,
-          associate_d2,
-          associate_d3,
-          bachelor,
-          master,
-          doctorate,
-          any,
-        ]
+      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
     Company:
       type: object
       properties:
@@ -6601,13 +6599,13 @@ components:
       properties:
         limit:
           type: integer
-          description: Storage limit in bytes
+          description: Storage limit in MB
         used:
           type: integer
-          description: Used storage in bytes
+          description: Used storage in MB
         remaining:
           type: integer
-          description: Remaining storage in bytes
+          description: Remaining storage in MB
     UserSocialLink:
       type: object
       properties:

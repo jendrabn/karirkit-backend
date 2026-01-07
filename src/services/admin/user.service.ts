@@ -127,7 +127,6 @@ type RawUserRecord = {
 };
 
 const DEFAULT_DOCUMENT_STORAGE_LIMIT = 100 * 1024 * 1024;
-const BYTES_PER_MB = 1024 * 1024;
 
 const buildDownloadStats = (
   user: RawUserRecord,
@@ -499,7 +498,7 @@ export class UserService {
           documentStorageLimit:
             requestData.document_storage_limit === undefined
               ? DEFAULT_DOCUMENT_STORAGE_LIMIT
-              : Math.floor(requestData.document_storage_limit * BYTES_PER_MB),
+              : Math.floor(requestData.document_storage_limit),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -651,7 +650,7 @@ export class UserService {
 
     if (requestData.document_storage_limit !== undefined) {
       updateData.documentStorageLimit = Math.floor(
-        requestData.document_storage_limit * BYTES_PER_MB
+        requestData.document_storage_limit
       );
     }
 
@@ -904,7 +903,7 @@ export class UserService {
       data: {
         updatedAt: new Date(),
         documentStorageLimit: Math.floor(
-          requestData.document_storage_limit * BYTES_PER_MB
+          requestData.document_storage_limit
         ),
       },
       select: {

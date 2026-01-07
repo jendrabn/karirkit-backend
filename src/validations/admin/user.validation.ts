@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Gender, Platform } from "../../generated/prisma/client";
+import env from "../../config/env.config";
 
 const trimmedString = (max = 255) =>
   z
@@ -45,6 +46,9 @@ const socialLinkSchema = z.object({
   platform: z.nativeEnum(Platform),
   url: trimmedString(500).url("Format URL tidak valid"),
 });
+
+const maxDocumentStorageLimitBytes = env.documentStorageLimitMaxBytes;
+const defaultDocumentStorageLimitBytes = 100 * 1024 * 1024;
 
 export class UserValidation {
   static readonly LIST_QUERY = z.object({
@@ -94,8 +98,8 @@ export class UserValidation {
     document_storage_limit: z.coerce
       .number()
       .min(0)
-      .max(10 * 1024)
-      .default(100)
+      .max(maxDocumentStorageLimitBytes)
+      .default(defaultDocumentStorageLimitBytes)
       .optional(),
     social_links: z.array(socialLinkSchema).optional(),
   });
@@ -127,7 +131,7 @@ export class UserValidation {
     document_storage_limit: z.coerce
       .number()
       .min(0)
-      .max(10 * 1024)
+      .max(maxDocumentStorageLimitBytes)
       .optional(),
     social_links: z.array(socialLinkSchema).optional(),
     status: z.enum(["active", "suspended", "banned"]).optional(),
@@ -172,7 +176,10 @@ export class UserValidation {
   });
 
   static readonly STORAGE_LIMIT_UPDATE = z.object({
-    document_storage_limit: z.coerce.number().min(0).max(10 * 1024),
+    document_storage_limit: z.coerce
+      .number()
+      .min(0)
+      .max(maxDocumentStorageLimitBytes),
   });
 
   static readonly MASS_DELETE = z.object({

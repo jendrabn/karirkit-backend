@@ -182,7 +182,7 @@ router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
 router.get("/cvs/:id", authMiddleware, CvController.get);
 router.put("/cvs/:id", authMiddleware, CvController.update);
 router.patch(
-  "/cvs/:id/visibilty",
+  "/cvs/:id/visibility",
   authMiddleware,
   CvController.updateSlugVisibility
 );

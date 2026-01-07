@@ -112,6 +112,10 @@ const env = {
     expiresInSeconds: parseNumber(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
     resendCooldownInSeconds: parseNumber(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
   },
+  documentStorageLimitMaxBytes: parseNumber(
+    process.env.DOCUMENT_STORAGE_LIMIT_MAX_BYTES,
+    1024 * 1024 * 1024
+  ),
   ghostscriptCommand: process.env.GHOSTSCRIPT_COMMAND ?? "gs",
   pdfCompressionEnabled: process.env.PDF_COMPRESSION_ENABLED === "true",
   ghostscriptPdfSettings:
