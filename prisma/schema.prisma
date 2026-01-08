@@ -489,27 +489,28 @@ model User {
   blogs              Blog[]
   otps               Otp[]
   socialLinks        UserSocialLink[]
+  savedJobs          SavedJob[]
 
   @@map("users")
 }
 
 model Cv {
-  id         String   @id @default(uuid()) @db.VarChar(255)
-  userId     String   @map("user_id") @db.VarChar(255)
-  templateId String?  @map("template_id") @db.VarChar(255)
-  name       String   @db.VarChar(255)
-  headline   String   @db.VarChar(255)
-  email      String   @db.VarChar(255)
-  phone      String   @db.VarChar(255)
-  address    String   @db.VarChar(255)
-  about      String   @db.Text
-  photo      String?  @db.VarChar(255)
-  language   Language @default(id)
-  slug       String   @unique(map: "uq_cvs_slug") @db.VarChar(255)
+  id         String       @id @default(uuid()) @db.VarChar(255)
+  userId     String       @map("user_id") @db.VarChar(255)
+  templateId String?      @map("template_id") @db.VarChar(255)
+  name       String       @db.VarChar(255)
+  headline   String       @db.VarChar(255)
+  email      String       @db.VarChar(255)
+  phone      String       @db.VarChar(255)
+  address    String       @db.VarChar(255)
+  about      String       @db.Text
+  photo      String?      @db.VarChar(255)
+  language   Language     @default(id)
+  slug       String       @unique(map: "uq_cvs_slug") @db.VarChar(255)
   visibility CvVisibility @default(private)
-  views      Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  views      Int          @default(0)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamp(0)
 
   user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   educations    CvEducation[]
@@ -975,10 +976,11 @@ model Job {
   createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  company Company    @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  jobRole JobRole    @relation(fields: [jobRoleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  city    City?      @relation(fields: [cityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
-  medias  JobMedia[]
+  company   Company    @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  jobRole   JobRole    @relation(fields: [jobRoleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  city      City?      @relation(fields: [cityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  medias    JobMedia[]
+  savedJobs SavedJob[]
 
   @@index([companyId], map: "idx_jobs_company_id")
   @@index([jobRoleId], map: "idx_jobs_job_role_id")
@@ -990,6 +992,21 @@ model Job {
   @@index([salaryMin], map: "idx_jobs_salary_min")
   @@index([createdAt], map: "idx_jobs_created_at")
   @@map("jobs")
+}
+
+model SavedJob {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  userId    String   @map("user_id") @db.VarChar(255)
+  jobId     String   @map("job_id") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId], map: "idx_saved_jobs_user_id")
+  @@index([jobId], map: "idx_saved_jobs_job_id")
+  @@map("saved_jobs")
 }
 
 model JobMedia {

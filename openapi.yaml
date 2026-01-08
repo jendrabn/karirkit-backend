@@ -2903,6 +2903,87 @@ paths:
                 $ref: "#/components/schemas/JobResponse"
         "404":
           $ref: "#/components/responses/NotFound"
+  /jobs/saved:
+    get:
+      tags: [Jobs]
+      summary: List saved jobs
+      description: Mengambil daftar lowongan pekerjaan yang telah disimpan oleh pengguna autentik.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            enum: [5, 10, 20, 50]
+            default: 10
+          description: Jumlah data per halaman
+      responses:
+        "200":
+          description: Saved jobs list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /jobs/saved/toggle:
+    post:
+      tags: [Jobs]
+      summary: Toggle saved job
+      description: Menyimpan atau membatalkan simpanan sebuah lowongan pekerjaan.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavedJobToggleRequest"
+      responses:
+        "200":
+          description: Job saved status toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /jobs/saved/mass-delete:
+    delete:
+      tags: [Jobs]
+      summary: Mass delete saved jobs
+      description: Menghapus beberapa pekerjaan yang sudah disimpan sekaligus.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavedJobMassDeleteRequest"
+      responses:
+        "200":
+          description: Saved jobs deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedJobMassDeleteResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /companies:
     get:
       tags: [Public]
@@ -4278,7 +4359,24 @@ components:
         - arxiv
     ApplicationStatus:
       type: string
-      enum: [draft, submitted, administration_screening, hr_screening, online_test, psychological_test, technical_test, hr_interview, user_interview, final_interview, offering, mcu, onboarding, accepted, rejected]
+      enum:
+        [
+          draft,
+          submitted,
+          administration_screening,
+          hr_screening,
+          online_test,
+          psychological_test,
+          technical_test,
+          hr_interview,
+          user_interview,
+          final_interview,
+          offering,
+          mcu,
+          onboarding,
+          accepted,
+          rejected,
+        ]
     ApplicationResultStatus:
       type: string
       enum: [pending, passed, failed]
@@ -4296,7 +4394,18 @@ components:
       enum: [cv, application_letter]
     Degree:
       type: string
-      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+      enum:
+        [
+          middle_school,
+          high_school,
+          associate_d1,
+          associate_d2,
+          associate_d3,
+          bachelor,
+          master,
+          doctorate,
+          any,
+        ]
     Gender:
       type: string
       enum: [male, female]
@@ -6121,7 +6230,18 @@ components:
       enum: [draft, published, closed, archived]
     EducationLevel:
       type: string
-      enum: [middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any]
+      enum:
+        [
+          middle_school,
+          high_school,
+          associate_d1,
+          associate_d2,
+          associate_d3,
+          bachelor,
+          master,
+          doctorate,
+          any,
+        ]
     Company:
       type: object
       properties:
@@ -6326,6 +6446,9 @@ components:
           $ref: "#/components/schemas/JobRole"
         city:
           $ref: "#/components/schemas/City"
+        is_saved:
+          type: boolean
+          description: Menandakan apakah lowongan sudah disimpan oleh pengguna yang diautentikasi
     JobResponse:
       type: object
       properties:
@@ -6343,6 +6466,33 @@ components:
                 $ref: "#/components/schemas/Job"
             pagination:
               $ref: "#/components/schemas/Pagination"
+    SavedJobToggleRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID pekerjaan untuk toggle status simpan
+      required: [id]
+    SavedJobMassDeleteRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required: [ids]
+    SavedJobMassDeleteResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+            deleted_count:
+              type: integer
     AdminCreateJobRequest:
       type: object
       properties:

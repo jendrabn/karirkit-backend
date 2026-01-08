@@ -4,6 +4,7 @@ import { AuthController } from "../controllers/auth.controller";
 import { AccountController } from "../controllers/account.controller";
 import authMiddleware from "../middleware/auth.middleware";
 import adminMiddleware from "../middleware/admin.middleware";
+import optionalAuthMiddleware from "../middleware/optional-auth.middleware";
 import {
   loginRateLimiter,
   passwordResetRateLimiter,
@@ -454,8 +455,15 @@ router.delete(
 );
 
 // Job Portal Public API
-router.get("/jobs", JobController.getJobs);
-router.get("/jobs/:slug", JobController.getJobBySlug);
+router.get("/jobs", optionalAuthMiddleware, JobController.getJobs);
+router.get("/jobs/saved", authMiddleware, JobController.listSavedJobs);
+router.get("/jobs/:slug", optionalAuthMiddleware, JobController.getJobBySlug);
+router.post("/jobs/saved/toggle", authMiddleware, JobController.toggleSavedJob);
+router.delete(
+  "/jobs/saved/mass-delete",
+  authMiddleware,
+  JobController.massDeleteSavedJobs
+);
 router.get("/companies", PublicController.getCompanies);
 router.get("/job-roles", PublicController.getJobRoles);
 router.get("/cities", PublicController.getCities);

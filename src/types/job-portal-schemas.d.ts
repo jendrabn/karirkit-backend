@@ -190,6 +190,7 @@ export interface Job {
   company?: Company;
   job_role?: JobRole;
   city?: City;
+  is_saved?: boolean;
 }
 
 export interface JobResponse {
@@ -204,6 +205,19 @@ export interface JobListResponse {
     total_items?: number;
     total_pages?: number;
   };
+}
+
+export interface SavedJobToggleRequest {
+  id: string;
+}
+
+export interface SavedJobMassDeleteRequest {
+  ids: string[];
+}
+
+export interface SavedJobMassDeleteResponse {
+  message?: string;
+  deleted_count?: number;
 }
 
 export interface JobListQueryParams {

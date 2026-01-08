@@ -1,15 +1,15 @@
-import { PrismaClient } from "../generated/prisma/client";
 import {
-  JobListQueryParams,
   JobListResponse,
   JobResponse,
+  CompanyResponse,
+  CityResponse,
 } from "../types/job-portal-schemas";
 import { validate } from "../utils/validate.util";
 import { z } from "zod";
 import { ResponseError } from "../utils/response-error.util";
 import { prisma } from "../config/prisma.config";
-import { CompanyResponse } from "../types/job-portal-schemas";
-import { CityResponse } from "../types/job-portal-schemas";
+import { JobValidation } from "../validations/job.validation";
+import { JobStatus, Prisma } from "../generated/prisma/client";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -19,8 +19,23 @@ const sortFieldMap = {
   experience_min: "minYearsOfExperience",
 } as const;
 
+const jobInclude = {
+  company: true,
+  jobRole: true,
+  medias: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
+  city: {
+    include: {
+      province: true,
+    },
+  },
+} as const;
+
 export class JobService {
-  static async list(query: unknown): Promise<JobListResponse> {
+  static async list(query: unknown, userId?: string): Promise<JobListResponse> {
     const requestData = validate(
       z.object({
         page: z.coerce.number().min(1).default(1),
@@ -234,28 +249,32 @@ export class JobService {
         orderBy,
         skip,
         take,
-        include: {
-          company: true,
-          jobRole: true,
-          medias: {
-            orderBy: {
-              createdAt: "asc",
-            },
-          },
-          city: {
-            include: {
-              province: true,
-            },
-          },
-        },
+        include: jobInclude,
       }),
     ]);
+
+    const savedJobSet = new Set<string>();
+    if (userId && records.length > 0) {
+      const savedJobs = await prisma.savedJob.findMany({
+        where: {
+          userId,
+          jobId: { in: records.map((record) => record.id) },
+        },
+        select: {
+          jobId: true,
+        },
+      });
+
+      savedJobs.forEach((saved) => savedJobSet.add(saved.jobId));
+    }
 
     const totalPages =
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
     return {
-      items: records.map((record) => JobService.toResponse(record)),
+      items: records.map((record) =>
+        JobService.toResponse(record, savedJobSet.has(record.id))
+      ),
       pagination: {
         page,
         per_page: perPage,
@@ -265,34 +284,166 @@ export class JobService {
     };
   }
 
-  static async getBySlug(slug: string): Promise<JobResponse> {
+  static async getBySlug(slug: string, userId?: string): Promise<JobResponse> {
     const job = await prisma.job.findFirst({
       where: {
         slug,
         status: "published", // Only show published jobs for public API
         OR: [{ expirationDate: null }, { expirationDate: { gte: new Date() } }],
       },
-      include: {
-        company: true,
-        jobRole: true,
-        medias: {
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-        city: {
-          include: {
-            province: true,
-          },
-        },
-      },
+      include: jobInclude,
     });
 
     if (!job) {
       throw new ResponseError(404, "Lowongan pekerjaan tidak ditemukan");
     }
 
-    return JobService.toResponse(job);
+    let isSaved = false;
+    if (userId) {
+      const savedJob = await prisma.savedJob.findUnique({
+        where: {
+          userId_jobId: {
+            userId,
+            jobId: job.id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+      isSaved = Boolean(savedJob);
+    }
+
+    return JobService.toResponse(job, isSaved);
+  }
+
+  static async listSavedJobs(
+    userId: string,
+    query: unknown
+  ): Promise<JobListResponse> {
+    const requestData = validate(
+      z.object({
+        page: z.coerce.number().min(1).default(1),
+        per_page: z.coerce.number().min(1).max(50).default(10),
+      }),
+      query
+    );
+
+    const skip = (requestData.page - 1) * requestData.per_page;
+    const take = requestData.per_page;
+
+    const where: Prisma.SavedJobWhereInput = {
+      userId,
+      job: {
+        status: JobStatus.published,
+        OR: [
+          { expirationDate: null },
+          { expirationDate: { gte: new Date() } },
+        ],
+      },
+    };
+
+    const [totalItems, savedRecords] = await Promise.all([
+      prisma.savedJob.count({ where }),
+      prisma.savedJob.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take,
+        include: {
+          job: {
+            include: jobInclude,
+          },
+        },
+      }),
+    ]);
+
+    type SavedRecordWithJob = (typeof savedRecords)[number];
+
+    const jobs = savedRecords
+      .map((saved) => saved.job)
+      .filter((job): job is NonNullable<SavedRecordWithJob["job"]> =>
+        Boolean(job)
+      );
+
+    const totalPages =
+      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(take, 1));
+
+    return {
+      items: jobs.map((job) => JobService.toResponse(job, true)),
+      pagination: {
+        page: requestData.page,
+        per_page: take,
+        total_items: totalItems,
+        total_pages: totalPages,
+      },
+    };
+  }
+
+  static async toggleSavedJob(
+    userId: string,
+    request: unknown
+  ): Promise<JobResponse> {
+    const payload = validate(JobValidation.TOGGLE_SAVED_JOB, request);
+    const job = await prisma.job.findFirst({
+      where: {
+        id: payload.id,
+        status: "published",
+        OR: [{ expirationDate: null }, { expirationDate: { gte: new Date() } }],
+      },
+      include: jobInclude,
+    });
+
+    if (!job) {
+      throw new ResponseError(404, "Lowongan pekerjaan tidak ditemukan");
+    }
+
+    const existing = await prisma.savedJob.findUnique({
+      where: {
+        userId_jobId: {
+          userId,
+          jobId: job.id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      await prisma.savedJob.delete({ where: { id: existing.id } });
+      return JobService.toResponse(job, false);
+    }
+
+    await prisma.savedJob.create({
+      data: {
+        userId,
+        jobId: job.id,
+      },
+    });
+
+    return JobService.toResponse(job, true);
+  }
+
+  static async massDeleteSavedJobs(
+    userId: string,
+    request: unknown
+  ): Promise<{ message: string; deleted_count: number }> {
+    const payload = validate(JobValidation.MASS_DELETE_SAVED_JOBS, request);
+
+    const result = await prisma.savedJob.deleteMany({
+      where: {
+        userId,
+        jobId: { in: payload.ids },
+      },
+    });
+
+    return {
+      message: `${result.count} pekerjaan tersimpan berhasil dihapus`,
+      deleted_count: result.count,
+    };
   }
 
   private static toResponse(
@@ -301,7 +452,8 @@ export class JobService {
       jobRole?: any;
       city?: any & { province?: any };
       medias?: { id: string; jobId: string; path: string }[];
-    }
+    },
+    isSaved: boolean = false
   ): any {
     return {
       id: job.id,
@@ -331,11 +483,11 @@ export class JobService {
       medias: job.medias
         ? job.medias.map(
             (media: { id: string; jobId: string; path: string }) => ({
-            id: media.id,
-            job_id: media.jobId,
-            path: media.path,
-          })
-        )
+              id: media.id,
+              job_id: media.jobId,
+              path: media.path,
+            })
+          )
         : [],
       company: job.company ? JobService.toCompanyResponse(job.company) : null,
       job_role: job.jobRole ? JobService.toJobRoleResponse(job.jobRole) : null,
@@ -345,6 +497,7 @@ export class JobService {
             province: job.city.province || null,
           }
         : null,
+      is_saved: isSaved,
     };
   }
 

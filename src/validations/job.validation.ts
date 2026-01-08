@@ -75,6 +75,21 @@ export class JobValidation {
     sort_order: z.enum(["asc", "desc"]).default("desc"),
   });
 
+  static readonly SAVED_LIST_QUERY = z.object({
+    page: z.coerce.number().min(1).default(1),
+    per_page: z.coerce.number().min(1).max(50).default(10),
+  });
+
+  static readonly TOGGLE_SAVED_JOB = z.object({
+    id: z.string().uuid("ID pekerjaan harus valid"),
+  });
+
+  static readonly MASS_DELETE_SAVED_JOBS = z.object({
+    ids: z
+      .array(z.string().uuid())
+      .min(1, "Minimal satu pekerjaan harus dipilih"),
+  });
+
   static readonly SLUG_PARAM = z.object({
     slug: z.string().min(1, "Slug harus diisi"),
   });
