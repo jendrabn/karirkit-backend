@@ -1101,7 +1101,7 @@ export class CvService {
     const templatePath = path.join(process.cwd(), "public", template.path);
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
-    console.log(context);
+    console.log(JSON.stringify(context, null, 2));
     const additionalJsContext = cv.photo
       ? CvService.buildAdditionalJsContext()
       : undefined;
@@ -1120,58 +1120,81 @@ export class CvService {
 
   private static buildTemplateContext(cv: CvWithRelations) {
     const language = CvService.normalizeLanguage(cv.language);
+    const text = (value?: string | null) => value ?? "";
+    const numberText = (value?: number | null) => value ?? "";
 
     return {
-      name: cv.name.toUpperCase(),
-      headline: cv.headline,
+      name: text(cv.name).toUpperCase(),
+      headline: text(cv.headline),
       email: {
-        url: `mailto:${cv.email}`,
-        label: cv.email,
+        url: cv.email ? `mailto:${cv.email}` : "",
+        label: text(cv.email),
       },
-      phone: cv.phone,
-      address: cv.address,
-      about: cv.about,
+      phone: {
+        label: text(cv.phone).trim(),
+        url: (() => {
+          const trimmed = cv.phone?.trim() ?? "";
+          if (!trimmed) {
+            return "";
+          }
+
+          const digitsOnly = trimmed.replace(/[^0-9]/g, "");
+          if (!digitsOnly) {
+            return "";
+          }
+
+          const normalized = digitsOnly.startsWith("62")
+            ? digitsOnly
+            : digitsOnly.startsWith("0")
+            ? `62${digitsOnly.slice(1)}`
+            : `62${digitsOnly}`;
+
+          return `https://wa.me/${normalized}`;
+        })(),
+      },
+      address: text(cv.address),
+      about: text(cv.about),
       photo_path: cv.photo ?? "",
       educations: cv.educations.map((record) => ({
         degree: CvService.getDegreeLabel(record.degree, language),
-        school_name: record.schoolName,
-        school_location: record.schoolLocation,
-        major: record.major,
+        school_name: text(record.schoolName),
+        school_location: text(record.schoolLocation),
+        major: text(record.major),
         start_month: CvService.formatMonth(record.startMonth, language),
-        start_year: record.startYear,
+        start_year: numberText(record.startYear),
         end_month: CvService.formatMonth(record.endMonth, language),
-        end_year: record.endYear,
+        end_year: numberText(record.endYear),
         is_current: record.isCurrent,
-        gpa: record.gpa,
-        description: record.description,
+        gpa: numberText(record.gpa),
+        description: text(record.description),
       })),
       certificates: cv.certificates.map((record) => ({
-        title: record.title,
-        issuer: record.issuer,
+        title: text(record.title),
+        issuer: text(record.issuer),
         issue_month: CvService.formatMonth(record.issueMonth, language),
-        issue_year: record.issueYear,
+        issue_year: numberText(record.issueYear),
         expiry_month: CvService.formatMonth(record.expiryMonth, language),
-        expiry_year: record.expiryYear,
+        expiry_year: numberText(record.expiryYear),
         no_expiry: record.noExpiry,
-        credential_id: record.credentialId,
-        credential_url: record.credentialUrl,
-        description: record.description,
+        credential_id: text(record.credentialId),
+        credential_url: text(record.credentialUrl),
+        description: text(record.description),
       })),
       experiences: cv.experiences.map((record) => ({
-        job_title: record.jobTitle,
-        company_name: record.companyName,
-        company_location: record.companyLocation,
+        job_title: text(record.jobTitle),
+        company_name: text(record.companyName),
+        company_location: text(record.companyLocation),
         job_type: CvService.getJobTypeLabel(record.jobType, language),
         start_month: CvService.formatMonth(record.startMonth, language),
-        start_year: record.startYear,
+        start_year: numberText(record.startYear),
         end_month: CvService.formatMonth(record.endMonth, language),
-        end_year: record.endYear,
+        end_year: numberText(record.endYear),
         is_current: record.isCurrent,
-        description: record.description,
+        description: text(record.description),
         description_points: CvService.splitDescriptionLines(record.description),
       })),
       skills: cv.skills.map((record) => ({
-        name: record.name,
+        name: text(record.name),
         level: CvService.getSkillLevelLabel(record.level, language),
         category: CvService.getSkillCategoryLabel(
           record.skillCategory,
@@ -1180,30 +1203,31 @@ export class CvService {
       })),
       skills_by_category: CvService.groupSkillsByCategory(cv.skills, language),
       awards: cv.awards.map((record) => ({
-        title: record.title,
-        issuer: record.issuer,
-        description: record.description,
-        year: record.year,
+        title: text(record.title),
+        issuer: text(record.issuer),
+        description: text(record.description),
+        year: numberText(record.year),
       })),
       social_links: cv.socialLinks.map((record) => ({
         platform: CvService.getPlatformLabel(record.platform, language),
-        url: record.url,
+        url: text(record.url),
         label: CvService.getPlatformLabel(record.platform, language),
+        url_label: CvService.buildSocialLinkLabel(record.url ?? ""),
       })),
       organizations: cv.organizations.map((record) => ({
-        organization_name: record.organizationName,
-        role_title: record.roleTitle,
+        organization_name: text(record.organizationName),
+        role_title: text(record.roleTitle),
         organization_type: CvService.getOrganizationTypeLabel(
           record.organizationType,
           language
         ),
-        location: record.location,
+        location: text(record.location),
         start_month: CvService.formatMonth(record.startMonth, language),
-        start_year: record.startYear,
+        start_year: numberText(record.startYear),
         end_month: CvService.formatMonth(record.endMonth, language),
-        end_year: record.endYear,
+        end_year: numberText(record.endYear),
         is_current: record.isCurrent,
-        description: record.description,
+        description: text(record.description),
         description_points: CvService.splitDescriptionLines(record.description),
       })),
       projects: cv.projects.map((record) => {
@@ -1215,12 +1239,12 @@ export class CvService {
           : "";
 
         return {
-          name: record.name,
-          description: record.description,
-          year: record.year,
-          repo_url: record.repoUrl,
+          name: text(record.name),
+          description: text(record.description),
+          year: numberText(record.year),
+          repo_url: text(record.repoUrl),
           repo_label: repoLabel,
-          live_url: record.liveUrl,
+          live_url: text(record.liveUrl),
           live_label: liveLabel,
           description_points: CvService.splitDescriptionLines(
             record.description
@@ -1328,19 +1352,23 @@ export class CvService {
   private static groupSkillsByCategory(
     skills: PrismaCvSkill[],
     language: LabelLanguage
-  ): { label: string; skills: string[] }[] {
-    const grouped = new Map<string, string[]>();
+  ): { label: string; skills: { name: string; level: string }[] }[] {
+    const grouped = new Map<string, { name: string; level: string }[]>();
 
     for (const skill of skills) {
       const label = CvService.getSkillCategoryLabel(
         skill.skillCategory,
         language
       );
+      const entry = {
+        name: skill.name ?? "",
+        level: CvService.getSkillLevelLabel(skill.level, language),
+      };
       const bucket = grouped.get(label);
       if (bucket) {
-        bucket.push(skill.name);
+        bucket.push(entry);
       } else {
-        grouped.set(label, [skill.name]);
+        grouped.set(label, [entry]);
       }
     }
 
