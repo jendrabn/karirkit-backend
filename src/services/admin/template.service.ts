@@ -8,13 +8,25 @@ import { TemplateValidation } from "../../validations/admin/template.validation"
 import { isHttpUrl } from "../../utils/url.util";
 
 type TemplateListResult = {
-  items: Template[];
+  items: TemplateResponse[];
   pagination: {
     page: number;
     per_page: number;
     total_items: number;
     total_pages: number;
   };
+};
+
+type TemplateResponse = {
+  id: string;
+  name: string;
+  type: Template["type"];
+  language: Template["language"];
+  path: string;
+  preview: string | null;
+  is_premium: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 type CreateTemplateRequest = {
@@ -71,6 +83,34 @@ export class TemplateService {
       where.isPremium = requestData.is_premium;
     }
 
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (requestData.updated_at_from || requestData.updated_at_to) {
+      where.updatedAt = {};
+      if (requestData.updated_at_from) {
+        where.updatedAt.gte = new Date(
+          `${requestData.updated_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.updated_at_to) {
+        where.updatedAt.lte = new Date(
+          `${requestData.updated_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
     const sortField =
       sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
       "createdAt";
@@ -92,7 +132,7 @@ export class TemplateService {
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
     return {
-      items: records,
+      items: records.map((record) => TemplateService.toResponse(record)),
       pagination: {
         page,
         per_page: perPage,
@@ -102,7 +142,7 @@ export class TemplateService {
     };
   }
 
-  static async get(id: string): Promise<Template> {
+  static async get(id: string): Promise<TemplateResponse> {
     const template = await prisma.template.findFirst({
       where: {
         id,
@@ -113,10 +153,12 @@ export class TemplateService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    return template;
+    return TemplateService.toResponse(template);
   }
 
-  static async create(request: CreateTemplateRequest): Promise<Template> {
+  static async create(
+    request: CreateTemplateRequest
+  ): Promise<TemplateResponse> {
     const requestData = validate(TemplateValidation.PAYLOAD, request);
 
     // Move file from temp to permanent location if path is provided
@@ -159,13 +201,13 @@ export class TemplateService {
       },
     });
 
-    return template;
+    return TemplateService.toResponse(template);
   }
 
   static async update(
     id: string,
     request: UpdateTemplateRequest
-  ): Promise<Template> {
+  ): Promise<TemplateResponse> {
     // Check if template exists
     const existingTemplate = await prisma.template.findFirst({
       where: { id },
@@ -236,7 +278,7 @@ export class TemplateService {
       data: updateData,
     });
 
-    return template;
+    return TemplateService.toResponse(template);
   }
 
   static async delete(id: string): Promise<void> {
@@ -281,6 +323,20 @@ export class TemplateService {
     return {
       message: `${result.count} template berhasil dihapus`,
       deleted_count: result.count,
+    };
+  }
+
+  private static toResponse(template: Template): TemplateResponse {
+    return {
+      id: template.id,
+      name: template.name,
+      type: template.type,
+      language: template.language,
+      path: template.path,
+      preview: template.preview,
+      is_premium: template.isPremium,
+      created_at: template.createdAt.toISOString(),
+      updated_at: template.updatedAt.toISOString(),
     };
   }
 }

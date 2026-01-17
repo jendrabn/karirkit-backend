@@ -5,7 +5,6 @@ import type {
 import type { BlogTag } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
-import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { BlogTagValidation } from "../../validations/admin/blog-tag.validation";
 import { slugify } from "../../utils/slugify.util";
@@ -52,21 +51,44 @@ export class BlogTagService {
       ];
     }
 
-    const sortField =
-      sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ?? "name";
-    const orderBy: Prisma.BlogTagOrderByWithRelationInput = {
-      [sortField]: requestData.sort_order,
-    };
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
 
-    const [totalItems, records] = await Promise.all([
-      prisma.blogTag.count({ where }),
-      prisma.blogTag.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * perPage,
-        take: perPage,
-      }),
-    ]);
+    const needsDerivedData =
+      requestData.blog_count_from !== undefined ||
+      requestData.blog_count_to !== undefined ||
+      requestData.sort_by === "blog_count";
+
+    const [totalItems, records] = needsDerivedData
+      ? [
+          null,
+          await prisma.blogTag.findMany({
+            where,
+          }),
+        ]
+      : await Promise.all([
+          prisma.blogTag.count({ where }),
+          prisma.blogTag.findMany({
+            where,
+            orderBy: {
+              [sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
+              "name"]: requestData.sort_order,
+            },
+            skip: (page - 1) * perPage,
+            take: perPage,
+          }),
+        ]);
 
     // Get blog counts for each tag
     const tagIds = records.map((tag) => tag.id);
@@ -86,17 +108,79 @@ export class BlogTagService {
       return acc;
     }, {} as Record<string, number>);
 
+    const enrichedRecords = records.map((record) => ({
+      record,
+      count: blogCountMap[record.id] || 0,
+    }));
+
+    const filteredRecords = needsDerivedData
+      ? enrichedRecords.filter((item) => {
+          if (
+            requestData.blog_count_from !== undefined &&
+            item.count < requestData.blog_count_from
+          ) {
+            return false;
+          }
+          if (
+            requestData.blog_count_to !== undefined &&
+            item.count > requestData.blog_count_to
+          ) {
+            return false;
+          }
+          return true;
+        })
+      : enrichedRecords;
+
+    const sortedRecords = needsDerivedData
+      ? [...filteredRecords].sort((a, b) => {
+          const direction = requestData.sort_order === "asc" ? 1 : -1;
+          const sortBy = requestData.sort_by;
+          let left: number | string = 0;
+          let right: number | string = 0;
+          switch (sortBy) {
+            case "name":
+              left = a.record.name;
+              right = b.record.name;
+              break;
+            case "updated_at":
+              left = a.record.updatedAt?.getTime() ?? 0;
+              right = b.record.updatedAt?.getTime() ?? 0;
+              break;
+            case "blog_count":
+              left = a.count;
+              right = b.count;
+              break;
+            case "created_at":
+            default:
+              left = a.record.createdAt?.getTime() ?? 0;
+              right = b.record.createdAt?.getTime() ?? 0;
+              break;
+          }
+          if (left < right) return -1 * direction;
+          if (left > right) return 1 * direction;
+          return 0;
+        })
+      : filteredRecords;
+
+    const totalFilteredItems = needsDerivedData
+      ? sortedRecords.length
+      : totalItems ?? 0;
     const totalPages =
-      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
+      totalFilteredItems === 0
+        ? 0
+        : Math.ceil(totalFilteredItems / Math.max(perPage, 1));
+    const pagedRecords = needsDerivedData
+      ? sortedRecords.slice((page - 1) * perPage, page * perPage)
+      : sortedRecords;
 
     return {
-      items: records.map((record) =>
-        BlogTagService.toResponse(record, blogCountMap[record.id] || 0)
+      items: pagedRecords.map((item) =>
+        BlogTagService.toResponse(item.record, item.count)
       ),
       pagination: {
         page,
         per_page: perPage,
-        total_items: totalItems,
+        total_items: totalFilteredItems,
         total_pages: totalPages,
       },
     };

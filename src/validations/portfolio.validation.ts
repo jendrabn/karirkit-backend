@@ -1,5 +1,19 @@
 import { z } from "zod";
 import { ProjectType } from "../generated/prisma/client";
+import {
+  commaSeparatedNativeEnum,
+  commaSeparatedStringSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "./query.util";
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const nullableString = (max = 255) =>
   z
@@ -103,24 +117,72 @@ const payloadSchema = z.object({
   medias: z.array(mediaSchema).optional(),
 });
 
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
-  per_page: z.coerce
-    .number()
-    .int()
-    .min(1, "Per halaman minimal 1")
-    .max(100, "Per halaman maksimal 100")
-    .default(20),
-  q: optionalString(255),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  sort_by: z
-    .enum(["created_at", "updated_at", "year", "month", "title"])
-    .default("created_at"),
-  project_type: z.nativeEnum(ProjectType).optional(),
-  industry: optionalString(),
-  year: z.coerce.number().int().min(1900).max(2100).optional(),
-  month: z.coerce.number().int().min(1).max(12).optional(),
-});
+const listQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z.coerce
+      .number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(100, "Per halaman maksimal 100")
+      .default(20),
+    q: optionalString(255),
+    sort_order: z.enum(["asc", "desc"]).default("desc"),
+    sort_by: z
+      .enum([
+        "created_at",
+        "updated_at",
+        "year",
+        "month",
+        "title",
+        "industry",
+      ])
+      .default("created_at"),
+    project_type: commaSeparatedNativeEnum(ProjectType).optional(),
+    industry: commaSeparatedStringSchema.optional(),
+    year: optionalNumberSchema(yearSchema),
+    year_from: optionalNumberSchema(yearSchema),
+    year_to: optionalNumberSchema(yearSchema),
+    month: optionalNumberSchema(monthSchema),
+    month_from: optionalNumberSchema(monthSchema),
+    month_to: optionalNumberSchema(monthSchema),
+    created_at_from: optionalDateSchema(dateOnlySchema),
+    created_at_to: optionalDateSchema(dateOnlySchema),
+    tools_name: commaSeparatedStringSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.year_from !== undefined && data.year_to !== undefined) {
+      if (data.year_from > data.year_to) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["year_from"],
+          message: "Tahun mulai tidak boleh setelah tahun selesai",
+        });
+      }
+    }
+
+    if (data.month_from !== undefined && data.month_to !== undefined) {
+      if (data.month_from > data.month_to) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["month_from"],
+          message: "Bulan mulai tidak boleh setelah bulan selesai",
+        });
+      }
+    }
+
+    if (
+      data.created_at_from &&
+      data.created_at_to &&
+      Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["created_at_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+  });
 
 const massDeleteSchema = z.object({
   ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),

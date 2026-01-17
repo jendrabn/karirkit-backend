@@ -1,6 +1,25 @@
 import { z } from "zod";
-import { Gender, Platform } from "../../generated/prisma/client";
+import {
+  Gender,
+  Platform,
+  UserRole,
+  UserStatus,
+} from "../../generated/prisma/client";
 import env from "../../config/env.config";
+import {
+  commaSeparatedNativeEnum,
+  optionalBooleanSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "../query.util";
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const trimmedString = (max = 255) =>
   z
@@ -51,18 +70,99 @@ const maxDocumentStorageLimitBytes = env.documentStorageLimitMaxBytes;
 const defaultDocumentStorageLimitBytes = 100 * 1024 * 1024;
 
 export class UserValidation {
-  static readonly LIST_QUERY = z.object({
-    page: z.coerce.number().min(1).default(1),
-    per_page: z.coerce.number().min(1).max(100).default(20),
-    q: z.string().or(z.literal("")).optional(),
-    sort_by: z
-      .enum(["created_at", "updated_at", "name", "username", "email", "role"])
-      .default("created_at"),
-    sort_order: z.enum(["asc", "desc"]).default("desc"),
-    role: z.enum(["user", "admin"]).optional(),
-    created_from: z.string().or(z.literal("")).optional(),
-    created_to: z.string().or(z.literal("")).optional(),
-  });
+  static readonly LIST_QUERY = z
+    .object({
+      page: z.coerce.number().min(1).default(1),
+      per_page: z.coerce.number().min(1).max(100).default(20),
+      q: z.string().or(z.literal("")).optional(),
+      sort_by: z
+        .enum([
+          "created_at",
+          "updated_at",
+          "name",
+          "email",
+          "role",
+          "status",
+          "document_storage_used",
+          "download_total_count",
+        ])
+        .default("created_at"),
+      sort_order: z.enum(["asc", "desc"]).default("desc"),
+      role: commaSeparatedNativeEnum(UserRole).optional(),
+      status: commaSeparatedNativeEnum(UserStatus).optional(),
+      gender: commaSeparatedNativeEnum(Gender).optional(),
+      email_verified: optionalBooleanSchema,
+      suspended: optionalBooleanSchema,
+      created_at_from: optionalDateSchema(dateOnlySchema),
+      created_at_to: optionalDateSchema(dateOnlySchema),
+      daily_download_limit_from: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+      daily_download_limit_to: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+      document_storage_used_from: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+      document_storage_used_to: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+      download_total_count_from: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+      download_total_count_to: optionalNumberSchema(
+        z.number().int().nonnegative()
+      ),
+    })
+    .superRefine((data, ctx) => {
+      if (
+        data.created_at_from &&
+        data.created_at_to &&
+        Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["created_at_from"],
+          message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+        });
+      }
+
+      if (
+        data.daily_download_limit_from !== undefined &&
+        data.daily_download_limit_to !== undefined &&
+        data.daily_download_limit_from > data.daily_download_limit_to
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["daily_download_limit_from"],
+          message: "Limit minimal tidak boleh lebih besar dari limit maksimal",
+        });
+      }
+
+      if (
+        data.document_storage_used_from !== undefined &&
+        data.document_storage_used_to !== undefined &&
+        data.document_storage_used_from > data.document_storage_used_to
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["document_storage_used_from"],
+          message: "Storage minimal tidak boleh lebih besar dari maksimal",
+        });
+      }
+
+      if (
+        data.download_total_count_from !== undefined &&
+        data.download_total_count_to !== undefined &&
+        data.download_total_count_from > data.download_total_count_to
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["download_total_count_from"],
+          message: "Jumlah download minimal tidak boleh lebih besar dari maksimal",
+        });
+      }
+    });
 
   static readonly CREATE = z.object({
     name: trimmedString(100).min(3, "Nama minimal 3 karakter"),

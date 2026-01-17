@@ -86,6 +86,8 @@ const sortFieldMap = {
   created_at: "createdAt",
   updated_at: "updatedAt",
   name: "name",
+  views: "views",
+  headline: "headline",
 } as const satisfies Record<string, keyof Prisma.CvOrderByWithRelationInput>;
 
 const relationInclude = {
@@ -129,6 +131,10 @@ export class CvService {
         { name: { contains: search } },
         { email: { contains: search } },
         { headline: { contains: search } },
+        { phone: { contains: search } },
+        { address: { contains: search } },
+        { about: { contains: search } },
+        { slug: { contains: search } },
       ];
     }
 
@@ -138,6 +144,118 @@ export class CvService {
 
     if (filters.email) {
       where.email = { contains: filters.email };
+    }
+
+    if (filters.headline) {
+      where.headline = { contains: filters.headline };
+    }
+
+    if (filters.phone) {
+      where.phone = { contains: filters.phone };
+    }
+
+    if (filters.address) {
+      where.address = { contains: filters.address };
+    }
+
+    if (filters.about) {
+      where.about = { contains: filters.about };
+    }
+
+    if (filters.slug) {
+      where.slug = { contains: filters.slug };
+    }
+
+    if (filters.visibility?.length) {
+      where.visibility = { in: filters.visibility };
+    }
+
+    if (filters.language?.length) {
+      where.language = { in: filters.language };
+    }
+
+    if (filters.template_id) {
+      where.templateId = filters.template_id;
+    }
+
+    if (filters.created_at_from || filters.created_at_to) {
+      where.createdAt = {};
+      if (filters.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${filters.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (filters.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${filters.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (filters.updated_at_from || filters.updated_at_to) {
+      where.updatedAt = {};
+      if (filters.updated_at_from) {
+        where.updatedAt.gte = new Date(
+          `${filters.updated_at_from}T00:00:00.000Z`
+        );
+      }
+      if (filters.updated_at_to) {
+        where.updatedAt.lte = new Date(
+          `${filters.updated_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (filters.views_from !== undefined || filters.views_to !== undefined) {
+      where.views = {};
+      if (filters.views_from !== undefined) {
+        where.views.gte = filters.views_from;
+      }
+      if (filters.views_to !== undefined) {
+        where.views.lte = filters.views_to;
+      }
+    }
+
+    if (filters.educations_degree?.length) {
+      where.educations = {
+        some: {
+          degree: { in: filters.educations_degree },
+        },
+      };
+    }
+
+    if (filters.experiences_job_type?.length || filters.experiences_is_current !== undefined) {
+      const experienceFilters: Prisma.CvExperienceWhereInput = {};
+      if (filters.experiences_job_type?.length) {
+        experienceFilters.jobType = { in: filters.experiences_job_type };
+      }
+      if (filters.experiences_is_current !== undefined) {
+        experienceFilters.isCurrent = filters.experiences_is_current;
+      }
+      where.experiences = {
+        some: experienceFilters,
+      };
+    }
+
+    if (filters.skills_level?.length || filters.skills_skill_category?.length) {
+      const skillFilters: Prisma.CvSkillWhereInput = {};
+      if (filters.skills_level?.length) {
+        skillFilters.level = { in: filters.skills_level };
+      }
+      if (filters.skills_skill_category?.length) {
+        skillFilters.skillCategory = { in: filters.skills_skill_category };
+      }
+      where.skills = {
+        some: skillFilters,
+      };
+    }
+
+    if (filters.organizations_organization_type?.length) {
+      where.organizations = {
+        some: {
+          organizationType: { in: filters.organizations_organization_type },
+        },
+      };
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";

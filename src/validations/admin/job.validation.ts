@@ -1,4 +1,23 @@
 import { z } from "zod";
+import {
+  commaSeparatedEnumSchema,
+  commaSeparatedStringSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "../query.util";
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
+
+const uuidListSchema = commaSeparatedStringSchema.refine(
+  (values) => values.every((value) => z.string().uuid().safeParse(value).success),
+  "ID harus berupa UUID yang valid"
+);
 
 const mediaSchema = z.object({
   path: z
@@ -9,85 +28,119 @@ const mediaSchema = z.object({
 });
 
 export class JobValidation {
-  static readonly LIST_QUERY = z.object({
-    page: z.coerce.number().min(1).default(1),
-    per_page: z.coerce.number().min(1).max(100).default(20),
-    q: z.string().optional(),
-    company_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
-    job_role_id: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
-      .optional(),
-    city_id: z.union([z.string(), z.array(z.string())]).optional(),
-    province_id: z.union([z.string(), z.array(z.string())]).optional(),
-    job_type: z
-      .union([
-        z.enum([
-          "full_time",
-          "part_time",
-          "contract",
-          "internship",
-          "freelance",
-        ]),
-        z.array(
-          z.enum([
-            "full_time",
-            "part_time",
-            "contract",
-            "internship",
-            "freelance",
-          ])
-        ),
-      ])
-      .optional(),
-    work_system: z
-      .union([
-        z.enum(["onsite", "hybrid", "remote"]),
-        z.array(z.enum(["onsite", "hybrid", "remote"])),
-      ])
-      .optional(),
-    education_level: z
-      .union([
-        z.enum([
-          "middle_school",
-          "high_school",
-          "associate_d1",
-          "associate_d2",
-          "associate_d3",
-          "bachelor",
-          "master",
-          "doctorate",
-          "any",
-        ]),
-        z.array(
-          z.enum([
-            "middle_school",
-            "high_school",
-            "associate_d1",
-            "associate_d2",
-            "associate_d3",
-            "bachelor",
-            "master",
-            "doctorate",
-            "any",
-          ])
-        ),
-      ])
-      .optional(),
-    experience_min: z.coerce.number().min(0).max(50).optional(),
-    salary_min: z.coerce.number().min(1).optional(),
-    status: z
-      .union([
-        z.enum(["draft", "published", "closed", "archived"]),
-        z.array(z.enum(["draft", "published", "closed", "archived"])),
-      ])
-      .optional(),
-    sort_by: z
-      .enum(["created_at", "salary_min", "experience_min"])
-      .default("created_at"),
-    sort_order: z.enum(["asc", "desc"]).default("desc"),
-  });
+  static readonly LIST_QUERY = z
+    .object({
+      page: z.coerce.number().min(1).default(1),
+      per_page: z.coerce.number().min(1).max(100).default(20),
+      q: z.string().optional(),
+      status: commaSeparatedEnumSchema([
+        "draft",
+        "published",
+        "closed",
+        "archived",
+      ]).optional(),
+      job_type: commaSeparatedEnumSchema([
+        "full_time",
+        "part_time",
+        "contract",
+        "internship",
+        "freelance",
+      ]).optional(),
+      work_system: commaSeparatedEnumSchema([
+        "onsite",
+        "hybrid",
+        "remote",
+      ]).optional(),
+      education_level: commaSeparatedEnumSchema([
+        "middle_school",
+        "high_school",
+        "associate_d1",
+        "associate_d2",
+        "associate_d3",
+        "bachelor",
+        "master",
+        "doctorate",
+        "any",
+      ]).optional(),
+      company_id: uuidListSchema.optional(),
+      job_role_id: uuidListSchema.optional(),
+      city_id: uuidListSchema.optional(),
+      salary_from: optionalNumberSchema(z.number().int().nonnegative()),
+      salary_to: optionalNumberSchema(z.number().int().nonnegative()),
+      years_of_experience_from: optionalNumberSchema(
+        z.number().int().min(0).max(50)
+      ),
+      years_of_experience_to: optionalNumberSchema(
+        z.number().int().min(0).max(50)
+      ),
+      expiration_date_from: optionalDateSchema(dateOnlySchema),
+      expiration_date_to: optionalDateSchema(dateOnlySchema),
+      created_at_from: optionalDateSchema(dateOnlySchema),
+      created_at_to: optionalDateSchema(dateOnlySchema),
+      sort_by: z
+        .enum([
+          "created_at",
+          "updated_at",
+          "title",
+          "company_name",
+          "status",
+          "salary_max",
+          "expiration_date",
+        ])
+        .default("created_at"),
+      sort_order: z.enum(["asc", "desc"]).default("desc"),
+    })
+    .superRefine((data, ctx) => {
+      if (
+        data.salary_from !== undefined &&
+        data.salary_to !== undefined &&
+        data.salary_from > data.salary_to
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["salary_from"],
+          message: "Gaji minimal tidak boleh lebih besar dari gaji maksimal",
+        });
+      }
+
+      if (
+        data.years_of_experience_from !== undefined &&
+        data.years_of_experience_to !== undefined &&
+        data.years_of_experience_from > data.years_of_experience_to
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["years_of_experience_from"],
+          message:
+            "Pengalaman minimal tidak boleh lebih besar dari pengalaman maksimal",
+        });
+      }
+
+      if (
+        data.expiration_date_from &&
+        data.expiration_date_to &&
+        Date.parse(data.expiration_date_from) >
+          Date.parse(data.expiration_date_to)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["expiration_date_from"],
+          message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+        });
+      }
+
+      if (
+        data.created_at_from &&
+        data.created_at_to &&
+        Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["created_at_from"],
+          message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+        });
+      }
+    });
 
   static readonly CREATE = z
     .object({

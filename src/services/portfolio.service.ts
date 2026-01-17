@@ -67,6 +67,7 @@ const sortFieldMap = {
   year: "year",
   month: "month",
   title: "title",
+  industry: "industry",
 } as const satisfies Record<
   string,
   keyof Prisma.PortfolioOrderByWithRelationInput
@@ -99,26 +100,66 @@ export class PortfolioService {
       where.OR = [
         { title: { contains: search } },
         { slug: { contains: search } },
+        { sortDescription: { contains: search } },
         { roleTitle: { contains: search } },
         { industry: { contains: search } },
         { description: { contains: search } },
+        { tools: { some: { name: { contains: search } } } },
       ];
     }
 
-    if (filters.project_type) {
-      where.projectType = filters.project_type;
+    if (filters.project_type?.length) {
+      where.projectType = { in: filters.project_type };
     }
 
-    if (filters.industry) {
-      where.industry = { contains: filters.industry };
+    if (filters.industry?.length) {
+      where.industry = { in: filters.industry };
     }
 
-    if (filters.year) {
+    if (filters.year !== undefined) {
       where.year = filters.year;
+    } else if (filters.year_from !== undefined || filters.year_to !== undefined) {
+      where.year = {};
+      if (filters.year_from !== undefined) {
+        where.year.gte = filters.year_from;
+      }
+      if (filters.year_to !== undefined) {
+        where.year.lte = filters.year_to;
+      }
     }
 
-    if (filters.month) {
+    if (filters.month !== undefined) {
       where.month = filters.month;
+    } else if (filters.month_from !== undefined || filters.month_to !== undefined) {
+      where.month = {};
+      if (filters.month_from !== undefined) {
+        where.month.gte = filters.month_from;
+      }
+      if (filters.month_to !== undefined) {
+        where.month.lte = filters.month_to;
+      }
+    }
+
+    if (filters.created_at_from || filters.created_at_to) {
+      where.createdAt = {};
+      if (filters.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${filters.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (filters.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${filters.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (filters.tools_name?.length) {
+      where.tools = {
+        some: {
+          name: { in: filters.tools_name },
+        },
+      };
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";

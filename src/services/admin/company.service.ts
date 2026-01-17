@@ -1,4 +1,3 @@
-import { PrismaClient } from "../../generated/prisma/client";
 import {
   CreateCompanyRequest,
   UpdateCompanyRequest,
@@ -7,37 +6,25 @@ import {
   CompanyResponse,
 } from "../../types/job-portal-schemas";
 import { validate } from "../../utils/validate.util";
-import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
 import { prisma } from "../../config/prisma.config";
 import { slugify } from "../../utils/slugify.util";
+import { CompanyValidation } from "../../validations/admin/company.validation";
 
 const sortFieldMap = {
   created_at: "createdAt",
   updated_at: "updatedAt",
   name: "name",
+  employee_size: "employeeSize",
 } as const;
 
 export class AdminCompanyService {
   static async list(query: unknown): Promise<CompanyListResponse> {
-    const requestData = validate(
-      z.object({
-        page: z.coerce.number().min(1).default(1),
-        per_page: z.coerce.number().min(1).max(50).default(20),
-        q: z.string().optional(),
-        sort_by: z
-          .enum(["created_at", "updated_at", "name"])
-          .default("created_at"),
-        sort_order: z.enum(["asc", "desc"]).default("desc"),
-      }),
-      query
-    );
+    const requestData = validate(CompanyValidation.LIST_QUERY, query);
 
     const page = requestData.page;
     const perPage = requestData.per_page;
-    const skip = (page - 1) * perPage;
-    const take = perPage;
 
     const where: any = {};
 
@@ -45,44 +32,143 @@ export class AdminCompanyService {
     if (requestData.q) {
       where.OR = [
         { name: { contains: requestData.q } },
-        { description: { contains: requestData.q } },
+        { slug: { contains: requestData.q } },
         { businessSector: { contains: requestData.q } },
+        { websiteUrl: { contains: requestData.q } },
       ];
     }
 
-    const sortField =
-      sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
-      "createdAt";
-    const orderBy: any = {
-      [sortField]: requestData.sort_order,
-    };
+    if (requestData.employee_size?.length) {
+      where.employeeSize = { in: requestData.employee_size };
+    }
 
-    const [totalItems, records] = await Promise.all([
-      prisma.company.count({ where }),
-      prisma.company.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        include: {
-          _count: {
-            select: {
-              jobs: true,
+    if (requestData.business_sector?.length) {
+      where.businessSector = { in: requestData.business_sector };
+    }
+
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    const needsDerivedData =
+      requestData.job_count_from !== undefined ||
+      requestData.job_count_to !== undefined ||
+      requestData.sort_by === "job_count";
+
+    const [totalItems, records] = needsDerivedData
+      ? [
+          null,
+          await prisma.company.findMany({
+            where,
+            include: {
+              _count: {
+                select: {
+                  jobs: true,
+                },
+              },
             },
-          },
-        },
-      }),
-    ]);
+          }),
+        ]
+      : await Promise.all([
+          prisma.company.count({ where }),
+          prisma.company.findMany({
+            where,
+            orderBy: {
+              [sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
+              "createdAt"]: requestData.sort_order,
+            },
+            skip: (page - 1) * perPage,
+            take: perPage,
+            include: {
+              _count: {
+                select: {
+                  jobs: true,
+                },
+              },
+            },
+          }),
+        ]);
 
+    const filteredRecords = needsDerivedData
+      ? records.filter((record) => {
+          if (
+            requestData.job_count_from !== undefined &&
+            record._count.jobs < requestData.job_count_from
+          ) {
+            return false;
+          }
+          if (
+            requestData.job_count_to !== undefined &&
+            record._count.jobs > requestData.job_count_to
+          ) {
+            return false;
+          }
+          return true;
+        })
+      : records;
+
+    const sortedRecords = needsDerivedData
+      ? [...filteredRecords].sort((a, b) => {
+          const direction = requestData.sort_order === "asc" ? 1 : -1;
+          const sortBy = requestData.sort_by;
+          let left: number | string = 0;
+          let right: number | string = 0;
+          switch (sortBy) {
+            case "name":
+              left = a.name;
+              right = b.name;
+              break;
+            case "employee_size":
+              left = a.employeeSize ?? "";
+              right = b.employeeSize ?? "";
+              break;
+            case "updated_at":
+              left = a.updatedAt?.getTime() ?? 0;
+              right = b.updatedAt?.getTime() ?? 0;
+              break;
+            case "job_count":
+              left = a._count.jobs;
+              right = b._count.jobs;
+              break;
+            case "created_at":
+            default:
+              left = a.createdAt?.getTime() ?? 0;
+              right = b.createdAt?.getTime() ?? 0;
+              break;
+          }
+          if (left < right) return -1 * direction;
+          if (left > right) return 1 * direction;
+          return 0;
+        })
+      : filteredRecords;
+
+    const totalFilteredItems = needsDerivedData
+      ? sortedRecords.length
+      : totalItems ?? 0;
     const totalPages =
-      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
+      totalFilteredItems === 0
+        ? 0
+        : Math.ceil(totalFilteredItems / Math.max(perPage, 1));
+    const pagedRecords = needsDerivedData
+      ? sortedRecords.slice((page - 1) * perPage, page * perPage)
+      : sortedRecords;
 
     return {
-      items: records.map((record) => AdminCompanyService.toResponse(record)),
+      items: pagedRecords.map((record) => AdminCompanyService.toResponse(record)),
       pagination: {
         page,
         per_page: perPage,
-        total_items: totalItems,
+        total_items: totalFilteredItems,
         total_pages: totalPages,
       },
     };

@@ -54,38 +54,125 @@ export class BlogCategoryService {
       ];
     }
 
-    const sortField =
-      sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ?? "name";
-    const orderBy: Prisma.BlogCategoryOrderByWithRelationInput = {
-      [sortField]: requestData.sort_order,
-    };
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
 
-    const [totalItems, records] = await Promise.all([
-      prisma.blogCategory.count({ where }),
-      prisma.blogCategory.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * perPage,
-        take: perPage,
-        include: {
-          _count: {
-            select: {
-              blogs: {},
+    const needsDerivedData =
+      requestData.blog_count_from !== undefined ||
+      requestData.blog_count_to !== undefined ||
+      requestData.sort_by === "blog_count";
+
+    const [totalItems, records] = needsDerivedData
+      ? [
+          null,
+          await prisma.blogCategory.findMany({
+            where,
+            include: {
+              _count: {
+                select: {
+                  blogs: {},
+                },
+              },
             },
-          },
-        },
-      }),
-    ]);
+          }),
+        ]
+      : await Promise.all([
+          prisma.blogCategory.count({ where }),
+          prisma.blogCategory.findMany({
+            where,
+            orderBy: {
+              [sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
+              "name"]: requestData.sort_order,
+            },
+            skip: (page - 1) * perPage,
+            take: perPage,
+            include: {
+              _count: {
+                select: {
+                  blogs: {},
+                },
+              },
+            },
+          }),
+        ]);
 
+    const filteredRecords = needsDerivedData
+      ? records.filter((record) => {
+          if (
+            requestData.blog_count_from !== undefined &&
+            record._count.blogs < requestData.blog_count_from
+          ) {
+            return false;
+          }
+          if (
+            requestData.blog_count_to !== undefined &&
+            record._count.blogs > requestData.blog_count_to
+          ) {
+            return false;
+          }
+          return true;
+        })
+      : records;
+
+    const sortedRecords = needsDerivedData
+      ? [...filteredRecords].sort((a, b) => {
+          const direction = requestData.sort_order === "asc" ? 1 : -1;
+          const sortBy = requestData.sort_by;
+          let left: number | string = 0;
+          let right: number | string = 0;
+          switch (sortBy) {
+            case "name":
+              left = a.name;
+              right = b.name;
+              break;
+            case "updated_at":
+              left = a.updatedAt?.getTime() ?? 0;
+              right = b.updatedAt?.getTime() ?? 0;
+              break;
+            case "blog_count":
+              left = a._count.blogs;
+              right = b._count.blogs;
+              break;
+            case "created_at":
+            default:
+              left = a.createdAt?.getTime() ?? 0;
+              right = b.createdAt?.getTime() ?? 0;
+              break;
+          }
+          if (left < right) return -1 * direction;
+          if (left > right) return 1 * direction;
+          return 0;
+        })
+      : filteredRecords;
+
+    const totalFilteredItems = needsDerivedData
+      ? sortedRecords.length
+      : totalItems ?? 0;
     const totalPages =
-      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
+      totalFilteredItems === 0
+        ? 0
+        : Math.ceil(totalFilteredItems / Math.max(perPage, 1));
+    const pagedRecords = needsDerivedData
+      ? sortedRecords.slice((page - 1) * perPage, page * perPage)
+      : sortedRecords;
 
     return {
-      items: records.map((record) => BlogCategoryService.toResponse(record)),
+      items: pagedRecords.map((record) => BlogCategoryService.toResponse(record)),
       pagination: {
         page,
         per_page: perPage,
-        total_items: totalItems,
+        total_items: totalFilteredItems,
         total_pages: totalPages,
       },
     };

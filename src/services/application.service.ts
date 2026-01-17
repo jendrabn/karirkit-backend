@@ -32,11 +32,20 @@ const sortFieldMap = {
   updated_at: "updatedAt",
   company_name: "companyName",
   position: "position",
-  status: "status",
-  result_status: "resultStatus",
+  follow_up_date: "followUpDate",
+  salary_max: "salaryMax",
 } as const;
 
 export class ApplicationService {
+  private static normalizeWhereAnd(
+    value: Prisma.ApplicationWhereInput["AND"]
+  ): Prisma.ApplicationWhereInput[] {
+    if (!value) {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
+  }
+
   static async list(
     userId: string,
     query: unknown
@@ -59,29 +68,40 @@ export class ApplicationService {
         { position: { contains: search } },
         { jobSource: { contains: search } },
         { location: { contains: search } },
+        { contactName: { contains: search } },
+        { contactEmail: { contains: search } },
+        { contactPhone: { contains: search } },
+        { notes: { contains: search } },
+        { followUpNote: { contains: search } },
       ];
     }
 
-    if (filters.status) {
-      where.status = filters.status;
+    if (filters.status?.length) {
+      where.status = { in: filters.status };
     }
 
-    if (filters.result_status) {
-      where.resultStatus = filters.result_status;
+    if (filters.result_status?.length) {
+      where.resultStatus = { in: filters.result_status };
     }
 
-    if (filters.job_type) {
-      where.jobType = filters.job_type;
+    if (filters.job_type?.length) {
+      where.jobType = { in: filters.job_type };
     }
 
-    if (filters.work_system) {
-      where.workSystem = filters.work_system;
+    if (filters.work_system?.length) {
+      where.workSystem = { in: filters.work_system };
     }
 
-    if (filters.location) {
-      where.location = {
-        contains: filters.location,
-      };
+    if (filters.location?.length) {
+      where.location = { in: filters.location };
+    }
+
+    if (filters.company_name) {
+      where.companyName = filters.company_name;
+    }
+
+    if (filters.job_source?.length) {
+      where.jobSource = { in: filters.job_source };
     }
 
     if (filters.date_from || filters.date_to) {
@@ -94,6 +114,90 @@ export class ApplicationService {
       if (filters.date_to) {
         where.date.lte = ApplicationService.parseDateOnly(filters.date_to);
       }
+    }
+
+    if (
+      filters.follow_up_date_from ||
+      filters.follow_up_date_to ||
+      filters.follow_up_date_has !== undefined ||
+      filters.follow_up_overdue !== undefined
+    ) {
+      const followUpConditions: Prisma.ApplicationWhereInput[] = [];
+
+      if (filters.follow_up_date_has === true) {
+        followUpConditions.push({ followUpDate: { not: null } });
+      }
+
+      if (filters.follow_up_date_has === false) {
+        followUpConditions.push({ followUpDate: null });
+      }
+
+      if (filters.follow_up_date_from || filters.follow_up_date_to) {
+        const followUpRange: Prisma.DateTimeNullableFilter = {};
+        if (filters.follow_up_date_from) {
+          followUpRange.gte = ApplicationService.parseDateOnly(
+            filters.follow_up_date_from
+          );
+        }
+        if (filters.follow_up_date_to) {
+          followUpRange.lte = ApplicationService.parseDateOnly(
+            filters.follow_up_date_to
+          );
+        }
+        followUpConditions.push({ followUpDate: followUpRange });
+      }
+
+      if (filters.follow_up_overdue !== undefined) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (filters.follow_up_overdue) {
+          followUpConditions.push({ followUpDate: { lt: today } });
+        } else {
+          followUpConditions.push({
+            OR: [{ followUpDate: null }, { followUpDate: { gte: today } }],
+          });
+        }
+      }
+
+      if (followUpConditions.length) {
+        where.AND = [
+          ...ApplicationService.normalizeWhereAnd(where.AND),
+          ...followUpConditions,
+        ];
+      }
+    }
+
+    if (filters.salary_from !== undefined || filters.salary_to !== undefined) {
+      const salaryFilters: Prisma.ApplicationWhereInput[] = [
+        {
+          NOT: { AND: [{ salaryMin: null }, { salaryMax: null }] },
+        },
+      ];
+
+      if (filters.salary_from !== undefined) {
+        const fromValue = ApplicationService.toOptionalBigInt(
+          filters.salary_from
+        );
+        if (fromValue !== null) {
+          salaryFilters.push({
+            OR: [{ salaryMax: { gte: fromValue } }, { salaryMax: null }],
+          });
+        }
+      }
+
+      if (filters.salary_to !== undefined) {
+        const toValue = ApplicationService.toOptionalBigInt(filters.salary_to);
+        if (toValue !== null) {
+          salaryFilters.push({
+            OR: [{ salaryMin: { lte: toValue } }, { salaryMin: null }],
+          });
+        }
+      }
+
+      where.AND = [
+        ...ApplicationService.normalizeWhereAnd(where.AND),
+        ...salaryFilters,
+      ];
     }
 
     const sortField = sortFieldMap[filters.sort_by] ?? "date";

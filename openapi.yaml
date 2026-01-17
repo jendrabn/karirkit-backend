@@ -457,26 +457,30 @@ paths:
                 updated_at,
                 company_name,
                 position,
-                status,
-                result_status,
+                follow_up_date,
+                salary_max,
               ]
         - name: status
           in: query
           schema:
             type: string
+          description: Comma-separated values
         - name: result_status
           in: query
           schema:
             type: string
             enum: [pending, passed, failed]
+          description: Comma-separated values
         - name: job_type
           in: query
           schema:
             $ref: "#/components/schemas/JobType"
+          description: Comma-separated values
         - name: work_system
           in: query
           schema:
             $ref: "#/components/schemas/WorkSystem"
+          description: Comma-separated values
         - name: date_from
           in: query
           schema:
@@ -487,10 +491,48 @@ paths:
           schema:
             type: string
             format: date
+        - name: follow_up_date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: follow_up_date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: follow_up_date_has
+          in: query
+          schema:
+            type: boolean
+        - name: follow_up_overdue
+          in: query
+          schema:
+            type: boolean
         - name: location
           in: query
           schema:
             type: string
+          description: Comma-separated values
+        - name: salary_from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: salary_to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: company_name
+          in: query
+          schema:
+            type: string
+        - name: job_source
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values
       responses:
         "200":
           description: Applications list
@@ -669,15 +711,61 @@ paths:
           schema:
             type: string
             enum:
-              [created_at, updated_at, application_date, company_name, subject]
+              [created_at, updated_at, name, company_name, application_date]
+        - name: gender
+          in: query
+          schema:
+            $ref: "#/components/schemas/Gender"
+          description: Comma-separated values
+        - name: marital_status
+          in: query
+          schema:
+            $ref: "#/components/schemas/MaritalStatus"
+          description: Comma-separated values
+        - name: language
+          in: query
+          schema:
+            $ref: "#/components/schemas/Language"
+          description: Comma-separated values
         - name: company_name
           in: query
           schema:
             type: string
-        - name: application_date
+        - name: company_city
           in: query
           schema:
             type: string
+          description: Comma-separated values
+        - name: applicant_city
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values
+        - name: template_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: application_date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: application_date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Letters list
@@ -908,16 +996,26 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, year, month, title]
+            enum: [created_at, updated_at, year, month, title, industry]
         - name: project_type
           in: query
           schema:
             $ref: "#/components/schemas/ProjectType"
+          description: Comma-separated values
         - name: industry
           in: query
           schema:
             type: string
+          description: Comma-separated values
         - name: year
+          in: query
+          schema:
+            type: integer
+        - name: year_from
+          in: query
+          schema:
+            type: integer
+        - name: year_to
           in: query
           schema:
             type: integer
@@ -925,6 +1023,29 @@ paths:
           in: query
           schema:
             type: integer
+        - name: month_from
+          in: query
+          schema:
+            type: integer
+        - name: month_to
+          in: query
+          schema:
+            type: integer
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: tools_name
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values
       responses:
         "200":
           description: Portfolios list
@@ -1117,12 +1238,104 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, name]
+            enum: [created_at, updated_at, name, views, headline]
+        - name: visibility
+          in: query
+          schema:
+            $ref: "#/components/schemas/CvVisibility"
+          description: Comma-separated values
+        - name: language
+          in: query
+          schema:
+            $ref: "#/components/schemas/Language"
+          description: Comma-separated values
+        - name: template_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: updated_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: updated_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: views_from
+          in: query
+          schema:
+            type: integer
+        - name: views_to
+          in: query
+          schema:
+            type: integer
+        - name: educations_degree
+          in: query
+          schema:
+            $ref: "#/components/schemas/Degree"
+          description: Comma-separated values
+        - name: experiences_job_type
+          in: query
+          schema:
+            $ref: "#/components/schemas/JobType"
+          description: Comma-separated values
+        - name: experiences_is_current
+          in: query
+          schema:
+            type: boolean
+        - name: skills_level
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkillLevel"
+          description: Comma-separated values
+        - name: skills_skill_category
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkillCategory"
+          description: Comma-separated values
+        - name: organizations_organization_type
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrganizationType"
+          description: Comma-separated values
         - name: name
           in: query
           schema:
             type: string
         - name: email
+          in: query
+          schema:
+            type: string
+        - name: headline
+          in: query
+          schema:
+            type: string
+        - name: phone
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: about
+          in: query
+          schema:
+            type: string
+        - name: slug
           in: query
           schema:
             type: string
@@ -1367,15 +1580,39 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/DocumentType"
+          description: Comma-separated values
+        - name: mime_type
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values
+        - name: size_from
+          in: query
+          schema:
+            type: integer
+        - name: size_to
+          in: query
+          schema:
+            type: integer
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
         - name: sort_by
           in: query
           schema:
             type: string
-            enum: [uploaded_at, original_name, size, type]
-            default: uploaded_at
+            enum: [created_at, updated_at, original_name, size, type]
+            default: created_at
           description: |
             Field used for sorting. Combine with `sort_order` to get the desired order
-            (e.g., `sorted_by=uploaded_at` and `sort_order=desc` returns the newest uploads,
+            (e.g., `sorted_by=created_at` and `sort_order=desc` returns the newest uploads,
             `sort_order=asc` gives the oldest first; `original_name` covers A–Z/Z–A, `size`
             sorts by file size, and `type` sorts alphabetically by document type).
       responses:
@@ -1748,23 +1985,77 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, name, username, email, role]
+            enum:
+              [
+                created_at,
+                updated_at,
+                name,
+                email,
+                role,
+                status,
+                document_storage_used,
+                download_total_count,
+              ]
             default: created_at
         - name: role
           in: query
           schema:
             type: string
             enum: [user, admin]
-        - name: created_from
+          description: Comma-separated values
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, banned]
+          description: Comma-separated values
+        - name: gender
+          in: query
+          schema:
+            $ref: "#/components/schemas/Gender"
+          description: Comma-separated values
+        - name: email_verified
+          in: query
+          schema:
+            type: boolean
+        - name: created_at_from
           in: query
           schema:
             type: string
             format: date
-        - name: created_to
+        - name: created_at_to
           in: query
           schema:
             type: string
             format: date
+        - name: suspended
+          in: query
+          schema:
+            type: boolean
+        - name: daily_download_limit_from
+          in: query
+          schema:
+            type: integer
+        - name: daily_download_limit_to
+          in: query
+          schema:
+            type: integer
+        - name: document_storage_used_from
+          in: query
+          schema:
+            type: integer
+        - name: document_storage_used_to
+          in: query
+          schema:
+            type: integer
+        - name: download_total_count_from
+          in: query
+          schema:
+            type: integer
+        - name: download_total_count_to
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Users list
@@ -2060,6 +2351,26 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: updated_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: updated_at_to
+          in: query
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Templates list
@@ -2218,7 +2529,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, published_at, title, views, status]
+            enum: [created_at, updated_at, published_at, title, views, read_time]
             default: created_at
         - name: status
           in: query
@@ -2229,20 +2540,51 @@ paths:
           in: query
           schema:
             type: string
-        - name: author_id
+        - name: user_id
           in: query
           schema:
             type: string
-        - name: published_from
+        - name: tag_id
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values
+        - name: published_at_from
           in: query
           schema:
             type: string
             format: date
-        - name: published_to
+        - name: published_at_to
           in: query
           schema:
             type: string
             format: date
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: read_time_from
+          in: query
+          schema:
+            type: integer
+        - name: read_time_to
+          in: query
+          schema:
+            type: integer
+        - name: views_from
+          in: query
+          schema:
+            type: integer
+        - name: views_to
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Blogs list
@@ -2401,8 +2743,26 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, name]
+            enum: [created_at, updated_at, name, blog_count]
             default: name
+        - name: blog_count_from
+          in: query
+          schema:
+            type: integer
+        - name: blog_count_to
+          in: query
+          schema:
+            type: integer
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Blog categories list
@@ -2561,8 +2921,26 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, name]
+            enum: [created_at, updated_at, name, blog_count]
             default: name
+        - name: blog_count_from
+          in: query
+          schema:
+            type: integer
+        - name: blog_count_to
+          in: query
+          schema:
+            type: integer
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Blog tags list
@@ -3056,150 +3434,105 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SortOrder"
         - name: q
           in: query
           schema:
             type: string
-          description: Pencarian global (title, description, company)
-        - name: company_id
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                format: uuid
-              - type: array
-                items:
-                  type: string
-                  format: uuid
-          description: Filter lowongan berdasarkan perusahaan (dapat menggunakan multiple values)
-        - name: job_role_id
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                format: uuid
-              - type: array
-                items:
-                  type: string
-                  format: uuid
-          description: Filter berdasarkan role pekerjaan (dapat menggunakan multiple values)
-        - name: city_id
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                format: uuid
-              - type: array
-                items:
-                  type: string
-                  format: uuid
-          description: Filter berdasarkan kota (dapat menggunakan multiple values)
-        - name: province_id
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                format: uuid
-              - type: array
-                items:
-                  type: string
-                  format: uuid
-          description: Filter berdasarkan provinsi (via relasi city) (dapat menggunakan multiple values)
-        - name: job_type
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                enum: [full_time, part_time, contract, internship, freelance]
-              - type: array
-                items:
-                  type: string
-                  enum: [full_time, part_time, contract, internship, freelance]
-          description: Filter tipe pekerjaan (dapat menggunakan multiple values)
-        - name: work_system
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                enum: [onsite, hybrid, remote]
-              - type: array
-                items:
-                  type: string
-                  enum: [onsite, hybrid, remote]
-          description: Filter sistem kerja (dapat menggunakan multiple values)
-        - name: education_level
-          in: query
-          schema:
-            oneOf:
-              - type: string
-                enum:
-                  [
-                    middle_school,
-                    high_school,
-                    associate_d1,
-                    associate_d2,
-                    associate_d3,
-                    bachelor,
-                    master,
-                    doctorate,
-                    any,
-                  ]
-              - type: array
-                items:
-                  type: string
-                  enum:
-                    [
-                      middle_school,
-                      high_school,
-                      associate_d1,
-                      associate_d2,
-                      associate_d3,
-                      bachelor,
-                      master,
-                      doctorate,
-                      any,
-                    ]
-          description: Filter minimal pendidikan (dapat menggunakan multiple values)
-        - name: experience_min
-          in: query
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 50
-          description: Filter minimal pengalaman (tahun)
-        - name: salary_min
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-          description: Filter gaji minimum
         - name: status
           in: query
           schema:
-            oneOf:
-              - type: string
-                enum: [draft, published, closed, archived]
-              - type: array
-                items:
-                  type: string
-                  enum: [draft, published, closed, archived]
-          description: Filter by status (dapat menggunakan multiple values)
-        - $ref: "#/components/parameters/Page"
-        - name: per_page
+            type: string
+            enum: [draft, published, closed, archived]
+          description: Comma-separated values
+        - name: job_type
           in: query
           schema:
-            type: integer
-            enum: [5, 10, 20, 50]
-            default: 10
-          description: Jumlah data per halaman
-        - name: sort
+            $ref: "#/components/schemas/JobType"
+          description: Comma-separated values
+        - name: work_system
+          in: query
+          schema:
+            $ref: "#/components/schemas/WorkSystem"
+          description: Comma-separated values
+        - name: education_level
+          in: query
+          schema:
+            $ref: "#/components/schemas/Degree"
+          description: Comma-separated values
+        - name: company_id
           in: query
           schema:
             type: string
-            enum: [created_at, salary_min, experience_min]
+            format: uuid
+          description: Comma-separated values
+        - name: job_role_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Comma-separated values
+        - name: city_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Comma-separated values
+        - name: salary_from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: salary_to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: years_of_experience_from
+          in: query
+          schema:
+            type: integer
+        - name: years_of_experience_to
+          in: query
+          schema:
+            type: integer
+        - name: expiration_date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: expiration_date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              [
+                created_at,
+                updated_at,
+                title,
+                company_name,
+                status,
+                salary_max,
+                expiration_date,
+              ]
             default: created_at
-          description: Field untuk sorting
-        - $ref: "#/components/parameters/SortOrder"
       responses:
         "200":
           description: Jobs list
@@ -3541,13 +3874,13 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, name]
+            enum: [created_at, updated_at, name, employee_size, job_count]
             default: created_at
         - name: business_sector
           in: query
           schema:
             type: string
-          description: Filter by business sector
+          description: Comma-separated values
         - name: employee_size
           in: query
           schema:
@@ -3560,7 +3893,25 @@ paths:
                 two_hundred_one_to_five_hundred,
                 five_hundred_plus,
               ]
-          description: Filter by employee size
+          description: Comma-separated values
+        - name: job_count_from
+          in: query
+          schema:
+            type: integer
+        - name: job_count_to
+          in: query
+          schema:
+            type: integer
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Companies list

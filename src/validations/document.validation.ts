@@ -1,21 +1,66 @@
 import { z } from "zod";
 import { DocumentType } from "../generated/prisma/client";
+import {
+  commaSeparatedNativeEnum,
+  commaSeparatedStringSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "./query.util";
 
-const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
-  per_page: z
-    .coerce.number()
-    .int()
-    .min(1, "Per halaman minimal 1")
-    .max(200, "Per halaman maksimal 200")
-    .default(20),
-  type: z.nativeEnum(DocumentType).optional(),
-  q: z.string().trim().min(1).max(255).optional(),
-  sort_by: z
-    .enum(["uploaded_at", "original_name", "size", "type"])
-    .default("uploaded_at"),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-});
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
+
+const paginationSchema = z
+  .object({
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z
+      .coerce.number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(200, "Per halaman maksimal 200")
+      .default(20),
+    type: commaSeparatedNativeEnum(DocumentType).optional(),
+    mime_type: commaSeparatedStringSchema.optional(),
+    size_from: optionalNumberSchema(z.number().int().nonnegative()),
+    size_to: optionalNumberSchema(z.number().int().nonnegative()),
+    created_at_from: optionalDateSchema(dateOnlySchema),
+    created_at_to: optionalDateSchema(dateOnlySchema),
+    q: z.string().trim().min(1).max(255).or(z.literal("")).optional(),
+    sort_by: z
+      .enum(["created_at", "updated_at", "original_name", "size", "type"])
+      .default("created_at"),
+    sort_order: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.created_at_from &&
+      data.created_at_to &&
+      Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["created_at_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.size_from !== undefined &&
+      data.size_to !== undefined &&
+      data.size_from > data.size_to
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["size_from"],
+        message: "Ukuran minimal tidak boleh lebih besar dari ukuran maksimal",
+      });
+    }
+  });
 
 const uploadSchema = z.object({
   type: z.nativeEnum(DocumentType),

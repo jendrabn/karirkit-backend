@@ -233,12 +233,21 @@ const sortFieldMap = {
   created_at: "createdAt",
   updated_at: "updatedAt",
   name: "name",
-  username: "username",
   email: "email",
   role: "role",
+  status: "status",
 } as const;
 
 export class UserService {
+  private static normalizeWhereAnd(
+    value: Prisma.UserWhereInput["AND"]
+  ): Prisma.UserWhereInput[] {
+    if (!value) {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
+  }
+
   private static buildStatusUpdate(
     status: "active" | "suspended" | "banned",
     statusReason?: string | null,
@@ -281,70 +290,125 @@ export class UserService {
         { name: { contains: search } },
         { username: { contains: search } },
         { email: { contains: search } },
+        { phone: { contains: search } },
+        { location: { contains: search } },
       ];
     }
 
-    if (requestData.role) {
-      where.role = requestData.role;
+    if (requestData.role?.length) {
+      where.role = { in: requestData.role };
     }
 
-    if (requestData.created_from || requestData.created_to) {
+    if (requestData.status?.length) {
+      where.status = { in: requestData.status };
+    }
+
+    if (requestData.gender?.length) {
+      where.gender = { in: requestData.gender };
+    }
+
+    if (requestData.email_verified !== undefined) {
+      where.emailVerifiedAt = requestData.email_verified ? { not: null } : null;
+    }
+
+    if (requestData.suspended !== undefined) {
+      const now = new Date();
+      if (requestData.suspended) {
+        where.suspendedUntil = { gt: now };
+      } else {
+        where.AND = [
+          ...UserService.normalizeWhereAnd(where.AND),
+          {
+            OR: [
+              { suspendedUntil: null },
+              { suspendedUntil: { lte: now } },
+            ],
+          },
+        ];
+      }
+    }
+
+    if (requestData.created_at_from || requestData.created_at_to) {
       where.createdAt = {};
 
-      if (requestData.created_from) {
+      if (requestData.created_at_from) {
         where.createdAt.gte = new Date(
-          `${requestData.created_from}T00:00:00.000Z`
+          `${requestData.created_at_from}T00:00:00.000Z`
         );
       }
 
-      if (requestData.created_to) {
+      if (requestData.created_at_to) {
         where.createdAt.lte = new Date(
-          `${requestData.created_to}T23:59:59.999Z`
+          `${requestData.created_at_to}T23:59:59.999Z`
         );
       }
     }
 
-    const sortField =
-      sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
-      "createdAt";
-    const orderBy: Prisma.UserOrderByWithRelationInput = {
-      [sortField]: requestData.sort_order,
-    };
+    if (
+      requestData.daily_download_limit_from !== undefined ||
+      requestData.daily_download_limit_to !== undefined
+    ) {
+      where.dailyDownloadLimit = {};
+      if (requestData.daily_download_limit_from !== undefined) {
+        where.dailyDownloadLimit.gte = requestData.daily_download_limit_from;
+      }
+      if (requestData.daily_download_limit_to !== undefined) {
+        where.dailyDownloadLimit.lte = requestData.daily_download_limit_to;
+      }
+    }
 
-    const [totalItems, records] = await Promise.all([
-      prisma.user.count({ where }),
-      prisma.user.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * perPage,
-        take: perPage,
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          email: true,
-          role: true,
-          phone: true,
-          headline: true,
-          bio: true,
-          location: true,
-          gender: true,
-          birthDate: true,
-          avatar: true,
-          emailVerifiedAt: true,
-          dailyDownloadLimit: true,
-          documentStorageLimit: true,
-          status: true,
-          statusReason: true,
-          suspendedUntil: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-    ]);
+    const needsDerivedData =
+      requestData.document_storage_used_from !== undefined ||
+      requestData.document_storage_used_to !== undefined ||
+      requestData.download_total_count_from !== undefined ||
+      requestData.download_total_count_to !== undefined ||
+      requestData.sort_by === "document_storage_used" ||
+      requestData.sort_by === "download_total_count";
 
-    const totalPages =
-      totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
+    const selectFields = {
+      id: true,
+      name: true,
+      username: true,
+      email: true,
+      role: true,
+      phone: true,
+      headline: true,
+      bio: true,
+      location: true,
+      gender: true,
+      birthDate: true,
+      avatar: true,
+      emailVerifiedAt: true,
+      dailyDownloadLimit: true,
+      documentStorageLimit: true,
+      status: true,
+      statusReason: true,
+      suspendedUntil: true,
+      createdAt: true,
+      updatedAt: true,
+    } satisfies Prisma.UserSelect;
+
+    const [totalItems, records] = needsDerivedData
+      ? [
+          null,
+          await prisma.user.findMany({
+            where,
+            select: selectFields,
+          }),
+        ]
+      : await Promise.all([
+          prisma.user.count({ where }),
+          prisma.user.findMany({
+            where,
+            orderBy: {
+              [sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
+              "createdAt"]: requestData.sort_order,
+            },
+            skip: (page - 1) * perPage,
+            take: perPage,
+            select: selectFields,
+          }),
+        ]);
 
     const userIds = records.map((user) => user.id);
     const today = new Date();
@@ -386,20 +450,118 @@ export class UserService {
       return acc;
     }, {});
 
+    const formattedUsers = records.map((user) => {
+      const downloadStats = buildDownloadStats(user, todayCounts, totalCounts);
+      return formatSafeUser(
+        user,
+        downloadStats,
+        storageUsage[user.id] ?? 0,
+        socialLinksByUser[user.id] ?? []
+      );
+    });
+
+    const applyDerivedFilters = (items: SafeUser[]) =>
+      items.filter((user) => {
+        if (
+          requestData.document_storage_used_from !== undefined &&
+          user.document_storage_stats.used <
+            requestData.document_storage_used_from
+        ) {
+          return false;
+        }
+        if (
+          requestData.document_storage_used_to !== undefined &&
+          user.document_storage_stats.used >
+            requestData.document_storage_used_to
+        ) {
+          return false;
+        }
+        if (
+          requestData.download_total_count_from !== undefined &&
+          user.download_stats.total_count <
+            requestData.download_total_count_from
+        ) {
+          return false;
+        }
+        if (
+          requestData.download_total_count_to !== undefined &&
+          user.download_stats.total_count > requestData.download_total_count_to
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+    const sortUsers = (items: SafeUser[]) => {
+      const direction = requestData.sort_order === "asc" ? 1 : -1;
+      const sortBy = requestData.sort_by;
+      const getStringValue = (value: string | null) => value ?? "";
+      return [...items].sort((a, b) => {
+        let left: number | string = 0;
+        let right: number | string = 0;
+        switch (sortBy) {
+          case "name":
+            left = getStringValue(a.name);
+            right = getStringValue(b.name);
+            break;
+          case "email":
+            left = getStringValue(a.email);
+            right = getStringValue(b.email);
+            break;
+          case "role":
+            left = getStringValue(a.role);
+            right = getStringValue(b.role);
+            break;
+          case "status":
+            left = getStringValue(a.status);
+            right = getStringValue(b.status);
+            break;
+          case "document_storage_used":
+            left = a.document_storage_stats.used;
+            right = b.document_storage_stats.used;
+            break;
+          case "download_total_count":
+            left = a.download_stats.total_count;
+            right = b.download_stats.total_count;
+            break;
+          case "updated_at":
+            left = Date.parse(a.updated_at);
+            right = Date.parse(b.updated_at);
+            break;
+          case "created_at":
+          default:
+            left = Date.parse(a.created_at);
+            right = Date.parse(b.created_at);
+            break;
+        }
+
+        if (left < right) return -1 * direction;
+        if (left > right) return 1 * direction;
+        return 0;
+      });
+    };
+
+    const filteredUsers = needsDerivedData
+      ? sortUsers(applyDerivedFilters(formattedUsers))
+      : formattedUsers;
+
+    const totalFilteredItems = needsDerivedData
+      ? filteredUsers.length
+      : totalItems ?? 0;
+    const totalPages =
+      totalFilteredItems === 0
+        ? 0
+        : Math.ceil(totalFilteredItems / Math.max(perPage, 1));
+    const pagedItems = needsDerivedData
+      ? filteredUsers.slice((page - 1) * perPage, page * perPage)
+      : filteredUsers;
+
     return {
-      items: records.map((user) => {
-        const downloadStats = buildDownloadStats(user, todayCounts, totalCounts);
-        return formatSafeUser(
-          user,
-          downloadStats,
-          storageUsage[user.id] ?? 0,
-          socialLinksByUser[user.id] ?? []
-        );
-      }),
+      items: pagedItems,
       pagination: {
         page,
         per_page: perPage,
-        total_items: totalItems,
+        total_items: totalFilteredItems,
         total_pages: totalPages,
       },
     };

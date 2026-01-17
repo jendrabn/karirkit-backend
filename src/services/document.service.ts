@@ -10,6 +10,7 @@ import type {
   Document as PrismaDocument,
   Prisma,
 } from "../generated/prisma/client";
+import { DocumentType } from "../generated/prisma/client";
 import type {
   Document as DocumentSchema,
   Pagination,
@@ -162,22 +163,56 @@ export class DocumentService {
       userId,
     };
 
-    if (filters.type) {
-      where.type = filters.type;
+    if (filters.type?.length) {
+      where.type = { in: filters.type };
+    }
+
+    if (filters.mime_type?.length) {
+      where.mimeType = { in: filters.mime_type };
+    }
+
+    if (filters.size_from !== undefined || filters.size_to !== undefined) {
+      where.size = {};
+      if (filters.size_from !== undefined) {
+        where.size.gte = filters.size_from;
+      }
+      if (filters.size_to !== undefined) {
+        where.size.lte = filters.size_to;
+      }
+    }
+
+    if (filters.created_at_from || filters.created_at_to) {
+      where.createdAt = {};
+      if (filters.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${filters.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (filters.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${filters.created_at_to}T23:59:59.999Z`
+        );
+      }
     }
 
     if (filters.q) {
-      where.OR = [
-        { originalName: { contains: filters.q } },
-        { mimeType: { contains: filters.q } },
+      const search = filters.q;
+      const searchConditions: Prisma.DocumentWhereInput[] = [
+        { originalName: { contains: search } },
+        { mimeType: { contains: search } },
       ];
+      if (Object.values(DocumentType).includes(search as DocumentType)) {
+        searchConditions.push({ type: search as DocumentType });
+      }
+      where.OR = searchConditions;
     }
 
     const sortFieldMap: Record<
       DocumentListQuery["sort_by"],
       keyof Prisma.DocumentOrderByWithRelationInput
     > = {
-      uploaded_at: "createdAt",
+      created_at: "createdAt",
+      updated_at: "updatedAt",
       original_name: "originalName",
       size: "size",
       type: "type",

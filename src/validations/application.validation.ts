@@ -5,6 +5,13 @@ import {
   JobType,
   WorkSystem,
 } from "../generated/prisma/client";
+import {
+  commaSeparatedNativeEnum,
+  commaSeparatedStringSchema,
+  optionalBooleanSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "./query.util";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -97,17 +104,25 @@ const listQuerySchema = z
         "updated_at",
         "company_name",
         "position",
-        "status",
-        "result_status",
+        "follow_up_date",
+        "salary_max",
       ])
       .default("date"),
-    status: z.nativeEnum(ApplicationStatus).optional(),
-    result_status: z.nativeEnum(ApplicationResultStatus).optional(),
-    job_type: z.nativeEnum(JobType).optional(),
-    work_system: z.nativeEnum(WorkSystem).optional(),
-    date_from: dateOnlySchema.optional(),
-    date_to: dateOnlySchema.optional(),
-    location: optionalString().or(z.literal("")).optional(),
+    status: commaSeparatedNativeEnum(ApplicationStatus).optional(),
+    result_status: commaSeparatedNativeEnum(ApplicationResultStatus).optional(),
+    job_type: commaSeparatedNativeEnum(JobType).optional(),
+    work_system: commaSeparatedNativeEnum(WorkSystem).optional(),
+    date_from: optionalDateSchema(dateOnlySchema),
+    date_to: optionalDateSchema(dateOnlySchema),
+    follow_up_date_from: optionalDateSchema(dateOnlySchema),
+    follow_up_date_to: optionalDateSchema(dateOnlySchema),
+    follow_up_date_has: optionalBooleanSchema,
+    follow_up_overdue: optionalBooleanSchema,
+    location: commaSeparatedStringSchema.optional(),
+    company_name: optionalString().or(z.literal("")).optional(),
+    job_source: commaSeparatedStringSchema.optional(),
+    salary_from: optionalNumberSchema(z.number().int().nonnegative()),
+    salary_to: optionalNumberSchema(z.number().int().nonnegative()),
   })
   .superRefine((data, ctx) => {
     if (
@@ -119,6 +134,31 @@ const listQuerySchema = z
         code: z.ZodIssueCode.custom,
         path: ["date_from"],
         message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.follow_up_date_from &&
+      data.follow_up_date_to &&
+      Date.parse(data.follow_up_date_from) >
+        Date.parse(data.follow_up_date_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["follow_up_date_from"],
+        message: "Tanggal follow up mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.salary_from !== undefined &&
+      data.salary_to !== undefined &&
+      data.salary_from > data.salary_to
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["salary_from"],
+        message: "Gaji minimal tidak boleh lebih besar dari gaji maksimal",
       });
     }
   });

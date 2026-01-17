@@ -73,7 +73,7 @@ const sortFieldMap = {
   published_at: "publishedAt",
   title: "title",
   views: "views",
-  status: "status",
+  read_time: "readTime",
 } as const;
 
 export class BlogService {
@@ -90,6 +90,9 @@ export class BlogService {
         { title: { contains: search } },
         { excerpt: { contains: search } },
         { content: { contains: search } },
+        { user: { name: { contains: search } } },
+        { category: { name: { contains: search } } },
+        { tags: { some: { tag: { name: { contains: search } } } } },
       ];
     }
 
@@ -101,23 +104,65 @@ export class BlogService {
       where.categoryId = requestData.category_id;
     }
 
-    if (requestData.author_id) {
-      where.userId = requestData.author_id;
+    if (requestData.user_id) {
+      where.userId = requestData.user_id;
     }
 
-    if (requestData.published_from || requestData.published_to) {
+    if (requestData.tag_id?.length) {
+      where.tags = {
+        some: {
+          tagId: { in: requestData.tag_id },
+        },
+      };
+    }
+
+    if (requestData.published_at_from || requestData.published_at_to) {
       where.publishedAt = {};
 
-      if (requestData.published_from) {
+      if (requestData.published_at_from) {
         where.publishedAt.gte = new Date(
-          `${requestData.published_from}T00:00:00.000Z`
+          `${requestData.published_at_from}T00:00:00.000Z`
         );
       }
 
-      if (requestData.published_to) {
+      if (requestData.published_at_to) {
         where.publishedAt.lte = new Date(
-          `${requestData.published_to}T23:59:59.999Z`
+          `${requestData.published_at_to}T23:59:59.999Z`
         );
+      }
+    }
+
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (requestData.read_time_from !== undefined || requestData.read_time_to !== undefined) {
+      where.readTime = {};
+      if (requestData.read_time_from !== undefined) {
+        where.readTime.gte = requestData.read_time_from;
+      }
+      if (requestData.read_time_to !== undefined) {
+        where.readTime.lte = requestData.read_time_to;
+      }
+    }
+
+    if (requestData.views_from !== undefined || requestData.views_to !== undefined) {
+      where.views = {};
+      if (requestData.views_from !== undefined) {
+        where.views.gte = requestData.views_from;
+      }
+      if (requestData.views_to !== undefined) {
+        where.views.lte = requestData.views_to;
       }
     }
 

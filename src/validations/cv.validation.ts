@@ -9,6 +9,20 @@ import {
   Language,
   Platform,
 } from "../generated/prisma/client";
+import {
+  commaSeparatedNativeEnum,
+  optionalBooleanSchema,
+  optionalDateSchema,
+  optionalNumberSchema,
+} from "./query.util";
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const trimmedString = (max = 255) =>
   z
@@ -148,20 +162,81 @@ const payloadSchema = z.object({
   projects: z.array(projectSchema).optional(),
 });
 
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
-  per_page: z.coerce
-    .number()
-    .int()
-    .min(1, "Per halaman minimal 1")
-    .max(100, "Per halaman maksimal 100")
-    .default(20),
-  q: trimmedString(255).optional(),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  sort_by: z.enum(["created_at", "updated_at", "name"]).default("created_at"),
-  name: optionalTrimmedString(),
-  email: z.string().trim().email("Format email tidak valid").optional(),
-});
+const listQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z.coerce
+      .number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(100, "Per halaman maksimal 100")
+      .default(20),
+    q: trimmedString(255).optional(),
+    sort_order: z.enum(["asc", "desc"]).default("desc"),
+    sort_by: z
+      .enum(["created_at", "updated_at", "name", "views", "headline"])
+      .default("created_at"),
+    visibility: commaSeparatedNativeEnum(CvVisibility).optional(),
+    language: commaSeparatedNativeEnum(Language).optional(),
+    template_id: z.string().uuid("ID template tidak valid").optional(),
+    created_at_from: optionalDateSchema(dateOnlySchema),
+    created_at_to: optionalDateSchema(dateOnlySchema),
+    updated_at_from: optionalDateSchema(dateOnlySchema),
+    updated_at_to: optionalDateSchema(dateOnlySchema),
+    views_from: optionalNumberSchema(z.number().int().nonnegative()),
+    views_to: optionalNumberSchema(z.number().int().nonnegative()),
+    educations_degree: commaSeparatedNativeEnum(Degree).optional(),
+    experiences_job_type: commaSeparatedNativeEnum(JobType).optional(),
+    experiences_is_current: optionalBooleanSchema,
+    skills_level: commaSeparatedNativeEnum(SkillLevel).optional(),
+    skills_skill_category: commaSeparatedNativeEnum(SkillCategory).optional(),
+    organizations_organization_type:
+      commaSeparatedNativeEnum(OrganizationType).optional(),
+    name: optionalTrimmedString(),
+    email: z.string().trim().email("Format email tidak valid").optional(),
+    headline: optionalTrimmedString(),
+    phone: optionalTrimmedString(),
+    address: optionalTrimmedString(500),
+    about: optionalTrimmedString(5000),
+    slug: optionalTrimmedString(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.created_at_from &&
+      data.created_at_to &&
+      Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["created_at_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.updated_at_from &&
+      data.updated_at_to &&
+      Date.parse(data.updated_at_from) > Date.parse(data.updated_at_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["updated_at_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.views_from !== undefined &&
+      data.views_to !== undefined &&
+      data.views_from > data.views_to
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["views_from"],
+        message: "Minimal views tidak boleh lebih besar dari maksimal views",
+      });
+    }
+  });
 
 const massDeleteSchema = z.object({
   ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),

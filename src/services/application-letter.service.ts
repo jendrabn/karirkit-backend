@@ -48,7 +48,7 @@ const sortFieldMap = {
   updated_at: "updatedAt",
   application_date: "applicationDate",
   company_name: "companyName",
-  subject: "subject",
+  name: "name",
 } as const satisfies Record<
   string,
   keyof Prisma.ApplicationLetterOrderByWithRelationInput
@@ -83,21 +83,66 @@ export class ApplicationLetterService {
       const search = filters.q;
       where.OR = [
         { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
         { subject: { contains: search } },
         { companyName: { contains: search } },
-        { receiverTitle: { contains: search } },
+        { companyCity: { contains: search } },
         { applicantCity: { contains: search } },
+        { education: { contains: search } },
       ];
     }
 
     if (filters.company_name) {
-      where.companyName = {
-        contains: filters.company_name,
-      };
+      where.companyName = filters.company_name;
     }
 
-    if (filters.application_date) {
-      where.applicationDate = filters.application_date;
+    if (filters.gender?.length) {
+      where.gender = { in: filters.gender };
+    }
+
+    if (filters.marital_status?.length) {
+      where.maritalStatus = { in: filters.marital_status };
+    }
+
+    if (filters.language?.length) {
+      where.language = { in: filters.language };
+    }
+
+    if (filters.company_city?.length) {
+      where.companyCity = { in: filters.company_city };
+    }
+
+    if (filters.applicant_city?.length) {
+      where.applicantCity = { in: filters.applicant_city };
+    }
+
+    if (filters.template_id) {
+      where.templateId = filters.template_id;
+    }
+
+    if (filters.application_date_from || filters.application_date_to) {
+      where.applicationDate = {};
+      if (filters.application_date_from) {
+        where.applicationDate.gte = filters.application_date_from;
+      }
+      if (filters.application_date_to) {
+        where.applicationDate.lte = filters.application_date_to;
+      }
+    }
+
+    if (filters.created_at_from || filters.created_at_to) {
+      where.createdAt = {};
+      if (filters.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${filters.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (filters.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${filters.created_at_to}T23:59:59.999Z`
+        );
+      }
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";

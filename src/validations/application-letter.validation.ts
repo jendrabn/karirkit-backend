@@ -1,5 +1,18 @@
 import { z } from "zod";
 import { Gender, Language, MaritalStatus } from "../generated/prisma/client";
+import {
+  commaSeparatedNativeEnum,
+  commaSeparatedStringSchema,
+  optionalDateSchema,
+} from "./query.util";
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateOnlySchema = z
+  .string()
+  .trim()
+  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
 
 const stringField = (max = 255) =>
   z
@@ -46,28 +59,64 @@ const payloadSchema = z.object({
   language: z.nativeEnum(Language).default("id"),
 });
 
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
-  per_page: z.coerce
-    .number()
-    .int()
-    .min(1, "Per halaman minimal 1")
-    .max(100, "Per halaman maksimal 100")
-    .default(20),
-  q: z.string().trim().max(255).or(z.literal("")).optional(),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-  sort_by: z
-    .enum([
-      "created_at",
-      "updated_at",
-      "application_date",
-      "company_name",
-      "subject",
-    ])
-    .default("created_at"),
-  company_name: z.string().trim().max(255).or(z.literal("")).optional(),
-  application_date: stringField(50).optional(),
-});
+const listQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1, "Halaman minimal 1").default(1),
+    per_page: z.coerce
+      .number()
+      .int()
+      .min(1, "Per halaman minimal 1")
+      .max(100, "Per halaman maksimal 100")
+      .default(20),
+    q: z.string().trim().max(255).or(z.literal("")).optional(),
+    sort_order: z.enum(["asc", "desc"]).default("desc"),
+    sort_by: z
+      .enum([
+        "created_at",
+        "updated_at",
+        "application_date",
+        "company_name",
+        "name",
+      ])
+      .default("created_at"),
+    gender: commaSeparatedNativeEnum(Gender).optional(),
+    marital_status: commaSeparatedNativeEnum(MaritalStatus).optional(),
+    language: commaSeparatedNativeEnum(Language).optional(),
+    company_name: z.string().trim().max(255).or(z.literal("")).optional(),
+    company_city: commaSeparatedStringSchema.optional(),
+    applicant_city: commaSeparatedStringSchema.optional(),
+    template_id: z.string().uuid("ID template tidak valid").optional(),
+    application_date_from: optionalDateSchema(dateOnlySchema),
+    application_date_to: optionalDateSchema(dateOnlySchema),
+    created_at_from: optionalDateSchema(dateOnlySchema),
+    created_at_to: optionalDateSchema(dateOnlySchema),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.application_date_from &&
+      data.application_date_to &&
+      Date.parse(data.application_date_from) >
+        Date.parse(data.application_date_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["application_date_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+
+    if (
+      data.created_at_from &&
+      data.created_at_to &&
+      Date.parse(data.created_at_from) > Date.parse(data.created_at_to)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["created_at_from"],
+        message: "Tanggal mulai tidak boleh setelah tanggal selesai",
+      });
+    }
+  });
 
 const massDeleteSchema = z.object({
   ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),

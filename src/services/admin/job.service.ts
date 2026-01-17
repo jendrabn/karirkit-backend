@@ -1,4 +1,3 @@
-import { PrismaClient } from "../../generated/prisma/client";
 import {
   CreateJobRequest,
   UpdateJobRequest,
@@ -7,19 +6,20 @@ import {
   JobResponse,
 } from "../../types/job-portal-schemas";
 import { validate } from "../../utils/validate.util";
-import { z } from "zod";
 import { ResponseError } from "../../utils/response-error.util";
 import { UploadService } from "../upload.service";
 import { prisma } from "../../config/prisma.config";
 import { slugify } from "../../utils/slugify.util";
 import { isHttpUrl } from "../../utils/url.util";
+import { JobValidation } from "../../validations/admin/job.validation";
 
 const sortFieldMap = {
   created_at: "createdAt",
   updated_at: "updatedAt",
   title: "title",
-  salary_min: "salaryMin",
-  experience_min: "minYearsOfExperience",
+  status: "status",
+  salary_max: "salaryMax",
+  expiration_date: "expirationDate",
 } as const;
 
 type JobMediaPayload = {
@@ -28,92 +28,7 @@ type JobMediaPayload = {
 
 export class AdminJobService {
   static async list(query: unknown): Promise<JobListResponse> {
-    const requestData = validate(
-      z.object({
-        page: z.coerce.number().min(1).default(1),
-        per_page: z.coerce.number().min(1).max(50).default(20),
-        q: z.string().optional(),
-        company_id: z
-          .union([z.string().uuid(), z.array(z.string().uuid())])
-          .optional(),
-        job_role_id: z
-          .union([z.string().uuid(), z.array(z.string().uuid())])
-          .optional(),
-        city_id: z
-          .union([z.string().uuid(), z.array(z.string().uuid())])
-          .optional(),
-        province_id: z
-          .union([z.string().uuid(), z.array(z.string().uuid())])
-          .optional(),
-        job_type: z
-          .union([
-            z.enum([
-              "full_time",
-              "part_time",
-              "contract",
-              "internship",
-              "freelance",
-            ]),
-            z.array(
-              z.enum([
-                "full_time",
-                "part_time",
-                "contract",
-                "internship",
-                "freelance",
-              ])
-            ),
-          ])
-          .optional(),
-        work_system: z
-          .union([
-            z.enum(["onsite", "hybrid", "remote"]),
-            z.array(z.enum(["onsite", "hybrid", "remote"])),
-          ])
-          .optional(),
-        education_level: z
-          .union([
-            z.enum([
-              "middle_school",
-              "high_school",
-              "associate_d1",
-              "associate_d2",
-              "associate_d3",
-              "bachelor",
-              "master",
-              "doctorate",
-              "any",
-            ]),
-            z.array(
-              z.enum([
-                "middle_school",
-                "high_school",
-                "associate_d1",
-                "associate_d2",
-                "associate_d3",
-                "bachelor",
-                "master",
-                "doctorate",
-                "any",
-              ])
-            ),
-          ])
-          .optional(),
-        experience_min: z.coerce.number().min(0).max(50).optional(),
-        salary_min: z.coerce.number().min(0).optional(),
-        sort_by: z
-          .enum(["created_at", "salary_min", "experience_min"])
-          .default("created_at"),
-        sort_order: z.enum(["asc", "desc"]).default("desc"),
-        status: z
-          .union([
-            z.enum(["draft", "published", "closed", "archived"]),
-            z.array(z.enum(["draft", "published", "closed", "archived"])),
-          ])
-          .optional(),
-      }),
-      query
-    );
+    const requestData = validate(JobValidation.LIST_QUERY, query);
 
     const page = requestData.page;
     const perPage = requestData.per_page;
@@ -125,96 +40,133 @@ export class AdminJobService {
     // Search functionality with improved full-text search
     if (requestData.q) {
       const searchTerm = requestData.q.trim();
-
-      // Create search conditions for better matching
-      const searchConditions = [
+      where.OR = [
         { title: { contains: searchTerm } },
-        { description: { contains: searchTerm } },
+        { slug: { contains: searchTerm } },
         { company: { name: { contains: searchTerm } } },
+        { jobRole: { name: { contains: searchTerm } } },
+        { city: { name: { contains: searchTerm } } },
+        { contactName: { contains: searchTerm } },
+        { contactEmail: { contains: searchTerm } },
       ];
-
-      // Add the search conditions to where clause
-      where.OR = searchConditions;
     }
 
     // Filter by company
-    if (requestData.company_id) {
-      where.companyId = Array.isArray(requestData.company_id)
-        ? { in: requestData.company_id }
-        : requestData.company_id;
+    if (requestData.company_id?.length) {
+      where.companyId = { in: requestData.company_id };
     }
 
     // Filter by job role
-    if (requestData.job_role_id) {
-      where.jobRoleId = Array.isArray(requestData.job_role_id)
-        ? { in: requestData.job_role_id }
-        : requestData.job_role_id;
+    if (requestData.job_role_id?.length) {
+      where.jobRoleId = { in: requestData.job_role_id };
     }
 
     // Filter by city
-    if (requestData.city_id) {
-      where.cityId = Array.isArray(requestData.city_id)
-        ? { in: requestData.city_id }
-        : requestData.city_id;
-    }
-
-    // Filter by province (via city)
-    if (requestData.province_id) {
-      if (Array.isArray(requestData.province_id)) {
-        where.city = {
-          provinceId: { in: requestData.province_id },
-        };
-      } else {
-        where.city = {
-          provinceId: requestData.province_id,
-        };
-      }
+    if (requestData.city_id?.length) {
+      where.cityId = { in: requestData.city_id };
     }
 
     // Filter by job type
-    if (requestData.job_type) {
-      where.jobType = Array.isArray(requestData.job_type)
-        ? { in: requestData.job_type }
-        : requestData.job_type;
+    if (requestData.job_type?.length) {
+      where.jobType = { in: requestData.job_type };
     }
 
     // Filter by work system
-    if (requestData.work_system) {
-      where.workSystem = Array.isArray(requestData.work_system)
-        ? { in: requestData.work_system }
-        : requestData.work_system;
+    if (requestData.work_system?.length) {
+      where.workSystem = { in: requestData.work_system };
     }
 
     // Filter by education level
-    if (requestData.education_level) {
-      where.educationLevel = Array.isArray(requestData.education_level)
-        ? { in: requestData.education_level }
-        : requestData.education_level;
-    }
-
-    // Filter by minimum experience
-    if (requestData.experience_min !== undefined) {
-      where.minYearsOfExperience = { gte: requestData.experience_min };
-    }
-
-    // Filter by minimum salary
-    if (requestData.salary_min !== undefined) {
-      where.salaryMin = { gte: requestData.salary_min };
+    if (requestData.education_level?.length) {
+      where.educationLevel = { in: requestData.education_level };
     }
 
     // Filter by status (admin can see all statuses)
-    if (requestData.status) {
-      where.status = Array.isArray(requestData.status)
-        ? { in: requestData.status }
-        : requestData.status;
+    if (requestData.status?.length) {
+      where.status = { in: requestData.status };
+    }
+
+    if (
+      requestData.salary_from !== undefined ||
+      requestData.salary_to !== undefined
+    ) {
+      const salaryFilters: any[] = [
+        { NOT: { AND: [{ salaryMin: null }, { salaryMax: null }] } },
+      ];
+      if (requestData.salary_from !== undefined) {
+        salaryFilters.push({
+          OR: [{ salaryMax: { gte: requestData.salary_from } }, { salaryMax: null }],
+        });
+      }
+      if (requestData.salary_to !== undefined) {
+        salaryFilters.push({
+          OR: [{ salaryMin: { lte: requestData.salary_to } }, { salaryMin: null }],
+        });
+      }
+      where.AND = [...(where.AND ?? []), ...salaryFilters];
+    }
+
+    if (
+      requestData.years_of_experience_from !== undefined ||
+      requestData.years_of_experience_to !== undefined
+    ) {
+      const experienceFilters: any[] = [];
+      if (requestData.years_of_experience_from !== undefined) {
+        experienceFilters.push({
+          OR: [
+            { maxYearsOfExperience: { gte: requestData.years_of_experience_from } },
+            { maxYearsOfExperience: null },
+          ],
+        });
+      }
+      if (requestData.years_of_experience_to !== undefined) {
+        experienceFilters.push({
+          minYearsOfExperience: { lte: requestData.years_of_experience_to },
+        });
+      }
+      if (experienceFilters.length) {
+        where.AND = [...(where.AND ?? []), ...experienceFilters];
+      }
+    }
+
+    if (
+      requestData.expiration_date_from ||
+      requestData.expiration_date_to
+    ) {
+      where.expirationDate = {};
+      if (requestData.expiration_date_from) {
+        where.expirationDate.gte = new Date(
+          `${requestData.expiration_date_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.expiration_date_to) {
+        where.expirationDate.lte = new Date(
+          `${requestData.expiration_date_to}T23:59:59.999Z`
+        );
+      }
+    }
+
+    if (requestData.created_at_from || requestData.created_at_to) {
+      where.createdAt = {};
+      if (requestData.created_at_from) {
+        where.createdAt.gte = new Date(
+          `${requestData.created_at_from}T00:00:00.000Z`
+        );
+      }
+      if (requestData.created_at_to) {
+        where.createdAt.lte = new Date(
+          `${requestData.created_at_to}T23:59:59.999Z`
+        );
+      }
     }
 
     const sortField =
       sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
       "createdAt";
-    const orderBy: any = {
-      [sortField]: requestData.sort_order,
-    };
+    const orderBy =
+      requestData.sort_by === "company_name"
+        ? { company: { name: requestData.sort_order } }
+        : { [sortField]: requestData.sort_order };
 
     const [totalItems, records] = await Promise.all([
       prisma.job.count({ where }),
