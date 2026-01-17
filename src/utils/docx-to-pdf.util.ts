@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile);
 
 export const convertDocxToPdf = async (
   docxBuffer: Buffer,
-  baseName: string
+  baseName: string,
 ): Promise<Buffer> => {
   const safeName =
     baseName
@@ -21,7 +21,7 @@ export const convertDocxToPdf = async (
       .trim() || "document";
 
   const tempDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "docx-to-pdf-" + crypto.randomUUID())
+    path.join(os.tmpdir(), "docx-to-pdf-" + crypto.randomUUID()),
   );
   const profileDir = path.join(tempDir, "lo-profile");
   const inputPath = path.join(tempDir, `${safeName}.docx`);
@@ -39,7 +39,7 @@ export const convertDocxToPdf = async (
       "--nofirststartwizard",
       `-env:UserInstallation=${profileUrl}`,
       "--convert-to",
-      "pdf",
+      "pdf:writer_pdf_Export",
       "--outdir",
       tempDir,
       inputPath,
