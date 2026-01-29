@@ -47,7 +47,7 @@ router.post(
   "/uploads",
   authMiddleware,
   handleTempUpload,
-  UploadController.uploadTemp
+  UploadController.uploadTemp,
 );
 
 // Public API
@@ -70,7 +70,7 @@ router.post("/auth/google", AuthController.loginWithGoogle);
 router.post(
   "/auth/forgot-password",
   passwordResetRateLimiter,
-  AuthController.sendPasswordResetLink
+  AuthController.sendPasswordResetLink,
 );
 router.post("/auth/reset-password", AuthController.resetPassword);
 router.post("/auth/logout", authMiddleware, AuthController.logout);
@@ -79,12 +79,12 @@ router.put(
   "/account/me",
   authMiddleware,
   handleTempUpload,
-  AccountController.updateMe
+  AccountController.updateMe,
 );
 router.put(
   "/account/change-password",
   authMiddleware,
-  AccountController.changePassword
+  AccountController.changePassword,
 );
 
 // OTP API
@@ -92,7 +92,7 @@ router.post("/auth/verify-otp", loginRateLimiter, AuthController.verifyOtp);
 router.post(
   "/auth/resend-otp",
   passwordResetRateLimiter,
-  AuthController.resendOtp
+  AuthController.resendOtp,
 );
 router.post("/auth/check-otp-status", AuthController.checkOtpStatus);
 
@@ -102,66 +102,66 @@ router.post("/applications", authMiddleware, ApplicationController.create);
 router.get(
   "/applications/stats",
   authMiddleware,
-  ApplicationController.getStats
+  ApplicationController.getStats,
 );
 router.delete(
   "/applications/mass-delete",
   authMiddleware,
-  ApplicationController.massDelete
+  ApplicationController.massDelete,
 );
 router.get("/applications/:id", authMiddleware, ApplicationController.get);
 router.put("/applications/:id", authMiddleware, ApplicationController.update);
 router.delete(
   "/applications/:id",
   authMiddleware,
-  ApplicationController.delete
+  ApplicationController.delete,
 );
 router.post(
   "/applications/:id/duplicate",
   authMiddleware,
-  ApplicationController.duplicate
+  ApplicationController.duplicate,
 );
 
 // Application Letters API
 router.get(
   "/application-letters",
   authMiddleware,
-  ApplicationLetterController.list
+  ApplicationLetterController.list,
 );
 router.post(
   "/application-letters",
   authMiddleware,
-  ApplicationLetterController.create
+  ApplicationLetterController.create,
 );
 router.delete(
   "/application-letters/mass-delete",
   authMiddleware,
-  ApplicationLetterController.massDelete
+  ApplicationLetterController.massDelete,
 );
 router.get(
   "/application-letters/:id",
   authMiddleware,
-  ApplicationLetterController.get
+  ApplicationLetterController.get,
 );
 router.put(
   "/application-letters/:id",
   authMiddleware,
-  ApplicationLetterController.update
+  ApplicationLetterController.update,
 );
 router.delete(
   "/application-letters/:id",
   authMiddleware,
-  ApplicationLetterController.delete
+  ApplicationLetterController.delete,
 );
 router.post(
   "/application-letters/:id/duplicate",
   authMiddleware,
-  ApplicationLetterController.duplicate
+  ApplicationLetterController.duplicate,
 );
 router.get(
   "/application-letters/:id/download",
   authMiddleware,
-  ApplicationLetterController.download
+  ApplicationLetterController.download,
 );
 
 // Portfolios API
@@ -170,7 +170,7 @@ router.post("/portfolios", authMiddleware, PortfolioController.create);
 router.delete(
   "/portfolios/mass-delete",
   authMiddleware,
-  PortfolioController.massDelete
+  PortfolioController.massDelete,
 );
 router.get("/portfolios/:id", authMiddleware, PortfolioController.get);
 router.put("/portfolios/:id", authMiddleware, PortfolioController.update);
@@ -185,7 +185,7 @@ router.put("/cvs/:id", authMiddleware, CvController.update);
 router.patch(
   "/cvs/:id/visibility",
   authMiddleware,
-  CvController.updateSlugVisibility
+  CvController.updateSlugVisibility,
 );
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
@@ -197,18 +197,18 @@ router.post(
   "/documents",
   authMiddleware,
   handleDocumentUpload,
-  DocumentController.create
+  DocumentController.create,
 );
 router.delete(
   "/documents/mass-delete",
   authMiddleware,
-  DocumentController.massDelete
+  DocumentController.massDelete,
 );
 router.delete("/documents/:id", authMiddleware, DocumentController.delete);
 router.get(
   "/documents/:id/download",
   authMiddleware,
-  DocumentController.download
+  DocumentController.download,
 );
 
 // Blogs API
@@ -234,7 +234,7 @@ router.get(
   "/admin/dashboard",
   authMiddleware,
   adminMiddleware,
-  AdminDashboardController.getStats
+  AdminDashboardController.getStats,
 );
 
 // Admin Users API
@@ -242,55 +242,55 @@ router.get(
   "/admin/users",
   authMiddleware,
   adminMiddleware,
-  UserController.list
+  UserController.list,
 );
 router.post(
   "/admin/users",
   authMiddleware,
   adminMiddleware,
-  UserController.create
+  UserController.create,
 );
 router.delete(
   "/admin/users/mass-delete",
   authMiddleware,
   adminMiddleware,
-  UserController.massDelete
+  UserController.massDelete,
 );
 router.get(
   "/admin/users/:id",
   authMiddleware,
   adminMiddleware,
-  UserController.get
+  UserController.get,
 );
 router.put(
   "/admin/users/:id",
   authMiddleware,
   adminMiddleware,
-  UserController.update
+  UserController.update,
 );
 router.patch(
   "/admin/users/:id/status",
   authMiddleware,
   adminMiddleware,
-  UserController.updateStatus
+  UserController.updateStatus,
 );
 router.patch(
   "/admin/users/:id/daily-download-limit",
   authMiddleware,
   adminMiddleware,
-  UserController.updateDailyDownloadLimit
+  UserController.updateDailyDownloadLimit,
 );
 router.patch(
   "/admin/users/:id/storage-download-limit",
   authMiddleware,
   adminMiddleware,
-  UserController.updateStorageLimit
+  UserController.updateStorageLimit,
 );
 router.delete(
   "/admin/users/:id",
   authMiddleware,
   adminMiddleware,
-  UserController.delete
+  UserController.delete,
 );
 
 // Admin Templates API
@@ -298,37 +298,37 @@ router.get(
   "/admin/templates",
   authMiddleware,
   adminMiddleware,
-  TemplateController.list
+  TemplateController.list,
 );
 router.post(
   "/admin/templates",
   authMiddleware,
   adminMiddleware,
-  TemplateController.create
+  TemplateController.create,
 );
 router.delete(
   "/admin/templates/mass-delete",
   authMiddleware,
   adminMiddleware,
-  TemplateController.massDelete
+  TemplateController.massDelete,
 );
 router.get(
   "/admin/templates/:id",
   authMiddleware,
   adminMiddleware,
-  TemplateController.get
+  TemplateController.get,
 );
 router.put(
   "/admin/templates/:id",
   authMiddleware,
   adminMiddleware,
-  TemplateController.update
+  TemplateController.update,
 );
 router.delete(
   "/admin/templates/:id",
   authMiddleware,
   adminMiddleware,
-  TemplateController.delete
+  TemplateController.delete,
 );
 
 // Admin Blogs API
@@ -336,37 +336,37 @@ router.get(
   "/admin/blogs",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.list
+  AdminBlogController.list,
 );
 router.post(
   "/admin/blogs",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.create
+  AdminBlogController.create,
 );
 router.delete(
   "/admin/blogs/mass-delete",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.massDelete
+  AdminBlogController.massDelete,
 );
 router.get(
   "/admin/blogs/:id",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.get
+  AdminBlogController.get,
 );
 router.put(
   "/admin/blogs/:id",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.update
+  AdminBlogController.update,
 );
 router.delete(
   "/admin/blogs/:id",
   authMiddleware,
   adminMiddleware,
-  AdminBlogController.delete
+  AdminBlogController.delete,
 );
 
 // Admin Blog Upload API
@@ -375,7 +375,7 @@ router.post(
   authMiddleware,
   adminMiddleware,
   handleBlogUpload,
-  UploadController.uploadBlog
+  UploadController.uploadBlog,
 );
 
 // Admin Blog Categories API
@@ -383,37 +383,37 @@ router.get(
   "/admin/blog-categories",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.list
+  BlogCategoryController.list,
 );
 router.post(
   "/admin/blog-categories",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.create
+  BlogCategoryController.create,
 );
 router.delete(
   "/admin/blog-categories/mass-delete",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.massDelete
+  BlogCategoryController.massDelete,
 );
 router.get(
   "/admin/blog-categories/:id",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.get
+  BlogCategoryController.get,
 );
 router.put(
   "/admin/blog-categories/:id",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.update
+  BlogCategoryController.update,
 );
 router.delete(
   "/admin/blog-categories/:id",
   authMiddleware,
   adminMiddleware,
-  BlogCategoryController.delete
+  BlogCategoryController.delete,
 );
 
 // Admin Blog Tags API
@@ -421,37 +421,37 @@ router.get(
   "/admin/blog-tags",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.list
+  BlogTagController.list,
 );
 router.post(
   "/admin/blog-tags",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.create
+  BlogTagController.create,
 );
 router.delete(
   "/admin/blog-tags/mass-delete",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.massDelete
+  BlogTagController.massDelete,
 );
 router.get(
   "/admin/blog-tags/:id",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.get
+  BlogTagController.get,
 );
 router.put(
   "/admin/blog-tags/:id",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.update
+  BlogTagController.update,
 );
 router.delete(
   "/admin/blog-tags/:id",
   authMiddleware,
   adminMiddleware,
-  BlogTagController.delete
+  BlogTagController.delete,
 );
 
 // Job Portal Public API
@@ -462,7 +462,7 @@ router.post("/jobs/saved/toggle", authMiddleware, JobController.toggleSavedJob);
 router.delete(
   "/jobs/saved/mass-delete",
   authMiddleware,
-  JobController.massDeleteSavedJobs
+  JobController.massDeleteSavedJobs,
 );
 router.get("/companies", PublicController.getCompanies);
 router.get("/job-roles", PublicController.getJobRoles);
@@ -473,39 +473,39 @@ router.get(
   "/admin/jobs",
   authMiddleware,
   adminMiddleware,
-  AdminJobController.list
+  AdminJobController.list,
 );
 router.post(
   "/admin/jobs",
   authMiddleware,
   adminMiddleware,
   handleTempUpload,
-  AdminJobController.create
+  AdminJobController.create,
 );
 router.get(
   "/admin/jobs/:id",
   authMiddleware,
   adminMiddleware,
-  AdminJobController.get
+  AdminJobController.get,
 );
 router.put(
   "/admin/jobs/:id",
   authMiddleware,
   adminMiddleware,
   handleTempUpload,
-  AdminJobController.update
+  AdminJobController.update,
 );
 router.delete(
   "/admin/jobs/:id",
   authMiddleware,
   adminMiddleware,
-  AdminJobController.delete
+  AdminJobController.delete,
 );
 router.delete(
   "/admin/jobs",
   authMiddleware,
   adminMiddleware,
-  AdminJobController.massDelete
+  AdminJobController.massDelete,
 );
 
 // Admin Companies API
@@ -513,39 +513,39 @@ router.get(
   "/admin/companies",
   authMiddleware,
   adminMiddleware,
-  AdminCompanyController.list
+  AdminCompanyController.list,
 );
 router.post(
   "/admin/companies",
   authMiddleware,
   adminMiddleware,
   handleTempUpload,
-  AdminCompanyController.create
+  AdminCompanyController.create,
 );
 router.get(
   "/admin/companies/:id",
   authMiddleware,
   adminMiddleware,
-  AdminCompanyController.get
+  AdminCompanyController.get,
 );
 router.put(
   "/admin/companies/:id",
   authMiddleware,
   adminMiddleware,
   handleTempUpload,
-  AdminCompanyController.update
+  AdminCompanyController.update,
+);
+router.delete(
+  "/admin/companies/mass-delete",
+  authMiddleware,
+  adminMiddleware,
+  AdminCompanyController.massDelete,
 );
 router.delete(
   "/admin/companies/:id",
   authMiddleware,
   adminMiddleware,
-  AdminCompanyController.delete
-);
-router.delete(
-  "/admin/companies",
-  authMiddleware,
-  adminMiddleware,
-  AdminCompanyController.massDelete
+  AdminCompanyController.delete,
 );
 
 // Admin Job Roles API
@@ -553,37 +553,37 @@ router.get(
   "/admin/job-roles",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.list
+  AdminJobRoleController.list,
 );
 router.post(
   "/admin/job-roles",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.create
+  AdminJobRoleController.create,
 );
 router.get(
   "/admin/job-roles/:id",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.get
+  AdminJobRoleController.get,
 );
 router.put(
   "/admin/job-roles/:id",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.update
+  AdminJobRoleController.update,
 );
 router.delete(
   "/admin/job-roles/:id",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.delete
+  AdminJobRoleController.delete,
 );
 router.delete(
   "/admin/job-roles",
   authMiddleware,
   adminMiddleware,
-  AdminJobRoleController.massDelete
+  AdminJobRoleController.massDelete,
 );
 
 export default router;
