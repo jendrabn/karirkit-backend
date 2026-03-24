@@ -249,13 +249,32 @@ export class AdminJobRoleService {
       },
     });
 
-    return {
-      data: AdminJobRoleService.toResponse(jobRole),
-    };
+    return AdminJobRoleService.toResponse(jobRole);
   }
 
   static async delete(id: string): Promise<void> {
-    await AdminJobRoleService.findJobRole(id);
+    const jobRole = await prisma.jobRole.findFirst({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+      },
+    });
+
+    if (!jobRole) {
+      throw new ResponseError(404, "Job role tidak ditemukan");
+    }
+
+    if (jobRole._count.jobs > 0) {
+      throw new ResponseError(
+        400,
+        "Job role tidak dapat dihapus karena masih digunakan oleh lowongan pekerjaan"
+      );
+    }
+
     await prisma.jobRole.delete({
       where: { id },
     });
@@ -269,10 +288,24 @@ export class AdminJobRoleService {
       where: {
         id: { in: ids },
       },
+      include: {
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+      },
     });
 
     if (jobRoles.length !== ids.length) {
       throw new ResponseError(404, "Satu atau lebih job role tidak ditemukan");
+    }
+
+    if (jobRoles.some((jobRole) => jobRole._count.jobs > 0)) {
+      throw new ResponseError(
+        400,
+        "Satu atau lebih job role tidak dapat dihapus karena masih digunakan oleh lowongan pekerjaan"
+      );
     }
 
     const result = await prisma.jobRole.deleteMany({

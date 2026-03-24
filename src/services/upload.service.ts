@@ -59,6 +59,10 @@ const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   "application/rtf": ".rtf",
 };
 
+const PUBLIC_ROOT = path.join(process.cwd(), "public");
+const UPLOADS_ROOT = path.join(PUBLIC_ROOT, "uploads");
+const TEMP_UPLOAD_PREFIX = "uploads/temp";
+
 export type UploadFileResult = {
   path: string;
   original_name: string;
@@ -67,6 +71,12 @@ export type UploadFileResult = {
 };
 
 export class UploadService {
+  static isTempUploadPath(filePath?: string | null): boolean {
+    return Boolean(
+      UploadService.resolveUploadPath(filePath, [TEMP_UPLOAD_PREFIX])
+    );
+  }
+
   static async uploadFile(
     file: Express.Multer.File,
     directory: string = "uploads/temp",
@@ -211,22 +221,172 @@ export class UploadService {
       return trimmed;
     }
 
-    const fileName = path.basename(trimmed);
+    const source = UploadService.resolveUploadPath(trimmed, [TEMP_UPLOAD_PREFIX]);
+    if (!source) {
+      throw new ResponseError(
+        400,
+        "File harus berasal dari folder upload sementara"
+      );
+    }
 
-    const sourcePath = path.join(process.cwd(), "public", trimmed);
-
-    const destDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      destinationDirectory
-    );
+    const fileName = path.basename(source.relativePath);
+    const safeDestinationDirectory =
+      UploadService.normalizeUploadDirectory(destinationDirectory);
+    const destDir = path.join(UPLOADS_ROOT, safeDestinationDirectory);
     await fs.mkdir(destDir, { recursive: true });
 
     const finalPath = path.join(destDir, fileName);
 
-    await fs.rename(sourcePath, finalPath);
+    try {
+      await fs.rename(source.absolutePath, finalPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ResponseError(400, "File upload sementara tidak ditemukan");
+      }
+      throw error;
+    }
 
-    return path.posix.join("/uploads", destinationDirectory, fileName);
+    return path.posix.join("/uploads", safeDestinationDirectory, fileName);
+  }
+
+  static async deleteUpload(
+    filePath?: string | null,
+    allowedPrefixes?: string[]
+  ): Promise<void> {
+    if (!filePath || isHttpUrl(filePath)) {
+      return;
+    }
+
+    const resolved = UploadService.resolveUploadPath(filePath, allowedPrefixes);
+    if (!resolved) {
+      return;
+    }
+
+    try {
+      await fs.unlink(resolved.absolutePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  static async copyUpload(
+    filePath: string,
+    destinationDirectory: string,
+    allowedPrefixes?: string[]
+  ): Promise<string> {
+    if (isHttpUrl(filePath)) {
+      return filePath;
+    }
+
+    const source = UploadService.resolveUploadPath(filePath, allowedPrefixes);
+    if (!source) {
+      throw new ResponseError(400, "File sumber tidak valid");
+    }
+
+    const extension = path.extname(source.relativePath);
+    const safeDestinationDirectory =
+      UploadService.normalizeUploadDirectory(destinationDirectory);
+    const destinationRoot = path.join(UPLOADS_ROOT, safeDestinationDirectory);
+    await fs.mkdir(destinationRoot, { recursive: true });
+
+    const filename = `${Date.now()}-${crypto.randomUUID()}${extension}`;
+    const destination = path.join(destinationRoot, filename);
+
+    try {
+      await fs.copyFile(source.absolutePath, destination);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ResponseError(400, "File sumber tidak ditemukan");
+      }
+      throw error;
+    }
+
+    return path.posix.join("/uploads", safeDestinationDirectory, filename);
+  }
+
+  private static normalizeUploadDirectory(directory: string): string {
+    const normalized = directory
+      .trim()
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "")
+      .replace(/\/+$/, "");
+
+    if (!normalized) {
+      throw new ResponseError(400, "Direktori upload tidak valid");
+    }
+
+    const safeDirectory = path.normalize(normalized);
+    if (safeDirectory.startsWith("..") || path.isAbsolute(safeDirectory)) {
+      throw new ResponseError(400, "Direktori upload tidak valid");
+    }
+
+    return safeDirectory.replace(/\\/g, "/");
+  }
+
+  private static resolveUploadPath(
+    filePath?: string | null,
+    allowedPrefixes?: string[]
+  ):
+    | {
+        absolutePath: string;
+        relativePath: string;
+        publicPath: string;
+      }
+    | null {
+    if (!filePath) {
+      return null;
+    }
+
+    const trimmed = filePath.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalizedInput = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
+    const safeInput = path.normalize(normalizedInput);
+    if (safeInput.startsWith("..") || path.isAbsolute(safeInput)) {
+      return null;
+    }
+
+    const posixSafeInput = safeInput.replace(/\\/g, "/");
+    const normalizedPrefixes = (allowedPrefixes?.length
+      ? allowedPrefixes
+      : ["uploads"]
+    ).map((prefix) =>
+      prefix
+        .replace(/\\/g, "/")
+        .replace(/^\/+/, "")
+        .replace(/\/+$/, "")
+        .toLowerCase()
+    );
+
+    const matchedPrefix = normalizedPrefixes.find((prefix) => {
+      return (
+        posixSafeInput.toLowerCase() === prefix ||
+        posixSafeInput.toLowerCase().startsWith(`${prefix}/`)
+      );
+    });
+
+    if (!matchedPrefix || posixSafeInput.toLowerCase() === matchedPrefix) {
+      return null;
+    }
+
+    const absolutePath = path.join(PUBLIC_ROOT, safeInput);
+    const relativeToUploads = path.relative(UPLOADS_ROOT, absolutePath);
+    if (
+      !relativeToUploads ||
+      relativeToUploads.startsWith("..") ||
+      path.isAbsolute(relativeToUploads)
+    ) {
+      return null;
+    }
+
+    return {
+      absolutePath,
+      relativePath: relativeToUploads.replace(/\\/g, "/"),
+      publicPath: `/${posixSafeInput}`,
+    };
   }
 }

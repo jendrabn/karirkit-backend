@@ -208,44 +208,53 @@ export class AdminCompanyService {
 
     // Move logo from temp to permanent location if provided
     let finalLogo = request.logo;
-    if (request.logo) {
+    let movedLogoPath: string | undefined;
+    if (request.logo && UploadService.isTempUploadPath(request.logo)) {
       try {
-        finalLogo = await UploadService.moveFromTemp("companies", request.logo);
+        movedLogoPath = await UploadService.moveFromTemp("companies", request.logo);
+        finalLogo = movedLogoPath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses logo");
       }
     }
 
     const now = new Date();
-    const company = await prisma.company.create({
-      data: {
-        name: request.name,
-        slug,
-        description: request.description || null,
-        logo: finalLogo || null,
-        employeeSize: request.employee_size || null,
-        businessSector: request.business_sector || null,
-        websiteUrl: request.website_url || null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      include: {
-        _count: {
-          select: {
-            jobs: true,
+    try {
+      const company = await prisma.company.create({
+        data: {
+          name: request.name,
+          slug,
+          description: request.description || null,
+          logo: finalLogo || null,
+          employeeSize: request.employee_size || null,
+          businessSector: request.business_sector || null,
+          websiteUrl: request.website_url || null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        include: {
+          _count: {
+            select: {
+              jobs: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return AdminCompanyService.toResponse(company);
+      return AdminCompanyService.toResponse(company);
+    } catch (error) {
+      if (movedLogoPath) {
+        await UploadService.deleteUpload(movedLogoPath, ["uploads/companies"]);
+      }
+      throw error;
+    }
   }
 
   static async update(
     id: string,
     request: UpdateCompanyRequest
   ): Promise<CompanyResponse> {
-    await AdminCompanyService.findCompany(id);
+    const existingCompany = await AdminCompanyService.findCompany(id);
 
     // Check if slug is unique (excluding current company)
     if (request.name) {
@@ -264,9 +273,11 @@ export class AdminCompanyService {
 
     // Move logo from temp to permanent location if provided
     let finalLogo = request.logo;
-    if (request.logo) {
+    let movedLogoPath: string | undefined;
+    if (request.logo && UploadService.isTempUploadPath(request.logo)) {
       try {
-        finalLogo = await UploadService.moveFromTemp("companies", request.logo);
+        movedLogoPath = await UploadService.moveFromTemp("companies", request.logo);
+        finalLogo = movedLogoPath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses logo");
       }
@@ -301,9 +312,41 @@ export class AdminCompanyService {
       updateData.websiteUrl = request.website_url;
     }
 
-    const company = await prisma.company.update({
+    try {
+      const company = await prisma.company.update({
+        where: { id },
+        data: updateData,
+        include: {
+          _count: {
+            select: {
+              jobs: true,
+            },
+          },
+        },
+      });
+
+      if (
+        request.logo !== undefined &&
+        existingCompany.logo &&
+        existingCompany.logo !== company.logo
+      ) {
+        await UploadService.deleteUpload(existingCompany.logo, [
+          "uploads/companies",
+        ]);
+      }
+
+      return AdminCompanyService.toResponse(company);
+    } catch (error) {
+      if (movedLogoPath) {
+        await UploadService.deleteUpload(movedLogoPath, ["uploads/companies"]);
+      }
+      throw error;
+    }
+  }
+
+  static async delete(id: string): Promise<void> {
+    const company = await prisma.company.findFirst({
       where: { id },
-      data: updateData,
       include: {
         _count: {
           select: {
@@ -313,14 +356,21 @@ export class AdminCompanyService {
       },
     });
 
-    return AdminCompanyService.toResponse(company);
-  }
+    if (!company) {
+      throw new ResponseError(404, "Perusahaan tidak ditemukan");
+    }
 
-  static async delete(id: string): Promise<void> {
-    await AdminCompanyService.findCompany(id);
+    if (company._count.jobs > 0) {
+      throw new ResponseError(
+        400,
+        "Perusahaan tidak dapat dihapus karena masih digunakan oleh lowongan pekerjaan"
+      );
+    }
+
     await prisma.company.delete({
       where: { id },
     });
+    await UploadService.deleteUpload(company.logo, ["uploads/companies"]);
   }
 
   static async massDelete(
@@ -331,6 +381,13 @@ export class AdminCompanyService {
       where: {
         id: { in: ids },
       },
+      include: {
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+      },
     });
 
     if (companies.length !== ids.length) {
@@ -340,11 +397,24 @@ export class AdminCompanyService {
       );
     }
 
+    if (companies.some((company) => company._count.jobs > 0)) {
+      throw new ResponseError(
+        400,
+        "Satu atau lebih perusahaan tidak dapat dihapus karena masih digunakan oleh lowongan pekerjaan"
+      );
+    }
+
     const result = await prisma.company.deleteMany({
       where: {
         id: { in: ids },
       },
     });
+
+    await Promise.all(
+      companies.map((company) =>
+        UploadService.deleteUpload(company.logo, ["uploads/companies"])
+      )
+    );
 
     return {
       message: `${result.count} perusahaan berhasil dihapus`,

@@ -163,12 +163,14 @@ export class TemplateService {
 
     // Move file from temp to permanent location if path is provided
     let finalPath = requestData.path;
-    if (requestData.path) {
+    let movedTemplatePath: string | undefined;
+    if (requestData.path && UploadService.isTempUploadPath(requestData.path)) {
       try {
-        finalPath = await UploadService.moveFromTemp(
+        movedTemplatePath = await UploadService.moveFromTemp(
           "templates",
           requestData.path
         );
+        finalPath = movedTemplatePath;
       } catch (error) {
         console.error(error);
         throw new ResponseError(400, "Gagal memproses file template");
@@ -177,31 +179,45 @@ export class TemplateService {
 
     // Move preview file from temp to permanent location if preview is provided
     let finalPreviewPath = requestData.preview;
-    if (requestData.preview && !isHttpUrl(requestData.preview)) {
+    let movedPreviewPath: string | undefined;
+    if (
+      requestData.preview &&
+      !isHttpUrl(requestData.preview) &&
+      UploadService.isTempUploadPath(requestData.preview)
+    ) {
       try {
-        finalPreviewPath = await UploadService.moveFromTemp(
+        movedPreviewPath = await UploadService.moveFromTemp(
           "templates",
           requestData.preview
         );
+        finalPreviewPath = movedPreviewPath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file preview");
       }
     }
 
-    const template = await prisma.template.create({
-      data: {
-        name: requestData.name,
-        type: requestData.type,
-        language: requestData.language ?? "en",
-        path: finalPath,
-        preview: finalPreviewPath,
-        isPremium: requestData.is_premium ?? false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    try {
+      const template = await prisma.template.create({
+        data: {
+          name: requestData.name,
+          type: requestData.type,
+          language: requestData.language ?? "en",
+          path: finalPath,
+          preview: finalPreviewPath,
+          isPremium: requestData.is_premium ?? false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-    return TemplateService.toResponse(template);
+      return TemplateService.toResponse(template);
+    } catch (error) {
+      await Promise.all([
+        UploadService.deleteUpload(movedTemplatePath, ["uploads/templates"]),
+        UploadService.deleteUpload(movedPreviewPath, ["uploads/templates"]),
+      ]);
+      throw error;
+    }
   }
 
   static async update(
@@ -221,12 +237,14 @@ export class TemplateService {
 
     // Move file from temp to permanent location if path is provided
     let finalPath = requestData.path;
-    if (requestData.path) {
+    let movedTemplatePath: string | undefined;
+    if (requestData.path && UploadService.isTempUploadPath(requestData.path)) {
       try {
-        finalPath = await UploadService.moveFromTemp(
+        movedTemplatePath = await UploadService.moveFromTemp(
           "templates",
           requestData.path
         );
+        finalPath = movedTemplatePath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file template");
       }
@@ -234,12 +252,18 @@ export class TemplateService {
 
     // Move preview file from temp to permanent location if preview is provided
     let finalPreviewPath = requestData.preview;
-    if (requestData.preview && !isHttpUrl(requestData.preview)) {
+    let movedPreviewPath: string | undefined;
+    if (
+      requestData.preview &&
+      !isHttpUrl(requestData.preview) &&
+      UploadService.isTempUploadPath(requestData.preview)
+    ) {
       try {
-        finalPreviewPath = await UploadService.moveFromTemp(
+        movedPreviewPath = await UploadService.moveFromTemp(
           "templates",
           requestData.preview
         );
+        finalPreviewPath = movedPreviewPath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses file preview");
       }
@@ -273,28 +297,70 @@ export class TemplateService {
       updateData.isPremium = requestData.is_premium;
     }
 
-    const template = await prisma.template.update({
-      where: { id },
-      data: updateData,
-    });
+    try {
+      const template = await prisma.template.update({
+        where: { id },
+        data: updateData,
+      });
 
-    return TemplateService.toResponse(template);
+      await Promise.all([
+        requestData.path !== undefined && existingTemplate.path !== template.path
+          ? UploadService.deleteUpload(existingTemplate.path, [
+              "uploads/templates",
+            ])
+          : Promise.resolve(),
+        requestData.preview !== undefined &&
+        existingTemplate.preview !== template.preview
+          ? UploadService.deleteUpload(existingTemplate.preview, [
+              "uploads/templates",
+            ])
+          : Promise.resolve(),
+      ]);
+
+      return TemplateService.toResponse(template);
+    } catch (error) {
+      await Promise.all([
+        UploadService.deleteUpload(movedTemplatePath, ["uploads/templates"]),
+        UploadService.deleteUpload(movedPreviewPath, ["uploads/templates"]),
+      ]);
+      throw error;
+    }
   }
 
   static async delete(id: string): Promise<void> {
-    // Check if template exists
     const existingTemplate = await prisma.template.findFirst({
       where: { id },
+      include: {
+        _count: {
+          select: {
+            cvs: true,
+            applicationLetters: true,
+          },
+        },
+      },
     });
 
     if (!existingTemplate) {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    // Hard delete
+    if (
+      existingTemplate._count.cvs > 0 ||
+      existingTemplate._count.applicationLetters > 0
+    ) {
+      throw new ResponseError(
+        400,
+        "Template tidak dapat dihapus karena masih digunakan"
+      );
+    }
+
     await prisma.template.delete({
       where: { id },
     });
+    await Promise.all([
+      UploadService.deleteUpload(existingTemplate.path, ["uploads/templates"]),
+      UploadService.deleteUpload(existingTemplate.preview, ["uploads/templates"]),
+    ]);
   }
 
   static async massDelete(
@@ -307,18 +373,44 @@ export class TemplateService {
       where: {
         id: { in: ids },
       },
+      include: {
+        _count: {
+          select: {
+            cvs: true,
+            applicationLetters: true,
+          },
+        },
+      },
     });
 
     if (templates.length !== ids.length) {
       throw new ResponseError(404, "Satu atau lebih template tidak ditemukan");
     }
 
-    // Hard delete templates
+    if (
+      templates.some(
+        (template) =>
+          template._count.cvs > 0 || template._count.applicationLetters > 0
+      )
+    ) {
+      throw new ResponseError(
+        400,
+        "Satu atau lebih template tidak dapat dihapus karena masih digunakan"
+      );
+    }
+
     const result = await prisma.template.deleteMany({
       where: {
         id: { in: ids },
       },
     });
+
+    await Promise.all(
+      templates.flatMap((template) => [
+        UploadService.deleteUpload(template.path, ["uploads/templates"]),
+        UploadService.deleteUpload(template.preview, ["uploads/templates"]),
+      ])
+    );
 
     return {
       message: `${result.count} template berhasil dihapus`,

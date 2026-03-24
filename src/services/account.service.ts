@@ -210,28 +210,6 @@ export class AccountService {
         : null;
     }
 
-    if (requestData.avatar !== undefined) {
-      // If avatar is provided and it's a temp path, move it to the avatars folder
-      if (
-        requestData.avatar &&
-        requestData.avatar.startsWith("/uploads/temp/")
-      ) {
-        try {
-          const avatarPath = await UploadService.moveFromTemp(
-            "avatars",
-            requestData.avatar
-          );
-          updateData.avatar = avatarPath;
-        } catch (error) {
-          throw new ResponseError(400, "Gagal memindahkan avatar");
-        }
-      } else {
-        updateData.avatar = requestData.avatar;
-      }
-    }
-
-    updateData.updatedAt = new Date();
-
     const socialLinkPayload = requestData.social_links ?? undefined;
     const socialLinkIds = socialLinkPayload
       ? socialLinkPayload
@@ -250,62 +228,98 @@ export class AccountService {
       }
     }
 
-    const user = await prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: updateData,
-        include: {
-          socialLinks: {
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          },
-        },
-      });
+    let movedAvatarPath: string | undefined;
+    if (requestData.avatar !== undefined) {
+      if (requestData.avatar && UploadService.isTempUploadPath(requestData.avatar)) {
+        try {
+          movedAvatarPath = await UploadService.moveFromTemp(
+            "avatars",
+            requestData.avatar
+          );
+          updateData.avatar = movedAvatarPath;
+        } catch (error) {
+          throw new ResponseError(400, "Gagal memindahkan avatar");
+        }
+      } else {
+        updateData.avatar = requestData.avatar;
+      }
+    }
 
-      if (socialLinkPayload) {
-        await tx.userSocialLink.deleteMany({
-          where: {
-            userId,
-            ...(socialLinkIds.length
-              ? { id: { notIn: socialLinkIds } }
-              : {}),
+    updateData.updatedAt = new Date();
+
+    try {
+      const user = await prisma.$transaction(async (tx) => {
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: updateData,
+          include: {
+            socialLinks: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            },
           },
         });
 
-        await Promise.all(
-          socialLinkPayload.map((link) => {
-            if (link.id) {
-              return tx.userSocialLink.update({
-                where: { id: link.id },
+        if (socialLinkPayload) {
+          await tx.userSocialLink.deleteMany({
+            where: {
+              userId,
+              ...(socialLinkIds.length
+                ? { id: { notIn: socialLinkIds } }
+                : {}),
+            },
+          });
+
+          await Promise.all(
+            socialLinkPayload.map((link) => {
+              if (link.id) {
+                return tx.userSocialLink.update({
+                  where: { id: link.id },
+                  data: {
+                    platform: link.platform,
+                    url: link.url,
+                  },
+                });
+              }
+
+              return tx.userSocialLink.create({
                 data: {
+                  userId,
                   platform: link.platform,
                   url: link.url,
                 },
               });
-            }
+            })
+          );
+        }
 
-            return tx.userSocialLink.create({
-              data: {
-                userId,
-                platform: link.platform,
-                url: link.url,
-              },
-            });
-          })
-        );
+        return updatedUser;
+      });
+
+      if (
+        requestData.avatar !== undefined &&
+        existingUser.avatar &&
+        existingUser.avatar !== user.avatar
+      ) {
+        await UploadService.deleteUpload(existingUser.avatar, [
+          "uploads/avatars",
+        ]);
       }
 
-      return updatedUser;
-    });
-
-    const [downloadStats, storageStats] = await Promise.all([
-      DownloadLogService.getDownloadStats(userId),
-      DocumentService.getStorageStats(userId),
-    ]);
-    const socialLinks = await prisma.userSocialLink.findMany({
-      where: { userId },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    });
-    return toSafeUser(user, socialLinks, downloadStats, storageStats);
+      const [downloadStats, storageStats] = await Promise.all([
+        DownloadLogService.getDownloadStats(userId),
+        DocumentService.getStorageStats(userId),
+      ]);
+      const socialLinks = await prisma.userSocialLink.findMany({
+        where: { userId },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      });
+      return toSafeUser(user, socialLinks, downloadStats, storageStats);
+    } catch (error) {
+      if (movedAvatarPath) {
+        await UploadService.deleteUpload(movedAvatarPath, ["uploads/avatars"]);
+      }
+      throw error;
+    }
   }
 
   static async changePassword(

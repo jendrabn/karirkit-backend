@@ -311,12 +311,17 @@ export class BlogService {
 
     // Move featured image from temp to permanent location if provided
     let finalFeaturedImage = requestData.featured_image;
-    if (requestData.featured_image) {
+    let movedFeaturedImagePath: string | undefined;
+    if (
+      requestData.featured_image &&
+      UploadService.isTempUploadPath(requestData.featured_image)
+    ) {
       try {
-        finalFeaturedImage = await UploadService.moveFromTemp(
+        movedFeaturedImagePath = await UploadService.moveFromTemp(
           "blogs",
           requestData.featured_image
         );
+        finalFeaturedImage = movedFeaturedImagePath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses gambar utama");
       }
@@ -341,49 +346,58 @@ export class BlogService {
     // Remove tag_ids from main data as it's not a direct field
     const { tag_ids, ...blogCreateData } = blogData;
 
-    const blog = await prisma.blog.create({
-      data: {
-        ...blogCreateData,
-        tags:
-          requestData.tag_ids && requestData.tag_ids.length > 0
-            ? {
-                create: requestData.tag_ids.map((tagId: string) => ({
-                  tagId,
-                })),
-              }
-            : undefined,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            headline: true,
-            bio: true,
-            location: true,
-            socialLinks: {
-              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-              select: {
-                id: true,
-                userId: true,
-                platform: true,
-                url: true,
+    try {
+      const blog = await prisma.blog.create({
+        data: {
+          ...blogCreateData,
+          tags:
+            requestData.tag_ids && requestData.tag_ids.length > 0
+              ? {
+                  create: requestData.tag_ids.map((tagId: string) => ({
+                    tagId,
+                  })),
+                }
+              : undefined,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              avatar: true,
+              headline: true,
+              bio: true,
+              location: true,
+              socialLinks: {
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  userId: true,
+                  platform: true,
+                  url: true,
+                },
               },
             },
           },
-        },
-        category: true,
-        tags: {
-          include: {
-            tag: true,
+          category: true,
+          tags: {
+            include: {
+              tag: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return BlogService.toResponse(blog);
+      return BlogService.toResponse(blog);
+    } catch (error) {
+      if (movedFeaturedImagePath) {
+        await UploadService.deleteUpload(movedFeaturedImagePath, [
+          "uploads/blogs",
+        ]);
+      }
+      throw error;
+    }
   }
 
   static async update(
@@ -448,12 +462,17 @@ export class BlogService {
 
     // Move featured image from temp to permanent location if provided
     let finalFeaturedImage = requestData.featured_image;
-    if (requestData.featured_image) {
+    let movedFeaturedImagePath: string | undefined;
+    if (
+      requestData.featured_image &&
+      UploadService.isTempUploadPath(requestData.featured_image)
+    ) {
       try {
-        finalFeaturedImage = await UploadService.moveFromTemp(
+        movedFeaturedImagePath = await UploadService.moveFromTemp(
           "blogs",
           requestData.featured_image
         );
+        finalFeaturedImage = movedFeaturedImagePath;
       } catch (error) {
         throw new ResponseError(400, "Gagal memproses gambar utama");
       }
@@ -503,57 +522,77 @@ export class BlogService {
     // Remove tag_ids from main data as it's not a direct field
     const { tag_ids, ...blogUpdateData } = updateData;
 
-    const blog = await prisma.blog.update({
-      where: { id },
-      data: {
-        ...blogUpdateData,
-        tags: requestData.tag_ids
-          ? {
-              deleteMany: {},
-              create: requestData.tag_ids.map((tagId: string) => ({
-                tagId,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            headline: true,
-            bio: true,
-            location: true,
-            socialLinks: {
-              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-              select: {
-                id: true,
-                userId: true,
-                platform: true,
-                url: true,
+    try {
+      const blog = await prisma.blog.update({
+        where: { id },
+        data: {
+          ...blogUpdateData,
+          tags: requestData.tag_ids
+            ? {
+                deleteMany: {},
+                create: requestData.tag_ids.map((tagId: string) => ({
+                  tagId,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              avatar: true,
+              headline: true,
+              bio: true,
+              location: true,
+              socialLinks: {
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  userId: true,
+                  platform: true,
+                  url: true,
+                },
               },
             },
           },
-        },
-        category: true,
-        tags: {
-          include: {
-            tag: true,
+          category: true,
+          tags: {
+            include: {
+              tag: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return BlogService.toResponse(blog);
+      if (
+        requestData.featured_image !== undefined &&
+        currentBlog?.featuredImage &&
+        currentBlog.featuredImage !== blog.featuredImage
+      ) {
+        await UploadService.deleteUpload(currentBlog.featuredImage, [
+          "uploads/blogs",
+        ]);
+      }
+
+      return BlogService.toResponse(blog);
+    } catch (error) {
+      if (movedFeaturedImagePath) {
+        await UploadService.deleteUpload(movedFeaturedImagePath, [
+          "uploads/blogs",
+        ]);
+      }
+      throw error;
+    }
   }
 
   static async delete(id: string): Promise<void> {
-    await BlogService.findBlog(id);
+    const blog = await BlogService.findBlog(id);
     await prisma.blog.delete({
       where: { id },
     });
+    await UploadService.deleteUpload(blog.featuredImage, ["uploads/blogs"]);
   }
 
   static async massDelete(
@@ -565,6 +604,10 @@ export class BlogService {
     const blogs = await prisma.blog.findMany({
       where: {
         id: { in: ids },
+      },
+      select: {
+        id: true,
+        featuredImage: true,
       },
     });
 
@@ -578,6 +621,12 @@ export class BlogService {
         id: { in: ids },
       },
     });
+
+    await Promise.all(
+      blogs.map((blog) =>
+        UploadService.deleteUpload(blog.featuredImage, ["uploads/blogs"])
+      )
+    );
 
     return {
       message: `${result.count} blog berhasil dihapus`,

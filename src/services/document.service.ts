@@ -264,12 +264,17 @@ export class DocumentService {
       compression
     );
 
-    return DocumentService.persistDocument(
-      userId,
-      payload,
-      uploadResult,
-      payload.name
-    );
+    try {
+      return await DocumentService.persistDocument(
+        userId,
+        payload,
+        uploadResult,
+        payload.name
+      );
+    } catch (error) {
+      await DocumentService.removeFile(uploadResult.path);
+      throw error;
+    }
   }
 
   static async createMany(
@@ -284,24 +289,51 @@ export class DocumentService {
 
     const payload = DocumentService.validateUploadPayload(request);
     const documents: DocumentSchema[] = [];
-
-    for (const file of files) {
-      const uploadResult = await DocumentService.handleSingleFile(
-        userId,
-        file,
-        compression
-      );
-      documents.push(
-        await DocumentService.persistDocument(
+    try {
+      for (const file of files) {
+        const uploadResult = await DocumentService.handleSingleFile(
           userId,
-          payload,
-          uploadResult,
-          payload.name
-        )
-      );
-    }
+          file,
+          compression
+        );
 
-    return documents;
+        try {
+          documents.push(
+            await DocumentService.persistDocument(
+              userId,
+              payload,
+              uploadResult,
+              payload.name
+            )
+          );
+        } catch (error) {
+          await DocumentService.removeFile(uploadResult.path);
+          throw error;
+        }
+      }
+
+      return documents;
+    } catch (error) {
+      if (documents.length) {
+        const documentIds = documents
+          .map((document) => document.id)
+          .filter((id): id is string => Boolean(id));
+        const documentPaths = documents
+          .map((document) => document.path)
+          .filter((filePath): filePath is string => Boolean(filePath));
+
+        await prisma.document.deleteMany({
+          where: {
+            id: { in: documentIds },
+            userId,
+          },
+        });
+        await Promise.all(
+          documentPaths.map((filePath) => DocumentService.removeFile(filePath))
+        );
+      }
+      throw error;
+    }
   }
 
   static async createMerged(
@@ -336,23 +368,28 @@ export class DocumentService {
       ".pdf"
     );
 
-    return DocumentService.persistDocument(
-      userId,
-      payload,
-      {
-        path: stored.path,
-        size: stored.size,
-        mime_type: "application/pdf",
-        original_name: mergedName,
-      },
-      mergedName
-    );
+    try {
+      return await DocumentService.persistDocument(
+        userId,
+        payload,
+        {
+          path: stored.path,
+          size: stored.size,
+          mime_type: "application/pdf",
+          original_name: mergedName,
+        },
+        mergedName
+      );
+    } catch (error) {
+      await DocumentService.removeFile(stored.path);
+      throw error;
+    }
   }
 
   static async delete(userId: string, id: string): Promise<void> {
     const document = await DocumentService.findOwnedDocument(userId, id);
-    await DocumentService.removeFile(document.path);
     await prisma.document.delete({ where: { id } });
+    await DocumentService.removeFile(document.path);
   }
 
   static async massDelete(
@@ -376,12 +413,13 @@ export class DocumentService {
       );
     }
 
-    await Promise.all(
-      documents.map((doc) => DocumentService.removeFile(doc.path))
-    );
     const result = await prisma.document.deleteMany({
       where: { id: { in: payload.ids }, userId },
     });
+
+    await Promise.all(
+      documents.map((doc) => DocumentService.removeFile(doc.path))
+    );
 
     return {
       message: `${result.count} dokumen berhasil dihapus`,

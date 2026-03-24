@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prebuild": "npm run prisma:generate",
     "build": "tsc",
+    "predev": "npm run prisma:generate",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "key:generate": "node ./scripts/key-generate.js",
@@ -12,8 +15,8 @@
     "test:coverage": "jest --coverage --runInBand"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "^7.0.1",
-    "@prisma/client": "^7.0.1",
+    "@prisma/adapter-mariadb": "^7.5.0",
+    "@prisma/client": "^7.5.0",
     "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",
     "bull": "^4.16.5",
@@ -59,7 +62,7 @@
     "@types/yamljs": "^0.2.34",
     "cross-env": "^10.1.0",
     "jest": "^30.2.0",
-    "prisma": "^7.0.1",
+    "prisma": "^7.5.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",

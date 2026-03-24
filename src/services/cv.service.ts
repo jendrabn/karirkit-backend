@@ -1219,7 +1219,7 @@ export class CvService {
     const templatePath = path.join(process.cwd(), "public", template.path);
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
-    console.log(JSON.stringify(context, null, 2));
+    
     const additionalJsContext = cv.photo
       ? CvService.buildAdditionalJsContext()
       : undefined;

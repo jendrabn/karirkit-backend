@@ -134,7 +134,7 @@ export class AuthController {
     }
   }
 
-  static async verifyOtp(req: Request, res: Response) {
+  static async verifyOtp(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await OtpService.verifyOtp(req.body);
 
@@ -151,48 +151,30 @@ export class AuthController {
       });
 
       return sendSuccess(res, result.user);
-    } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to verify OTP",
-        error.statusCode || 500
-      );
+    } catch (error) {
+      next(error);
     }
   }
 
-  static async resendOtp(req: Request, res: Response) {
+  static async resendOtp(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await OtpService.resendOtp(req.body);
       return sendSuccess(res, result);
-    } catch (error: any) {
-      // Handle rate limit error with additional data
-      if (error.statusCode === 429 && error.data) {
-        return sendError(
-          res,
-          error.message || "Failed to resend OTP",
-          error.statusCode,
-          error.data
-        );
-      }
-
-      return sendError(
-        res,
-        error.message || "Failed to resend OTP",
-        error.statusCode || 500
-      );
+    } catch (error) {
+      next(error);
     }
   }
 
-  static async checkOtpStatus(req: Request, res: Response) {
+  static async checkOtpStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const result = await OtpService.checkOtpStatus(req.body);
       return sendSuccess(res, result);
-    } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to check OTP status",
-        error.statusCode || 500
-      );
+    } catch (error) {
+      next(error);
     }
   }
 }

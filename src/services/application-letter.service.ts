@@ -22,6 +22,7 @@ import { ResponseError } from "../utils/response-error.util";
 import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
+import { UploadService } from "./upload.service";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -41,6 +42,11 @@ type SignatureImageResult = {
   height: number;
   data: Buffer;
   extension: ".png" | ".jpg";
+};
+
+type PreparedSignatureValue = {
+  path: string;
+  createdPath?: string;
 };
 
 const sortFieldMap = {
@@ -197,36 +203,46 @@ export class ApplicationLetterService {
       ApplicationLetterValidation.PAYLOAD,
       request
     );
-    const signaturePath = await ApplicationLetterService.prepareSignatureValue(
-      userId,
-      payload.signature
-    );
+    const preparedSignature =
+      await ApplicationLetterService.prepareSignatureValue(
+        userId,
+        payload.signature
+      );
     const data = ApplicationLetterService.mapPayloadToData(
       payload,
-      signaturePath
+      preparedSignature.path
     );
     const now = new Date();
 
-    const letter = await prisma.applicationLetter.create({
-      data: {
-        ...data,
-        userId,
-        createdAt: now,
-        updatedAt: now,
-      },
-      include: {
-        template: {
-          select: {
-            id: true,
-            name: true,
-            path: true,
-            type: true,
+    try {
+      const letter = await prisma.applicationLetter.create({
+        data: {
+          ...data,
+          userId,
+          createdAt: now,
+          updatedAt: now,
+        },
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              type: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return ApplicationLetterService.toResponse(letter);
+      return ApplicationLetterService.toResponse(letter);
+    } catch (error) {
+      if (preparedSignature.createdPath) {
+        await ApplicationLetterService.deleteSignatureFile(
+          preparedSignature.createdPath
+        );
+      }
+      throw error;
+    }
   }
 
   static async get(
@@ -247,42 +263,60 @@ export class ApplicationLetterService {
       ApplicationLetterValidation.PAYLOAD,
       request
     );
-    const signaturePath = await ApplicationLetterService.prepareSignatureValue(
-      userId,
-      payload.signature,
-      existing.signature
-    );
+    const preparedSignature =
+      await ApplicationLetterService.prepareSignatureValue(
+        userId,
+        payload.signature,
+        existing.signature
+      );
     const data = ApplicationLetterService.mapPayloadToData(
       payload,
-      signaturePath
+      preparedSignature.path
     );
 
-    const letter = await prisma.applicationLetter.update({
-      where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
-      include: {
-        template: {
-          select: {
-            id: true,
-            name: true,
-            path: true,
-            type: true,
+    try {
+      const letter = await prisma.applicationLetter.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date(),
+        },
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              type: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return ApplicationLetterService.toResponse(letter);
+      if (preparedSignature.path !== (existing.signature ?? "")) {
+        await ApplicationLetterService.deleteSignatureFile(existing.signature);
+      }
+
+      return ApplicationLetterService.toResponse(letter);
+    } catch (error) {
+      if (
+        preparedSignature.createdPath &&
+        preparedSignature.createdPath !== existing.signature
+      ) {
+        await ApplicationLetterService.deleteSignatureFile(
+          preparedSignature.createdPath
+        );
+      }
+      throw error;
+    }
   }
 
   static async delete(userId: string, id: string): Promise<void> {
-    await ApplicationLetterService.findOwnedLetter(userId, id);
+    const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
     await prisma.applicationLetter.delete({
       where: { id },
     });
+    await ApplicationLetterService.deleteSignatureFile(letter.signature);
   }
 
   static async duplicate(
@@ -290,49 +324,60 @@ export class ApplicationLetterService {
     id: string
   ): Promise<ApplicationLetterResponse> {
     const source = await ApplicationLetterService.findOwnedLetter(userId, id);
+    const duplicatedSignature =
+      await ApplicationLetterService.duplicateSignatureIfManaged(
+        source.signature
+      );
     const now = new Date();
 
-    const duplicate = await prisma.applicationLetter.create({
-      data: {
-        userId,
-        name: source.name,
-        birthPlaceDate: source.birthPlaceDate,
-        gender: source.gender,
-        maritalStatus: source.maritalStatus,
-        education: source.education,
-        phone: source.phone,
-        email: source.email,
-        address: source.address,
-        subject: source.subject,
-        applicantCity: source.applicantCity,
-        applicationDate: source.applicationDate,
-        receiverTitle: source.receiverTitle,
-        companyName: source.companyName,
-        companyCity: source.companyCity,
-        companyAddress: source.companyAddress,
-        openingParagraph: source.openingParagraph,
-        bodyParagraph: source.bodyParagraph,
-        attachments: source.attachments,
-        closingParagraph: source.closingParagraph,
-        signature: source.signature,
-        templateId: (source as any).templateId,
-        language: source.language,
-        createdAt: now,
-        updatedAt: now,
-      },
-      include: {
-        template: {
-          select: {
-            id: true,
-            name: true,
-            path: true,
-            type: true,
+    try {
+      const duplicate = await prisma.applicationLetter.create({
+        data: {
+          userId,
+          name: source.name,
+          birthPlaceDate: source.birthPlaceDate,
+          gender: source.gender,
+          maritalStatus: source.maritalStatus,
+          education: source.education,
+          phone: source.phone,
+          email: source.email,
+          address: source.address,
+          subject: source.subject,
+          applicantCity: source.applicantCity,
+          applicationDate: source.applicationDate,
+          receiverTitle: source.receiverTitle,
+          companyName: source.companyName,
+          companyCity: source.companyCity,
+          companyAddress: source.companyAddress,
+          openingParagraph: source.openingParagraph,
+          bodyParagraph: source.bodyParagraph,
+          attachments: source.attachments,
+          closingParagraph: source.closingParagraph,
+          signature: duplicatedSignature,
+          templateId: (source as any).templateId,
+          language: source.language,
+          createdAt: now,
+          updatedAt: now,
+        },
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              type: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return ApplicationLetterService.toResponse(duplicate);
+      return ApplicationLetterService.toResponse(duplicate);
+    } catch (error) {
+      if (duplicatedSignature !== (source.signature ?? "")) {
+        await ApplicationLetterService.deleteSignatureFile(duplicatedSignature);
+      }
+      throw error;
+    }
   }
 
   static async download(
@@ -443,50 +488,55 @@ export class ApplicationLetterService {
     userId: string,
     signatureInput: string | null | undefined,
     currentSignature?: string | null
-  ): Promise<string> {
+  ): Promise<PreparedSignatureValue> {
     if (signatureInput === undefined) {
-      return currentSignature ?? "";
+      return { path: currentSignature ?? "" };
     }
 
     if (signatureInput === null) {
-      await ApplicationLetterService.deleteSignatureFile(currentSignature);
-      return "";
+      return { path: "" };
     }
 
     const trimmed = signatureInput.trim();
     if (!trimmed) {
-      await ApplicationLetterService.deleteSignatureFile(currentSignature);
-      return "";
+      return { path: "" };
     }
 
     if (isHttpUrl(trimmed)) {
-      if ((currentSignature?.trim() ?? "") === trimmed) {
-        return trimmed;
-      }
-      await ApplicationLetterService.deleteSignatureFile(currentSignature);
-      return trimmed;
+      return { path: trimmed };
     }
 
-    const normalizedExisting =
-      ApplicationLetterService.normalizeSignaturePublicPath(currentSignature);
     const normalizedInput =
       ApplicationLetterService.normalizeSignaturePublicPath(trimmed);
 
     if (normalizedInput) {
-      if (normalizedExisting === normalizedInput) {
-        return normalizedInput;
-      }
-
-      await ApplicationLetterService.deleteSignatureFile(currentSignature);
-      return normalizedInput;
+      return { path: normalizedInput };
     }
 
     const promoted = await ApplicationLetterService.promoteTempSignature(
       userId,
       trimmed
     );
-    await ApplicationLetterService.deleteSignatureFile(currentSignature);
-    return promoted;
+    return {
+      path: promoted,
+      createdPath: promoted,
+    };
+  }
+
+  private static async duplicateSignatureIfManaged(
+    signaturePath?: string | null
+  ): Promise<string> {
+    const normalized = ApplicationLetterService.normalizeSignaturePublicPath(
+      signaturePath
+    );
+
+    if (!normalized) {
+      return signaturePath ?? "";
+    }
+
+    return UploadService.copyUpload(normalized, "signatures", [
+      SIGNATURE_PUBLIC_PREFIX,
+    ]);
   }
 
   private static async promoteTempSignature(
@@ -940,7 +990,7 @@ export class ApplicationLetterService {
         id: { in: ids },
         userId,
       },
-      select: { id: true },
+      select: { id: true, signature: true },
     });
 
     if (letters.length !== ids.length) {
@@ -957,6 +1007,12 @@ export class ApplicationLetterService {
         userId,
       },
     });
+
+    await Promise.all(
+      letters.map((letter) =>
+        ApplicationLetterService.deleteSignatureFile(letter.signature)
+      )
+    );
 
     return {
       message: `${result.count} surat lamaran berhasil dihapus`,

@@ -39,31 +39,29 @@ export class PublicController {
 
   static async getStats(_req: Request, res: Response, next: NextFunction) {
     try {
-      // Get total users with 'user' role
-      const totalUsers = await prisma.user.count({
-        where: {
-          role: "user",
-        },
-      });
-
-      // Get total CVs
-      const totalCvs = await prisma.cv.count({
-        where: {},
-      });
-
-      // Get total application letters
-      const totalApplicationLetters = await prisma.applicationLetter.count({
-        where: {},
-      });
-
-      // Get total applications
-      const totalApplications = await prisma.application.count({
-        where: {},
-      });
-
-      // Dummy values for now
-      const totalCvTemplates = 7;
-      const totalApplicationLetterTemplates = 10;
+      const [
+        totalUsers,
+        totalCvs,
+        totalApplicationLetters,
+        totalApplications,
+        totalCvTemplates,
+        totalApplicationLetterTemplates,
+      ] = await Promise.all([
+        prisma.user.count({
+          where: {
+            role: "user",
+          },
+        }),
+        prisma.cv.count(),
+        prisma.applicationLetter.count(),
+        prisma.application.count(),
+        prisma.template.count({
+          where: { type: "cv" },
+        }),
+        prisma.template.count({
+          where: { type: "application_letter" },
+        }),
+      ]);
 
       const stats = {
         total_users: totalUsers,

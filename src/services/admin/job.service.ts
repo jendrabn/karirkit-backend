@@ -26,6 +26,11 @@ type JobMediaPayload = {
   path?: string | null;
 };
 
+type PreparedJobMediaFiles = {
+  paths: string[];
+  movedPaths: string[];
+};
+
 export class AdminJobService {
   static async list(query: unknown): Promise<JobListResponse> {
     const requestData = validate(JobValidation.LIST_QUERY, query);
@@ -274,72 +279,94 @@ export class AdminJobService {
       throw new ResponseError(400, "Slug sudah ada");
     }
 
-    const mediaPaths = request.medias?.length
+    const preparedMedia = request.medias?.length
       ? await AdminJobService.prepareJobMediaFiles(request.medias)
-      : [];
+      : { paths: [], movedPaths: [] };
 
     const now = new Date();
-    const job = await prisma.job.create({
-      data: {
-        companyId: request.company_id,
-        jobRoleId: request.job_role_id,
-        cityId: request.city_id || null,
-        title: request.title,
-        slug,
-        jobType: request.job_type,
-        workSystem: request.work_system,
-        educationLevel: request.education_level,
-        minYearsOfExperience: request.min_years_of_experience,
-        maxYearsOfExperience: request.max_years_of_experience || null,
-        description: request.description,
-        requirements: request.requirements,
-        salaryMin: request.salary_min || null,
-        salaryMax: request.salary_max || null,
-        talentQuota: request.talent_quota || null,
-        jobUrl: request.job_url || null,
-        contactName: request.contact_name || null,
-        contactEmail: request.contact_email || null,
-        contactPhone: request.contact_phone || null,
-        status: request.status,
-        expirationDate: request.expiration_date
-          ? new Date(request.expiration_date)
-          : null,
-        createdAt: now,
-        updatedAt: now,
-        medias: mediaPaths.length
-          ? {
-              create: mediaPaths.map((path) => ({
-                path,
-                createdAt: now,
-                updatedAt: now,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        company: true,
-        jobRole: true,
-        medias: {
-          orderBy: {
-            createdAt: "asc",
+    try {
+      const job = await prisma.job.create({
+        data: {
+          companyId: request.company_id,
+          jobRoleId: request.job_role_id,
+          cityId: request.city_id || null,
+          title: request.title,
+          slug,
+          jobType: request.job_type,
+          workSystem: request.work_system,
+          educationLevel: request.education_level,
+          minYearsOfExperience: request.min_years_of_experience,
+          maxYearsOfExperience: request.max_years_of_experience || null,
+          description: request.description,
+          requirements: request.requirements,
+          salaryMin: request.salary_min || null,
+          salaryMax: request.salary_max || null,
+          talentQuota: request.talent_quota || null,
+          jobUrl: request.job_url || null,
+          contactName: request.contact_name || null,
+          contactEmail: request.contact_email || null,
+          contactPhone: request.contact_phone || null,
+          status: request.status,
+          expirationDate: request.expiration_date
+            ? new Date(request.expiration_date)
+            : null,
+          createdAt: now,
+          updatedAt: now,
+          medias: preparedMedia.paths.length
+            ? {
+                create: preparedMedia.paths.map((path) => ({
+                  path,
+                  createdAt: now,
+                  updatedAt: now,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          company: true,
+          jobRole: true,
+          medias: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          city: {
+            include: {
+              province: true,
+            },
           },
         },
-        city: {
-          include: {
-            province: true,
-          },
-        },
-      },
-    });
+      });
 
-    return AdminJobService.toResponse(job);
+      return AdminJobService.toResponse(job);
+    } catch (error) {
+      await Promise.all(
+        preparedMedia.movedPaths.map((filePath) =>
+          UploadService.deleteUpload(filePath, ["uploads/jobs"])
+        )
+      );
+      throw error;
+    }
   }
 
   static async update(
     id: string,
     request: UpdateJobRequest
   ): Promise<JobResponse> {
-    await AdminJobService.findJob(id);
+    const existingJob = await prisma.job.findFirst({
+      where: { id },
+      include: {
+        medias: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!existingJob) {
+      throw new ResponseError(404, "Lowongan pekerjaan tidak ditemukan");
+    }
 
     // Check if company exists (if provided)
     if (request.company_id) {
@@ -390,9 +417,9 @@ export class AdminJobService {
     }
 
     const shouldUpdateMedias = request.medias !== undefined;
-    const mediaPaths = shouldUpdateMedias
+    const preparedMedia = shouldUpdateMedias
       ? await AdminJobService.prepareJobMediaFiles(request.medias ?? [])
-      : [];
+      : { paths: [], movedPaths: [] };
 
     const now = new Date();
     const updateData: any = {
@@ -482,52 +509,89 @@ export class AdminJobService {
         : null;
     }
 
-    const job = await prisma.$transaction(async (tx) => {
-      if (shouldUpdateMedias) {
-        await tx.jobMedia.deleteMany({
-          where: { jobId: id },
-        });
-
-        if (mediaPaths.length) {
-          await tx.jobMedia.createMany({
-            data: mediaPaths.map((path) => ({
-              jobId: id,
-              path,
-              createdAt: now,
-              updatedAt: now,
-            })),
+    try {
+      const job = await prisma.$transaction(async (tx) => {
+        if (shouldUpdateMedias) {
+          await tx.jobMedia.deleteMany({
+            where: { jobId: id },
           });
+
+          if (preparedMedia.paths.length) {
+            await tx.jobMedia.createMany({
+              data: preparedMedia.paths.map((path) => ({
+                jobId: id,
+                path,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            });
+          }
         }
+
+        return tx.job.update({
+          where: { id },
+          data: updateData,
+          include: {
+            company: true,
+            jobRole: true,
+            medias: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+            city: {
+              include: {
+                province: true,
+              },
+            },
+          },
+        });
+      });
+
+      if (shouldUpdateMedias) {
+        const nextMediaPaths = new Set(preparedMedia.paths);
+        const obsoleteMediaPaths = existingJob.medias
+          .map((media) => media.path)
+          .filter((mediaPath) => !nextMediaPaths.has(mediaPath));
+
+        await Promise.all(
+          obsoleteMediaPaths.map((filePath) =>
+            UploadService.deleteUpload(filePath, ["uploads/jobs"])
+          )
+        );
       }
 
-      return tx.job.update({
-        where: { id },
-        data: updateData,
-        include: {
-          company: true,
-          jobRole: true,
-          medias: {
-            orderBy: {
-              createdAt: "asc",
-            },
-          },
-          city: {
-            include: {
-              province: true,
-            },
-          },
-        },
-      });
-    });
-
-    return AdminJobService.toResponse(job);
+      return AdminJobService.toResponse(job);
+    } catch (error) {
+      await Promise.all(
+        preparedMedia.movedPaths.map((filePath) =>
+          UploadService.deleteUpload(filePath, ["uploads/jobs"])
+        )
+      );
+      throw error;
+    }
   }
 
   static async delete(id: string): Promise<void> {
-    await AdminJobService.findJob(id);
+    const job = await prisma.job.findFirst({
+      where: { id },
+      include: {
+        medias: true,
+      },
+    });
+
+    if (!job) {
+      throw new ResponseError(404, "Lowongan pekerjaan tidak ditemukan");
+    }
+
     await prisma.job.delete({
       where: { id },
     });
+    await Promise.all(
+      job.medias.map((media) =>
+        UploadService.deleteUpload(media.path, ["uploads/jobs"])
+      )
+    );
   }
 
   static async massDelete(
@@ -537,6 +601,9 @@ export class AdminJobService {
     const jobs = await prisma.job.findMany({
       where: {
         id: { in: ids },
+      },
+      include: {
+        medias: true,
       },
     });
 
@@ -552,6 +619,14 @@ export class AdminJobService {
         id: { in: ids },
       },
     });
+
+    await Promise.all(
+      jobs.flatMap((job) =>
+        job.medias.map((media) =>
+          UploadService.deleteUpload(media.path, ["uploads/jobs"])
+        )
+      )
+    );
 
     return {
       message: `${result.count} lowongan pekerjaan berhasil dihapus`,
@@ -652,8 +727,9 @@ export class AdminJobService {
 
   private static async prepareJobMediaFiles(
     entries: JobMediaPayload[]
-  ): Promise<string[]> {
+  ): Promise<PreparedJobMediaFiles> {
     const mediaPaths: string[] = [];
+    const movedPaths: string[] = [];
     const seen = new Set<string>();
 
     for (const entry of entries) {
@@ -683,6 +759,7 @@ export class AdminJobService {
         const moved = await UploadService.moveFromTemp("jobs", trimmed);
         if (!seen.has(moved)) {
           mediaPaths.push(moved);
+          movedPaths.push(moved);
           seen.add(moved);
         }
       } catch (error) {
@@ -690,7 +767,10 @@ export class AdminJobService {
       }
     }
 
-    return mediaPaths;
+    return {
+      paths: mediaPaths,
+      movedPaths,
+    };
   }
 }
 

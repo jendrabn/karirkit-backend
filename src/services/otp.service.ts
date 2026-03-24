@@ -9,6 +9,7 @@ import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { DocumentService } from "./document.service";
+import { ensureAccountIsActive } from "../utils/account-status.util";
 
 export class OtpService {
   static async generateOtpCode(): Promise<string> {
@@ -156,6 +157,8 @@ export class OtpService {
         },
       });
     }
+
+    ensureAccountIsActive(user);
 
     // Generate JWT token
     const token = jwt.sign(
