@@ -7,6 +7,7 @@
     "prebuild": "npm run prisma:generate",
     "build": "tsc",
     "predev": "npm run prisma:generate",
+    "pretest": "npm run prisma:generate",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "key:generate": "node ./scripts/key-generate.js",
