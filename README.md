@@ -140,6 +140,8 @@ npx prisma migrate deploy
 npx prisma db seed
 ```
 
+Gunakan `npx prisma db seed` hanya untuk inisialisasi awal atau environment development yang memang boleh diisi ulang. Jangan jalankan perintah ini untuk update/redeploy production yang sudah berisi data.
+
 Catatan database:
 - `DATABASE_URL` dipakai oleh Prisma CLI.
 - Jika `DATABASE_URL` kosong, runtime dan Prisma CLI akan membangun koneksi dari `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, dan `DATABASE_PASSWORD`.
@@ -311,3 +313,28 @@ pm2 delete karirkit-backend
 # View detailed information
 pm2 show karirkit-backend
 ```
+
+### 7. Update / Redeploy Production Tanpa Menghapus Database
+
+Untuk update aplikasi di server production yang sudah memiliki data, gunakan alur berikut:
+
+1. Backup database production terlebih dahulu.
+2. Ambil kode terbaru di server.
+3. Install dependency sesuai lockfile.
+4. Jalankan migration yang belum diterapkan.
+5. Build ulang aplikasi.
+6. Reload PM2.
+
+```bash
+cd /path/ke/karirkit-backend
+git pull
+npm ci
+npx prisma migrate deploy
+npm run build
+pm2 reload ecosystem.config.js --env production
+```
+
+Catatan penting:
+- `npx prisma migrate deploy` tidak akan menghapus data lama kecuali file migration yang Anda buat sendiri memang berisi perubahan destruktif seperti `DROP`, `DELETE`, atau perubahan kolom yang tidak kompatibel.
+- Jangan jalankan `npx prisma db seed` saat redeploy production. File seed proyek ini menghapus data lama dengan `deleteMany()` sebelum mengisi ulang data.
+- Jika hanya ingin mengubah nilai `system_settings`, cukup deploy kode terbaru bila ada perubahan definisi, lalu update nilainya melalui endpoint admin `PUT /admin/system-settings`. Tidak perlu reset atau seed database.
