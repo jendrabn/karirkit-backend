@@ -34,6 +34,7 @@ async function main() {
   console.log("Start seeding...");
 
   // Clean up existing data
+  await prisma.systemSetting.deleteMany();
   await prisma.blogTagRelation.deleteMany();
   await prisma.blog.deleteMany();
   await prisma.blogTag.deleteMany();

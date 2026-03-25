@@ -22,6 +22,7 @@ import {
   DocumentService,
   type DocumentStorageStats,
 } from "./document.service";
+import { SystemSettingService } from "./system-setting.service";
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
@@ -48,6 +49,10 @@ interface OtpLoginResult {
 
 export class AuthService {
   static async register(request: RegisterRequest): Promise<AuthUser> {
+    if (!(await SystemSettingService.isRegistrationEnabled())) {
+      throw new ResponseError(503, "Registrasi akun sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.REGISTER, request);
 
     const totalUserWithSameEmail = await prisma.user.count({
@@ -75,6 +80,10 @@ export class AuthService {
     const user = await prisma.user.create({
       data: {
         ...requestData,
+        dailyDownloadLimit:
+          await SystemSettingService.getDefaultDailyDownloadLimit(),
+        documentStorageLimit:
+          await SystemSettingService.getDefaultDocumentStorageLimit(),
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -120,7 +129,7 @@ export class AuthService {
     ensureAccountIsActive(user);
 
     // If OTP is enabled, send OTP and return different response
-    if (env.otp.enabled) {
+    if (await SystemSettingService.isOtpEnabled()) {
       // Import OtpService to send OTP
       const { OtpService } = await import("./otp.service");
 
@@ -166,6 +175,10 @@ export class AuthService {
   static async loginWithGoogle(
     request: GoogleLoginRequest
   ): Promise<LoginResult> {
+    if (!(await SystemSettingService.isGoogleLoginEnabled())) {
+      throw new ResponseError(503, "Login Google sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.GOOGLE_LOGIN, request);
 
     let payload: TokenPayload | undefined;
@@ -280,6 +293,10 @@ export class AuthService {
   static async sendPasswordResetLink(
     request: ForgotPasswordRequest
   ): Promise<void> {
+    if (!(await SystemSettingService.isPasswordResetEnabled())) {
+      throw new ResponseError(503, "Fitur reset kata sandi sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.FORGOT_PASSWORD, request);
     const email = requestData.email.toLowerCase();
 
@@ -319,6 +336,10 @@ export class AuthService {
   }
 
   static async resetPassword(request: ResetPasswordRequest): Promise<void> {
+    if (!(await SystemSettingService.isPasswordResetEnabled())) {
+      throw new ResponseError(503, "Fitur reset kata sandi sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.RESET_PASSWORD, request);
 
     let decoded: JwtPayload;

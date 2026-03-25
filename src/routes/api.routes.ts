@@ -30,6 +30,7 @@ import { TemplateController } from "../controllers/admin/template.controller";
 import { BlogController as AdminBlogController } from "../controllers/admin/blog.controller";
 import { BlogCategoryController } from "../controllers/admin/blog-category.controller";
 import { BlogTagController } from "../controllers/admin/blog-tag.controller";
+import { SystemSettingController } from "../controllers/admin/system-setting.controller";
 
 // Job Portal controllers
 import { JobController } from "../controllers/job.controller";
@@ -235,6 +236,20 @@ router.get(
   authMiddleware,
   adminMiddleware,
   AdminDashboardController.getStats,
+);
+
+// Admin System Settings API
+router.get(
+  "/admin/system-settings",
+  authMiddleware,
+  adminMiddleware,
+  SystemSettingController.list,
+);
+router.put(
+  "/admin/system-settings/:key",
+  authMiddleware,
+  adminMiddleware,
+  SystemSettingController.update,
 );
 
 // Admin Users API

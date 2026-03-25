@@ -10,6 +10,7 @@ import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { DocumentService } from "./document.service";
 import { ensureAccountIsActive } from "../utils/account-status.util";
+import { SystemSettingService } from "./system-setting.service";
 
 export class OtpService {
   static async generateOtpCode(): Promise<string> {
@@ -23,6 +24,10 @@ export class OtpService {
     expires_in: number;
     resend_available_at: number;
   }> {
+    if (!(await SystemSettingService.isOtpEnabled())) {
+      throw new ResponseError(503, "Fitur OTP sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.SEND_OTP, request);
 
     // Find user by email or username
@@ -44,8 +49,8 @@ export class OtpService {
 
     // Calculate expiry time (default 5 minutes from config)
     const expiresAt = new Date();
-    expiresAt.setMinutes(
-      expiresAt.getMinutes() + env.otp.expiresInSeconds / 60
+    expiresAt.setSeconds(
+      expiresAt.getSeconds() + (await SystemSettingService.getOtpExpiresInSeconds())
     );
 
     // Delete any existing OTP codes for this user
@@ -84,13 +89,13 @@ export class OtpService {
     // Calculate when user can request a new OTP (using cooldown time)
     const now = new Date();
     const resendAvailableAt = new Date(
-      now.getTime() + env.otp.resendCooldownInSeconds * 1000
+      now.getTime() + (await SystemSettingService.getOtpResendCooldownSeconds()) * 1000
     );
 
     return {
       message: "OTP telah dikirim ke email Anda",
       expires_at: expiresAt.getTime(),
-      expires_in: env.otp.expiresInSeconds,
+      expires_in: await SystemSettingService.getOtpExpiresInSeconds(),
       resend_available_at: resendAvailableAt.getTime(),
     };
   }
@@ -100,6 +105,10 @@ export class OtpService {
     otp_code: string;
     password: string;
   }): Promise<{ token: string; user: any; expires_at?: number }> {
+    if (!(await SystemSettingService.isOtpEnabled())) {
+      throw new ResponseError(503, "Fitur OTP sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.VERIFY_OTP, request);
 
     // Find user by email or username
@@ -198,6 +207,10 @@ export class OtpService {
     expires_in: number;
     resend_available_at: number;
   }> {
+    if (!(await SystemSettingService.isOtpEnabled())) {
+      throw new ResponseError(503, "Fitur OTP sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.RESEND_OTP, request);
 
     // Find user by email or username
@@ -231,9 +244,10 @@ export class OtpService {
       const otpCreatedAt = existingOtp.createdAt?.getTime() || now;
       const timeSinceCreation = now - otpCreatedAt;
 
-      if (timeSinceCreation < env.otp.resendCooldownInSeconds * 1000) {
+      const cooldownSeconds = await SystemSettingService.getOtpResendCooldownSeconds();
+      if (timeSinceCreation < cooldownSeconds * 1000) {
         const remainingCooldown = Math.ceil(
-          (env.otp.resendCooldownInSeconds * 1000 - timeSinceCreation) / 1000
+          (cooldownSeconds * 1000 - timeSinceCreation) / 1000
         );
 
         throw new ResponseError(
@@ -242,7 +256,7 @@ export class OtpService {
           {
             remaining_time: [remainingCooldown.toString()],
             resend_available_at: [
-              String(otpCreatedAt + env.otp.resendCooldownInSeconds * 1000),
+              String(otpCreatedAt + cooldownSeconds * 1000),
             ],
           }
         );
@@ -261,8 +275,8 @@ export class OtpService {
 
     // Calculate expiry time
     const expiresAt = new Date();
-    expiresAt.setMinutes(
-      expiresAt.getMinutes() + env.otp.expiresInSeconds / 60
+    expiresAt.setSeconds(
+      expiresAt.getSeconds() + (await SystemSettingService.getOtpExpiresInSeconds())
     );
 
     // Store new OTP
@@ -294,13 +308,13 @@ export class OtpService {
     // Calculate when user can request a new OTP (using cooldown time)
     const now = new Date();
     const resendAvailableAt = new Date(
-      now.getTime() + env.otp.resendCooldownInSeconds * 1000
+      now.getTime() + (await SystemSettingService.getOtpResendCooldownSeconds()) * 1000
     );
 
     return {
       message: "OTP telah dikirim ulang ke email Anda",
       expires_at: expiresAt.getTime(),
-      expires_in: env.otp.expiresInSeconds,
+      expires_in: await SystemSettingService.getOtpExpiresInSeconds(),
       resend_available_at: resendAvailableAt.getTime(),
     };
   }
@@ -311,6 +325,10 @@ export class OtpService {
     expires_in?: number;
     resend_available_at?: number;
   }> {
+    if (!(await SystemSettingService.isOtpEnabled())) {
+      throw new ResponseError(503, "Fitur OTP sedang dinonaktifkan");
+    }
+
     const requestData = validate(AuthValidation.CHECK_OTP_STATUS, request);
 
     // Find user by email or username
@@ -353,7 +371,8 @@ export class OtpService {
       expires_at: expiresAt,
       expires_in: expiresIn,
       resend_available_at: activeOtp.createdAt
-        ? activeOtp.createdAt.getTime() + env.otp.resendCooldownInSeconds * 1000
+        ? activeOtp.createdAt.getTime() +
+          (await SystemSettingService.getOtpResendCooldownSeconds()) * 1000
         : expiresAt,
     };
   }

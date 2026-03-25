@@ -23,6 +23,7 @@ import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import { UploadService } from "./upload.service";
+import { SystemSettingService } from "./system-setting.service";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -391,12 +392,7 @@ export class ApplicationLetterService {
     const baseName = ApplicationLetterService.buildFileName(letter);
 
     if (normalized === "pdf") {
-      if (!env.pdfDownloadEnabled) {
-        throw new ResponseError(
-          503,
-          "Fitur unduh PDF sedang dinonaktifkan. Silakan unduh dalam format DOCX."
-        );
-      }
+      await SystemSettingService.assertDownloadsEnabled("application_letter", "pdf");
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
@@ -408,6 +404,11 @@ export class ApplicationLetterService {
     if (normalized !== "docx") {
       throw new ResponseError(400, "Format unduhan tidak didukung");
     }
+
+    await SystemSettingService.assertDownloadsEnabled(
+      "application_letter",
+      "docx"
+    );
 
     return {
       buffer: docxBuffer,

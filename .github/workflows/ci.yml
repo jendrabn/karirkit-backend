@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_real_api_tests:
+        description: Run real API tests against MariaDB
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    name: Build and mocked API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare CI environment
+        run: |
+          cp .env.example .env
+          cat <<'EOF' >> .env
+          DATABASE_URL=mysql://ci:ci@127.0.0.1:3306/karirkit_ci
+          JWT_SECRET=test-secret
+          PASSWORD_RESET_URL=http://localhost:3000/auth/reset-password
+          APP_BASE_URL=http://localhost:3000
+          CORS_ORIGINS=http://localhost:3000
+          GOOGLE_CLIENT_ID=test-google-client-id
+          GOOGLE_CLIENT_SECRET=test-google-client-secret
+          EOF
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run test suite
+        run: npm test
+
+  real_api_tests:
+    name: Real API tests
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_real_api_tests }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: karirkit_ci
+          MARIADB_USER: ci
+          MARIADB_PASSWORD: ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare integration test environment
+        run: |
+          cp .env.example .env
+          cat <<'EOF' >> .env
+          DATABASE_URL=mysql://ci:ci@127.0.0.1:3306/karirkit_ci
+          DATABASE_HOST=127.0.0.1
+          DATABASE_PORT=3306
+          DATABASE_USER=ci
+          DATABASE_PASSWORD=ci
+          DATABASE_NAME=karirkit_ci
+          TEST_DATABASE_HOST=127.0.0.1
+          TEST_DATABASE_USER=ci
+          TEST_DATABASE_PASSWORD=ci
+          TEST_DATABASE_NAME=karirkit_ci
+          JWT_SECRET=test-secret
+          PASSWORD_RESET_URL=http://localhost:3000/auth/reset-password
+          APP_BASE_URL=http://localhost:3000
+          CORS_ORIGINS=http://localhost:3000
+          GOOGLE_CLIENT_ID=test-google-client-id
+          GOOGLE_CLIENT_SECRET=test-google-client-secret
+          OTP_ENABLED=false
+          EOF
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Push Prisma schema
+        run: npx prisma db push --skip-generate
+
+      - name: Run real API tests
+        run: npm run test:api:real

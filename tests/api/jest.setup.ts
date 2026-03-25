@@ -135,3 +135,40 @@ jest.mock("../../src/queues/email.queue", () => ({
     add: jest.fn(),
   },
 }));
+
+jest.mock("../../src/services/system-setting.service", () => ({
+  __esModule: true,
+  SystemSettingService: {
+    isMaintenanceEnabled: jest.fn().mockResolvedValue(false),
+    isReadOnlyEnabled: jest.fn().mockResolvedValue(false),
+    isRegistrationEnabled: jest.fn().mockResolvedValue(true),
+    isGoogleLoginEnabled: jest.fn().mockResolvedValue(true),
+    isPasswordResetEnabled: jest.fn().mockResolvedValue(true),
+    isOtpEnabled: jest.fn().mockResolvedValue(false),
+    getOtpExpiresInSeconds: jest.fn().mockResolvedValue(300),
+    getOtpResendCooldownSeconds: jest.fn().mockResolvedValue(60),
+    getDefaultDailyDownloadLimit: jest.fn().mockResolvedValue(10),
+    getDefaultDocumentStorageLimit: jest
+      .fn()
+      .mockResolvedValue(100 * 1024 * 1024),
+    getTempUploadConfig: jest.fn().mockResolvedValue({
+      enabled: true,
+      maxSizeBytes: 10 * 1024 * 1024,
+    }),
+    getBlogUploadConfig: jest.fn().mockResolvedValue({
+      enabled: true,
+      maxSizeBytes: 5 * 1024 * 1024,
+    }),
+    getDocumentUploadConfig: jest.fn().mockResolvedValue({
+      enabled: true,
+      maxSizeBytes: 25 * 1024 * 1024,
+      maxFileCount: 20,
+    }),
+    assertDownloadsEnabled: jest.fn().mockResolvedValue(undefined),
+    getBoolean: jest.fn().mockResolvedValue(true),
+    getNumber: jest.fn().mockResolvedValue(1),
+    list: jest.fn(),
+    update: jest.fn(),
+    clearCache: jest.fn(),
+  },
+}));

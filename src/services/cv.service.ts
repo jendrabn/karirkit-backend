@@ -46,6 +46,7 @@ import {
   type CvSocialLinkPayloadInput,
 } from "../validations/cv.validation";
 import { ResponseError } from "../utils/response-error.util";
+import { SystemSettingService } from "./system-setting.service";
 
 type CvListResult = {
   items: CvResponse[];
@@ -403,6 +404,10 @@ export class CvService {
   }
 
   static async getPublicBySlug(slug: string): Promise<CvResponse> {
+    if (!(await SystemSettingService.getBoolean("public.cv.enabled"))) {
+      throw new ResponseError(503, "CV publik sedang dinonaktifkan");
+    }
+
     const cv = await prisma.cv.findFirst({
       where: {
         slug,
@@ -799,12 +804,7 @@ export class CvService {
     const baseName = CvService.buildFileName(cv);
 
     if (normalized === "pdf") {
-      if (!env.pdfDownloadEnabled) {
-        throw new ResponseError(
-          503,
-          "Fitur unduh PDF sedang dinonaktifkan. Silakan unduh dalam format DOCX."
-        );
-      }
+      await SystemSettingService.assertDownloadsEnabled("cv", "pdf");
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
@@ -816,6 +816,8 @@ export class CvService {
     if (normalized !== "docx") {
       throw new ResponseError(400, "Format unduhan tidak didukung");
     }
+
+    await SystemSettingService.assertDownloadsEnabled("cv", "docx");
 
     const fileName = `${baseName}.docx`;
 

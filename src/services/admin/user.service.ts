@@ -13,6 +13,7 @@ import {
   DownloadLogService,
   type DownloadStats,
 } from "../../services/download-log.service";
+import { SystemSettingService } from "../../services/system-setting.service";
 
 type SafeUser = {
   id: string;
@@ -125,8 +126,6 @@ type RawUserRecord = {
   createdAt: Date | null;
   updatedAt: Date | null;
 };
-
-const DEFAULT_DOCUMENT_STORAGE_LIMIT = 100 * 1024 * 1024;
 
 const buildDownloadStats = (
   user: RawUserRecord,
@@ -613,6 +612,11 @@ export class UserService {
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
     const requestData = validate(UserValidation.CREATE, request);
+    const [defaultDailyDownloadLimit, defaultDocumentStorageLimit] =
+      await Promise.all([
+        SystemSettingService.getDefaultDailyDownloadLimit(),
+        SystemSettingService.getDefaultDocumentStorageLimit(),
+      ]);
 
     // Check if email already exists
     const existingEmail = await prisma.user.count({
@@ -656,10 +660,11 @@ export class UserService {
           birthDate: normalizedBirthDate,
           role: requestData.role,
           avatar: normalizedAvatar,
-          dailyDownloadLimit: requestData.daily_download_limit ?? 10,
+          dailyDownloadLimit:
+            requestData.daily_download_limit ?? defaultDailyDownloadLimit,
           documentStorageLimit:
             requestData.document_storage_limit === undefined
-              ? DEFAULT_DOCUMENT_STORAGE_LIMIT
+              ? defaultDocumentStorageLimit
               : Math.floor(requestData.document_storage_limit),
           createdAt: new Date(),
           updatedAt: new Date(),

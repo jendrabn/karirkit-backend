@@ -7,6 +7,10 @@ import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
 import requestLogger from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import bigIntMiddleware from "./middleware/bigint.middleware";
+import {
+  maintenanceModeMiddleware,
+  readOnlyModeMiddleware,
+} from "./middleware/system-guard.middleware";
 import routes from "./routes/api.routes";
 import {
   errorHandler,
@@ -30,6 +34,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(bigIntMiddleware);
+app.use(maintenanceModeMiddleware);
+app.use(readOnlyModeMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
 app.use(express.static(publicDirectory, { index: false }));

@@ -16,6 +16,7 @@ import type {
   Pagination,
 } from "../types/api-schemas";
 import env from "../config/env.config";
+import { SystemSettingService } from "./system-setting.service";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
 import {
@@ -431,6 +432,8 @@ export class DocumentService {
     userId: string,
     id: string
   ): Promise<DocumentDownloadResult> {
+    await SystemSettingService.assertDownloadsEnabled("document");
+
     const document = await DocumentService.findOwnedDocument(userId, id);
     if (!document.path) {
       throw new ResponseError(404, "Dokumen tidak tersedia");

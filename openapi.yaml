@@ -1969,6 +1969,64 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /admin/system-settings:
+    get:
+      tags: [Admin]
+      summary: List system settings
+      description: List available system settings, optionally filtered by group
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: group
+          in: query
+          schema:
+            type: string
+            enum: [system, auth, downloads, public, uploads, limits]
+      responses:
+        "200":
+          description: System settings list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSystemSettingListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/system-settings/{key}:
+    put:
+      tags: [Admin]
+      summary: Update one system setting
+      description: Update a single editable system setting
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateSystemSettingRequest"
+      responses:
+        "200":
+          description: Updated system setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettingResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/users:
     get:
       tags: [Admin]
@@ -5452,6 +5510,13 @@ components:
         end_year: { type: integer, nullable: true }
         is_current: { type: boolean }
         description: { type: string, nullable: true }
+    SkillLevel:
+      type: string
+      enum:
+        - beginner
+        - intermediate
+        - advanced
+        - expert
     SkillCategory:
       type: string
       enum:
@@ -6126,6 +6191,74 @@ components:
                 admin:
                   type: integer
               description: Distribution of users by role
+    SystemSettingValue:
+      oneOf:
+        - type: boolean
+        - type: integer
+        - type: string
+        - type: object
+          additionalProperties: true
+        - type: array
+          items: {}
+    SystemSetting:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        key:
+          type: string
+        group:
+          type: string
+          enum: [system, auth, downloads, public, uploads, limits]
+        type:
+          type: string
+          enum: [boolean, number, string, json]
+        value:
+          $ref: "#/components/schemas/SystemSettingValue"
+        default_value:
+          $ref: "#/components/schemas/SystemSettingValue"
+        description:
+          type: string
+        is_public:
+          type: boolean
+        is_editable:
+          type: boolean
+        source:
+          type: string
+          enum: [default, database]
+        updated_by:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    SystemSettingResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SystemSetting"
+    AdminSystemSettingListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SystemSetting"
+    AdminUpdateSystemSettingRequest:
+      type: object
+      properties:
+        value:
+          $ref: "#/components/schemas/SystemSettingValue"
+      required: [value]
     AdminUserSocialLinkPayload:
       type: object
       properties:
