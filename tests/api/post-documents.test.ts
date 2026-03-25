@@ -1,26 +1,49 @@
 import request from "supertest";
+import {
+  createRealUser,
+  createSessionToken,
+  cleanupStoredDocumentFixture,
+  cleanupStoredDocumentsForUser,
+  deleteUsersByEmail,
+  disconnectPrisma,
+} from "./real-mode";
 
-jest.mock("../../src/services/document.service", () => ({
-  DocumentService: {
-    create: jest.fn(),
-    createMany: jest.fn(),
-    createMerged: jest.fn(),
-  },
-}));
+let app: typeof import("../../src/index").default;
+let DocumentService: typeof import("../../src/services/document.service").DocumentService;
 
-import app from "../../src/index";
-import { DocumentService } from "../../src/services/document.service";
+beforeAll(async () => {
+  jest.resetModules();
+  if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/services/document.service", () => ({
+      DocumentService: {
+        create: jest.fn(),
+        createMany: jest.fn(),
+        createMerged: jest.fn(),
+      },
+    }));
+  }
+
+  ({ default: app } = await import("../../src/index"));
+  ({ DocumentService } = await import("../../src/services/document.service"));
+});
+
+afterAll(async () => {
+  if (process.env.RUN_REAL_API_TESTS === "true") {
+    await disconnectPrisma();
+  }
+});
 
 describe("POST /documents", () => {
-  const createMock = jest.mocked(DocumentService.create);
-  const createManyMock = jest.mocked(DocumentService.createMany);
-  const createMergedMock = jest.mocked(DocumentService.createMerged);
+  if (process.env.RUN_REAL_API_TESTS === "true") {
+    return;
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("uploads a single document for the authenticated user", async () => {
+    const createMock = jest.mocked(DocumentService.create);
     createMock.mockResolvedValue({
       id: "document-1",
       file_name: "resume.pdf",
@@ -50,6 +73,8 @@ describe("POST /documents", () => {
   });
 
   it("merges multiple uploaded documents when merge is enabled", async () => {
+    const createManyMock = jest.mocked(DocumentService.createMany);
+    const createMergedMock = jest.mocked(DocumentService.createMerged);
     createMergedMock.mockResolvedValue({
       id: "document-merged",
       file_name: "merged.pdf",
@@ -74,5 +99,82 @@ describe("POST /documents", () => {
     });
     expect(createMergedMock).toHaveBeenCalledTimes(1);
     expect(createManyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /documents", () => {
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    return;
+  }
+  const trackedEmails = new Set<string>();
+  const trackedUserIds = new Set<string>();
+  const trackedDocumentIds = new Set<string>();
+
+  afterEach(async () => {
+    for (const documentId of trackedDocumentIds) {
+      await cleanupStoredDocumentFixture(documentId);
+    }
+    trackedDocumentIds.clear();
+    for (const userId of trackedUserIds) {
+      await cleanupStoredDocumentsForUser(userId);
+    }
+    trackedUserIds.clear();
+    await deleteUsersByEmail(...trackedEmails);
+    trackedEmails.clear();
+  });
+
+  it("uploads a single document for the authenticated user", async () => {
+    const { user } = await createRealUser("documents-upload");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/documents")
+      .set("Authorization", `Bearer ${token}`)
+      .field("type", "cv")
+      .field("name", "resume.txt")
+      .attach("file", Buffer.from("hello document"), {
+        filename: "resume.txt",
+        contentType: "text/plain",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty("data");
+    expect(response.body.data).toMatchObject({
+      user_id: user.id,
+      type: "cv",
+      original_name: "resume.txt",
+      mime_type: "text/plain",
+    });
+    expect(typeof response.body.data.id).toBe("string");
+    trackedDocumentIds.add(response.body.data.id);
+  });
+
+  it("returns 401 when the request is unauthenticated", async () => {
+    const response = await request(app).post("/documents");
+
+    expect(response.status).toBe(401);
+    expect(response.body.errors.general[0]).toBe("Unauthenticated");
+  });
+
+  it("returns 400 for invalid merge options", async () => {
+    const { user } = await createRealUser("documents-upload-invalid-merge");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/documents?merge=maybe")
+      .set("Authorization", `Bearer ${token}`)
+      .field("type", "cv")
+      .attach("file", Buffer.from("hello document"), {
+        filename: "resume.txt",
+        contentType: "text/plain",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("errors.general");
+    expect(response.body.errors.general[0]).toBe("Opsi merge tidak dikenal");
   });
 });

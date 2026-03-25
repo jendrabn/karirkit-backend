@@ -60,8 +60,8 @@ typings/
 # next.js build output
 .next
 
-/generated/prisma
-/src/generated
+generated/prisma/
+src/generated/
 
 dist/
 

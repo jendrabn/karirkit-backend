@@ -1,26 +1,49 @@
 import request from "supertest";
-
-import { ResponseError } from "../../src/utils/response-error.util";
-
-jest.mock("../../src/services/document.service", () => ({
-  DocumentService: {
-    list: jest.fn(),
-  },
-}));
-
-import app from "../../src/index";
-import { DocumentService } from "../../src/services/document.service";
+import {
+  createRealUser,
+  createSessionToken,
+  createStoredDocumentFixture,
+  cleanupStoredDocumentFixture,
+  cleanupStoredDocumentsForUser,
+  deleteUsersByEmail,
+  disconnectPrisma,
+} from "./real-mode";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
+let app: typeof import("../../src/index").default;
+let DocumentService: typeof import("../../src/services/document.service").DocumentService;
+
+beforeAll(async () => {
+  jest.resetModules();
+  if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/services/document.service", () => ({
+      DocumentService: {
+        list: jest.fn(),
+      },
+    }));
+  }
+
+  ({ default: app } = await import("../../src/index"));
+  ({ DocumentService } = await import("../../src/services/document.service"));
+});
+
+afterAll(async () => {
+  if (process.env.RUN_REAL_API_TESTS === "true") {
+    await disconnectPrisma();
+  }
+});
 
 describe("GET /documents", () => {
-  const listMock = jest.mocked(DocumentService.list);
+  if (process.env.RUN_REAL_API_TESTS === "true") {
+    return;
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("returns a paginated document list", async () => {
+    const listMock = jest.mocked(DocumentService.list);
     listMock.mockResolvedValue({
       items: [{ id: validId, name: "Document 1" }],
       meta: { page: 1, per_page: 20, total: 1 },
@@ -48,6 +71,7 @@ describe("GET /documents", () => {
   });
 
   it("supports an empty document state", async () => {
+    const listMock = jest.mocked(DocumentService.list);
     listMock.mockResolvedValue({ items: [], meta: { page: 1, per_page: 20, total: 0 } } as never);
 
     const response = await request(app)
@@ -57,5 +81,79 @@ describe("GET /documents", () => {
     expect(response.body).toHaveProperty("data.items");
     expect(response.body.data.items).toEqual([]);
     expect(response.body.data.meta.total).toBe(0);
+  });
+});
+
+describe("GET /documents", () => {
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    return;
+  }
+  const trackedEmails = new Set<string>();
+  const trackedUserIds = new Set<string>();
+  const trackedDocumentIds = new Set<string>();
+
+  afterEach(async () => {
+    for (const documentId of trackedDocumentIds) {
+      await cleanupStoredDocumentFixture(documentId);
+    }
+    trackedDocumentIds.clear();
+    for (const userId of trackedUserIds) {
+      await cleanupStoredDocumentsForUser(userId);
+    }
+    trackedUserIds.clear();
+    await deleteUsersByEmail(...trackedEmails);
+    trackedEmails.clear();
+  });
+
+  it("returns a paginated document list", async () => {
+    const { user } = await createRealUser("documents-list");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+    const first = await createStoredDocumentFixture(user.id, {
+      originalName: "resume.txt",
+    });
+    const second = await createStoredDocumentFixture(user.id, {
+      type: "sertifikat",
+      originalName: "certificate.txt",
+    });
+    trackedDocumentIds.add(first.document.id);
+    trackedDocumentIds.add(second.document.id);
+
+    const response = await request(app)
+      .get("/documents?sort_by=created_at&sort_order=desc")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("data.items");
+    expect(response.body).toHaveProperty("data.pagination");
+    expect(Array.isArray(response.body.data.items)).toBe(true);
+    expect(response.body.data.items.length).toBeGreaterThanOrEqual(2);
+    expect(response.body.data.items[0]).toHaveProperty("id");
+    expect(response.body.data.pagination.total_items).toBeGreaterThanOrEqual(2);
+  });
+
+  it("returns 401 when the request is unauthenticated", async () => {
+    const response = await request(app).get("/documents");
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty("errors.general");
+    expect(response.body.errors.general[0]).toBe("Unauthenticated");
+  });
+
+  it("supports an empty document state", async () => {
+    const { user } = await createRealUser("documents-list-empty");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .get("/documents?type=cv")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("data.items");
+    expect(response.body.data.items).toEqual([]);
+    expect(response.body.data.pagination.total_items).toBe(0);
   });
 });
