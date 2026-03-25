@@ -95,6 +95,7 @@ JWT_EXPIRES_IN="1d"
 # Server
 PORT=3000
 NODE_ENV="development"
+MAINTENANCE_MODE=false
 
 # Email Configuration
 MAIL_MAILER="smtp"

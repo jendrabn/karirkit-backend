@@ -31,6 +31,22 @@ const parseNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+
+  return fallback;
+};
+
 const normalizeEncryption = (value?: string): "ssl" | "tls" | undefined => {
   if (!value) {
     return undefined;
@@ -73,6 +89,7 @@ const env = {
   port: parsePort(process.env.PORT),
   logLevel: process.env.LOG_LEVEL ?? "info",
   logFile: process.env.LOG_FILE ?? "logs/app.log",
+  maintenanceMode: parseBoolean(process.env.MAINTENANCE_MODE, false),
   appBaseUrl: removeTrailingSlash(
     process.env.APP_BASE_URL ?? "http://localhost:3000"
   ),

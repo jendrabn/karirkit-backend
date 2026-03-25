@@ -43,20 +43,6 @@ const CACHE_TTL_MS = process.env.NODE_ENV === "test" ? 0 : 15_000;
 
 const settingDefinitions: SettingDefinition[] = [
   {
-    key: "system.maintenance.enabled",
-    group: "system",
-    type: "boolean",
-    defaultValue: false,
-    description: "Memblokir akses ke mayoritas endpoint non-admin selama maintenance.",
-  },
-  {
-    key: "system.read_only.enabled",
-    group: "system",
-    type: "boolean",
-    defaultValue: false,
-    description: "Memblokir operasi tulis selain endpoint pengaturan sistem.",
-  },
-  {
     key: "auth.registration.enabled",
     group: "auth",
     type: "boolean",
@@ -351,14 +337,6 @@ export class SystemSettingService {
 
   static async getOtpResendCooldownSeconds(): Promise<number> {
     return SystemSettingService.getNumber("auth.otp.resend_cooldown_seconds");
-  }
-
-  static async isMaintenanceEnabled(): Promise<boolean> {
-    return SystemSettingService.getBoolean("system.maintenance.enabled");
-  }
-
-  static async isReadOnlyEnabled(): Promise<boolean> {
-    return SystemSettingService.getBoolean("system.read_only.enabled");
   }
 
   static async getDefaultDailyDownloadLimit(): Promise<number> {

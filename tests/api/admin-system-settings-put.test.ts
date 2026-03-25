@@ -20,8 +20,6 @@ beforeAll(async () => {
         ...actual,
         SystemSettingService: {
           ...actual.SystemSettingService,
-          isMaintenanceEnabled: jest.fn().mockResolvedValue(false),
-          isReadOnlyEnabled: jest.fn().mockResolvedValue(false),
           bulkUpdate: jest.fn(),
         },
       };

@@ -3,6 +3,7 @@ process.env.JWT_SECRET ||= "test-secret";
 process.env.PASSWORD_RESET_URL ||= "http://localhost:3000/reset-password";
 process.env.APP_BASE_URL ||= "http://localhost:3000";
 process.env.CORS_ORIGINS ||= "http://localhost:3000";
+process.env.MAINTENANCE_MODE ||= "false";
 process.env.OTP_ENABLED = "false";
 
 if (process.env.TEST_DATABASE_HOST) {

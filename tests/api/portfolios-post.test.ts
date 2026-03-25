@@ -118,13 +118,8 @@ describe("POST /portfolios", () => {
     return;
   }
   const trackedEmails = new Set<string>();
-  const trackedSettingKeys = ["system.read_only.enabled"];
 
   afterEach(async () => {
-    const prisma = await loadPrisma();
-    await prisma.systemSetting.deleteMany({
-      where: { key: { in: trackedSettingKeys } },
-    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -186,33 +181,5 @@ describe("POST /portfolios", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.title");
     expect(Array.isArray(response.body.errors.title)).toBe(true);
-  });
-
-  it("returns 503 when the system is in read-only mode", async () => {
-    const prisma = await loadPrisma();
-    const { user } = await createRealUser("portfolios-read-only");
-    trackedEmails.add(user.email);
-    const token = await createSessionToken(user);
-    await prisma.systemSetting.create({
-      data: {
-        key: "system.read_only.enabled",
-        group: "system",
-        type: "boolean",
-        valueJson: true,
-        defaultValueJson: false,
-        description: "Read only mode",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const response = await request(app)
-      .post("/portfolios")
-      .set("Authorization", `Bearer ${token}`)
-      .send(buildPortfolioPayload("read-only"));
-
-    expect(response.status).toBe(503);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toContain("read-only");
   });
 });

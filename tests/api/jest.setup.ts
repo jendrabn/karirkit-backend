@@ -3,6 +3,7 @@ process.env.JWT_SECRET ||= "test-secret";
 process.env.PASSWORD_RESET_URL ||= "http://localhost:3000/reset-password";
 process.env.APP_BASE_URL ||= "http://localhost:3000";
 process.env.CORS_ORIGINS ||= "http://localhost:3000";
+process.env.MAINTENANCE_MODE ||= "false";
 
 jest.mock("../../src/middleware/logger.middleware", () => {
   const requestLogger = (
@@ -139,8 +140,6 @@ jest.mock("../../src/queues/email.queue", () => ({
 jest.mock("../../src/services/system-setting.service", () => ({
   __esModule: true,
   SystemSettingService: {
-    isMaintenanceEnabled: jest.fn().mockResolvedValue(false),
-    isReadOnlyEnabled: jest.fn().mockResolvedValue(false),
     isRegistrationEnabled: jest.fn().mockResolvedValue(true),
     isGoogleLoginEnabled: jest.fn().mockResolvedValue(true),
     isPasswordResetEnabled: jest.fn().mockResolvedValue(true),

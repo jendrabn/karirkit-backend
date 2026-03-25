@@ -89,7 +89,6 @@ describe("GET /dashboard", () => {
   }
   const trackedEmails = new Set<string>();
   const trackedApplicationIds = new Set<string>();
-  const trackedSettingKeys = ["system.maintenance.enabled"];
 
   afterEach(async () => {
     const prisma = await loadPrisma();
@@ -99,9 +98,6 @@ describe("GET /dashboard", () => {
       });
     }
     trackedApplicationIds.clear();
-    await prisma.systemSetting.deleteMany({
-      where: { key: { in: trackedSettingKeys } },
-    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -179,32 +175,5 @@ describe("GET /dashboard", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.total_applications).toBe(0);
     expect(response.body.data.total_cvs).toBe(0);
-  });
-
-  it("returns 503 when maintenance mode is enabled", async () => {
-    const prisma = await loadPrisma();
-    const { user } = await createRealUser("dashboard-maintenance");
-    trackedEmails.add(user.email);
-    const token = await createSessionToken(user);
-    await prisma.systemSetting.create({
-      data: {
-        key: "system.maintenance.enabled",
-        group: "system",
-        type: "boolean",
-        valueJson: true,
-        defaultValueJson: false,
-        description: "Maintenance mode",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const response = await request(app)
-      .get("/dashboard")
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(response.status).toBe(503);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toContain("maintenance");
   });
 });

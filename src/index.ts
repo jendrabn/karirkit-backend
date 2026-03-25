@@ -9,7 +9,6 @@ import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import bigIntMiddleware from "./middleware/bigint.middleware";
 import {
   maintenanceModeMiddleware,
-  readOnlyModeMiddleware,
 } from "./middleware/system-guard.middleware";
 import routes from "./routes/api.routes";
 import {
@@ -37,7 +36,6 @@ app.use(cookieParser());
 app.use(csrfProtectionMiddleware);
 app.use(bigIntMiddleware);
 app.use(maintenanceModeMiddleware);
-app.use(readOnlyModeMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
 app.use(
