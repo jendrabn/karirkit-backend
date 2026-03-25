@@ -503,31 +503,12 @@ export class JobService {
 
   // Company service methods for public API
   static async listCompanies(): Promise<CompanyResponse[]> {
-    // Get companies that have active (published) jobs
+    // Get all companies without restricting by active jobs
     const companies = await prisma.company.findMany({
-      where: {
-        jobs: {
-          some: {
-            status: "published",
-            OR: [
-              { expirationDate: null },
-              { expirationDate: { gte: new Date() } },
-            ],
-          },
-        },
-      },
       include: {
         _count: {
           select: {
-            jobs: {
-              where: {
-                status: "published",
-                OR: [
-                  { expirationDate: null },
-                  { expirationDate: { gte: new Date() } },
-                ],
-              },
-            },
+            jobs: true,
           },
         },
       },
@@ -591,31 +572,12 @@ export class JobService {
 
   // Job role service methods for public API
   static async listJobRoles(): Promise<any[]> {
-    // Get job roles that have active (published) jobs
+    // Get all job roles without restricting by active jobs
     const jobRoles = await prisma.jobRole.findMany({
-      where: {
-        jobs: {
-          some: {
-            status: "published",
-            OR: [
-              { expirationDate: null },
-              { expirationDate: { gte: new Date() } },
-            ],
-          },
-        },
-      },
       include: {
         _count: {
           select: {
-            jobs: {
-              where: {
-                status: "published",
-                OR: [
-                  { expirationDate: null },
-                  { expirationDate: { gte: new Date() } },
-                ],
-              },
-            },
+            jobs: true,
           },
         },
       },

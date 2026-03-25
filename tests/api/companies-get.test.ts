@@ -146,7 +146,7 @@ describe("GET /companies", () => {
     spy.mockRestore();
   });
 
-  it("excludes companies without active published jobs", async () => {
+  it("includes companies even when they do not have active published jobs", async () => {
     const prisma = await loadPrisma();
     const company = await prisma.company.create({
       data: {
@@ -164,6 +164,11 @@ describe("GET /companies", () => {
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(
       response.body.data.some((item: { id: string }) => item.id === company.id),
-    ).toBe(false);
+    ).toBe(true);
+
+    const companyResult = response.body.data.find(
+      (item: { id: string }) => item.id === company.id,
+    );
+    expect(companyResult?.job_count).toBe(0);
   });
 });

@@ -146,7 +146,7 @@ describe("GET /job-roles", () => {
     spy.mockRestore();
   });
 
-  it("excludes job roles without active published jobs", async () => {
+  it("includes job roles even when they do not have active published jobs", async () => {
     const prisma = await loadPrisma();
     const jobRole = await prisma.jobRole.create({
       data: {
@@ -164,6 +164,11 @@ describe("GET /job-roles", () => {
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(
       response.body.data.some((item: { id: string }) => item.id === jobRole.id),
-    ).toBe(false);
+    ).toBe(true);
+
+    const jobRoleResult = response.body.data.find(
+      (item: { id: string }) => item.id === jobRole.id,
+    );
+    expect(jobRoleResult?.job_count).toBe(0);
   });
 });
