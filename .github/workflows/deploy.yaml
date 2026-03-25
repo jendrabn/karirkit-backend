@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --include=dev
 
+      - name: Run tests
+        run: npm test -- --runInBand
+
       - name: Build application
         run: npm run build
 
@@ -45,8 +48,9 @@ jobs:
             cd /var/www/karirkit-backend
 
             git fetch origin main
-            git checkout main
-            git pull --ff-only origin main
+            git checkout -f main
+            git reset --hard origin/main
+            git clean -fd
 
             npm ci --include=dev
             npx prisma migrate deploy
