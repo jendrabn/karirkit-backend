@@ -13,6 +13,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-22.04
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/karirkit_ci
 
     steps:
       - name: Checkout repository
