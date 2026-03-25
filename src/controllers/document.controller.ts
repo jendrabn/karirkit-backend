@@ -22,13 +22,15 @@ export class DocumentController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const filesFromMulter =
-        (req.files as Express.Multer.File[]) ||
-        ((req.files as Record<string, Express.Multer.File[]>)?.files ?? []);
+      const groupedFiles = Array.isArray(req.files)
+        ? undefined
+        : (req.files as Record<string, Express.Multer.File[]> | undefined);
+      const filesFromMulter = Array.isArray(req.files)
+        ? req.files
+        : groupedFiles?.files ?? [];
       const singleFile =
-        (req.file as Express.Multer.File | undefined) ||
-        ((req.files as Record<string, Express.Multer.File[]>)?.file?.[0] ??
-          undefined);
+        (req.file as Express.Multer.File | undefined) ??
+        groupedFiles?.file?.[0];
       const files: Express.Multer.File[] = [];
       if (Array.isArray(filesFromMulter)) {
         files.push(...filesFromMulter);

@@ -13,10 +13,19 @@ jest.mock("../../src/middleware/logger.middleware", () => {
   ): void => {
     next();
   };
+  const errorLogger = (
+    err: unknown,
+    _req: unknown,
+    _res: unknown,
+    next: (error?: unknown) => void,
+  ): void => {
+    next(err);
+  };
 
   return {
     __esModule: true,
     default: requestLogger,
+    errorLogger,
     appLogger: {
       info: jest.fn(),
       warn: jest.fn(),
