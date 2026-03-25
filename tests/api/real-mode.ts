@@ -280,13 +280,13 @@ export const cleanupStoredDocumentFixture = async (documentId: string) => {
 
 export const cleanupStoredDocumentsForUser = async (userId: string) => {
   const prisma = await loadPrisma();
-  const documents = await prisma.document.findMany({
+  const documents: { id: string; path: string }[] = await prisma.document.findMany({
     where: { userId },
     select: { id: true, path: true },
   });
 
   await Promise.all(
-    documents.map((document) =>
+    documents.map((document: { id: string; path: string }) =>
       fs
         .rm(
           path.join(
