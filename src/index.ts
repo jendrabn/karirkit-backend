@@ -4,7 +4,7 @@ import express from "express";
 import path from "path";
 import env from "./config/env.config";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
-import requestLogger from "./middleware/logger.middleware";
+import requestLogger, { errorLogger } from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import bigIntMiddleware from "./middleware/bigint.middleware";
 import {
@@ -51,6 +51,7 @@ app.use("/docs", docsMiddleware, renderDocs);
 app.get("/", notFoundHandler);
 app.use("/", routes);
 app.use(notFoundHandler);
+app.use(errorLogger);
 app.use(errorHandler);
 
 export default app;
