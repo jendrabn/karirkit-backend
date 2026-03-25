@@ -1,6 +1,7 @@
 import request from "supertest";
 import {
   createRealUser,
+  createSessionToken,
   deleteUsersByEmail,
   disconnectPrisma,
   loadPrisma,
@@ -110,8 +111,15 @@ describe("POST /auth/reset-password", () => {
       ]);
     const { user } = await createRealUser("reset-password");
     trackedEmails.add(user.email);
+    const passwordResetTokenId = "reset-token-id";
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenId,
+      },
+    });
     const token = jwt.sign(
-      { sub: user.id, type: "password_reset" },
+      { sub: user.id, type: "password_reset", jti: passwordResetTokenId },
       env.jwtSecret,
       { expiresIn: "15m" }
     );
@@ -127,6 +135,8 @@ describe("POST /auth/reset-password", () => {
 
     const stored = await prisma.user.findUnique({ where: { id: user.id } });
     expect(await bcrypt.compare("new-secret123", stored!.password)).toBe(true);
+    expect(stored?.passwordResetTokenId).toBeNull();
+    expect(stored?.sessionInvalidBefore).not.toBeNull();
   });
 
   it("returns validation errors for an invalid reset token", async () => {
@@ -148,6 +158,7 @@ describe("POST /auth/reset-password", () => {
       {
         sub: "550e8400-e29b-41d4-a716-446655440099",
         type: "password_reset",
+        jti: "missing-user-reset-token",
       },
       env.jwtSecret,
       { expiresIn: "15m" }
@@ -162,6 +173,54 @@ describe("POST /auth/reset-password", () => {
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe(
       "Token reset kata sandi tidak valid"
+    );
+  });
+
+  it("rejects a reset token after it has been used once and invalidates old sessions", async () => {
+    const prisma = await loadPrisma();
+    const [{ default: jwt }, { default: env }] = await Promise.all([
+      import("jsonwebtoken"),
+      import("../../src/config/env.config"),
+    ]);
+    const { user } = await createRealUser("reset-password-once");
+    trackedEmails.add(user.email);
+    const sessionToken = await createSessionToken(user);
+    const passwordResetTokenId = "reset-token-once";
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenId,
+      },
+    });
+
+    const resetToken = jwt.sign(
+      { sub: user.id, type: "password_reset", jti: passwordResetTokenId },
+      env.jwtSecret,
+      { expiresIn: "15m" }
+    );
+
+    const firstResponse = await request(app).post("/auth/reset-password").send({
+      token: resetToken,
+      password: "new-secret123",
+    });
+    expect(firstResponse.status).toBe(200);
+
+    const secondResponse = await request(app).post("/auth/reset-password").send({
+      token: resetToken,
+      password: "new-secret456",
+    });
+    expect(secondResponse.status).toBe(400);
+    expect(secondResponse.body.errors.general[0]).toBe(
+      "Token reset kata sandi tidak valid"
+    );
+
+    const sessionResponse = await request(app)
+      .get("/account/me")
+      .set("Authorization", `Bearer ${sessionToken}`);
+    expect(sessionResponse.status).toBe(401);
+    expect(sessionResponse.body.errors.general[0]).toBe(
+      "Invalid or expired session"
     );
   });
 });

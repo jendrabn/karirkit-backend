@@ -352,12 +352,15 @@ export class AccountService {
     }
 
     const hashedPassword = await bcrypt.hash(requestData.new_password, 10);
+    const passwordUpdatedAt = new Date();
 
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
-        updatedAt: new Date(),
+        passwordResetTokenId: null,
+        sessionInvalidBefore: passwordUpdatedAt,
+        updatedAt: passwordUpdatedAt,
       },
     });
   }

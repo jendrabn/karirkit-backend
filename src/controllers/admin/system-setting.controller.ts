@@ -12,13 +12,9 @@ export class SystemSettingController {
     }
   }
 
-  static async update(req: Request, res: Response, next: NextFunction) {
+  static async bulkUpdate(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await SystemSettingService.update(
-        req.params.key,
-        req.body,
-        req.user!.id
-      );
+      const result = await SystemSettingService.bulkUpdate(req.body, req.user!.id);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

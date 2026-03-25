@@ -238,65 +238,83 @@ export class SystemSettingService {
   }
 
   static async list(query: unknown): Promise<SystemSettingListResult> {
-    const requestData = validate(SystemSettingValidation.LIST_QUERY, query);
     const dbSettings = await prisma.systemSetting.findMany({
-      where: requestData.group ? { group: requestData.group } : undefined,
       orderBy: [{ group: "asc" }, { key: "asc" }],
     });
 
     const dbMap = new Map(dbSettings.map((setting) => [setting.key, setting]));
-    const items = settingDefinitions
-      .filter((definition) =>
-        requestData.group ? definition.group === requestData.group : true
-      )
-      .map((definition) =>
-        SystemSettingService.toResponse(definition, dbMap.get(definition.key))
-      );
+    const items = settingDefinitions.map((definition) =>
+      SystemSettingService.toResponse(definition, dbMap.get(definition.key))
+    );
 
     return { items };
   }
 
-  static async update(
-    key: string,
+  static async bulkUpdate(
     request: unknown,
     updatedBy: string
-  ): Promise<SystemSettingResponse> {
-    const definition = SystemSettingService.getDefinitionOrThrow(key);
-    const payload = validate(SystemSettingValidation.UPDATE_PAYLOAD, request);
-    const nextValue = SystemSettingService.normalizeValue(definition, payload.value);
+  ): Promise<SystemSettingListResult> {
+    const payload = validate(SystemSettingValidation.BULK_UPDATE_PAYLOAD, request);
+    const updates = SystemSettingService.flattenPayloadToUpdates(payload);
 
-    const stored = await prisma.$transaction(async (tx) => {
-      return tx.systemSetting.upsert({
-        where: { key },
-        update: {
-          group: definition.group,
-          type: definition.type,
-          valueJson: nextValue,
-          defaultValueJson: definition.defaultValue as Prisma.InputJsonValue,
-          description: definition.description,
-          isPublic: definition.isPublic ?? false,
-          isEditable: definition.isEditable ?? true,
-          updatedBy,
-          updatedAt: new Date(),
-        },
-        create: {
-          key: definition.key,
-          group: definition.group,
-          type: definition.type,
-          valueJson: nextValue,
-          defaultValueJson: definition.defaultValue as Prisma.InputJsonValue,
-          description: definition.description,
-          isPublic: definition.isPublic ?? false,
-          isEditable: definition.isEditable ?? true,
-          updatedBy,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
+    if (updates.size === 0) {
+      throw new ResponseError(400, "Payload pengaturan sistem tidak boleh kosong");
+    }
+
+    const preparedUpdates = Array.from(updates.entries()).map(([key, value]) => {
+      const definition = SystemSettingService.getDefinitionOrThrow(key);
+      return {
+        definition,
+        value: SystemSettingService.normalizeValue(definition, value),
+      };
     });
 
+    const now = new Date();
+    const storedSettings = await prisma.$transaction(async (tx) => {
+      return Promise.all(
+        preparedUpdates.map((update) =>
+          tx.systemSetting.upsert({
+            where: { key: update.definition.key },
+            update: {
+              group: update.definition.group,
+              type: update.definition.type,
+              valueJson: update.value,
+              defaultValueJson: update.definition.defaultValue as Prisma.InputJsonValue,
+              description: update.definition.description,
+              isPublic: update.definition.isPublic ?? false,
+              isEditable: update.definition.isEditable ?? true,
+              updatedBy,
+              updatedAt: now,
+            },
+            create: {
+              key: update.definition.key,
+              group: update.definition.group,
+              type: update.definition.type,
+              valueJson: update.value,
+              defaultValueJson: update.definition.defaultValue as Prisma.InputJsonValue,
+              description: update.definition.description,
+              isPublic: update.definition.isPublic ?? false,
+              isEditable: update.definition.isEditable ?? true,
+              updatedBy,
+              createdAt: now,
+              updatedAt: now,
+            },
+          })
+        )
+      );
+    });
+
+    const storedMap = new Map(storedSettings.map((setting) => [setting.key, setting]));
     SystemSettingService.clearCache();
-    return SystemSettingService.toResponse(definition, stored);
+
+    return {
+      items: preparedUpdates.map((update) =>
+        SystemSettingService.toResponse(
+          update.definition,
+          storedMap.get(update.definition.key)
+        )
+      ),
+    };
   }
 
   static async getBoolean(key: string): Promise<boolean> {
@@ -454,6 +472,46 @@ export class SystemSettingService {
     };
 
     return values;
+  }
+
+  private static flattenPayloadToUpdates(
+    payload: Record<string, unknown>,
+    parentPath = "",
+    updates = new Map<string, unknown>()
+  ): Map<string, unknown> {
+    for (const [key, value] of Object.entries(payload)) {
+      const nextPath = parentPath ? `${parentPath}.${key}` : key;
+      const definition = definitionMap.get(nextPath);
+
+      if (definition) {
+        if (updates.has(nextPath)) {
+          throw new ResponseError(400, `Duplikat pengaturan sistem pada payload: ${nextPath}`);
+        }
+        updates.set(nextPath, value);
+        continue;
+      }
+
+      if (SystemSettingService.isPlainObject(value)) {
+        if (!SystemSettingService.hasDefinitionPrefix(nextPath)) {
+          throw new ResponseError(400, `Pengaturan sistem tidak dikenal: ${nextPath}`);
+        }
+        SystemSettingService.flattenPayloadToUpdates(value, nextPath, updates);
+        continue;
+      }
+
+      throw new ResponseError(400, `Pengaturan sistem tidak dikenal: ${nextPath}`);
+    }
+
+    return updates;
+  }
+
+  private static hasDefinitionPrefix(path: string): boolean {
+    const prefix = `${path}.`;
+    return settingDefinitions.some((definition) => definition.key.startsWith(prefix));
+  }
+
+  private static isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   private static getDefinitionOrThrow(

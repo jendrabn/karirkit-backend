@@ -168,7 +168,7 @@ jest.mock("../../src/services/system-setting.service", () => ({
     getBoolean: jest.fn().mockResolvedValue(true),
     getNumber: jest.fn().mockResolvedValue(1),
     list: jest.fn(),
-    update: jest.fn(),
+    bulkUpdate: jest.fn(),
     clearCache: jest.fn(),
   },
 }));

@@ -99,4 +99,39 @@ describe("POST /auth/logout", () => {
     expect(response.text).toBe("");
     expect(response.headers["set-cookie"]).toBeDefined();
   });
+
+  it("rejects cookie-authenticated logout without a trusted origin", async () => {
+    const [{ default: env }] = await Promise.all([
+      import("../../src/config/env.config"),
+    ]);
+    const { user } = await createRealUser("logout-cookie-csrf");
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/auth/logout")
+      .set("Cookie", `${env.sessionCookieName}=${token}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Permintaan lintas-origin tidak diizinkan untuk sesi berbasis cookie"
+    );
+  });
+
+  it("allows cookie-authenticated logout from a trusted origin", async () => {
+    const [{ default: env }] = await Promise.all([
+      import("../../src/config/env.config"),
+    ]);
+    const { user } = await createRealUser("logout-cookie-origin");
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/auth/logout")
+      .set("Origin", env.frontendUrl)
+      .set("Cookie", `${env.sessionCookieName}=${token}`);
+
+    expect(response.status).toBe(204);
+    expect(response.headers["set-cookie"]).toBeDefined();
+  });
 });

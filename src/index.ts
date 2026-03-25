@@ -17,6 +17,7 @@ import {
   notFoundHandler,
 } from "./middleware/error-handler.middleware";
 import "./queues/email.queue";
+import csrfProtectionMiddleware from "./middleware/csrf-protection.middleware";
 
 const app = express();
 
@@ -33,12 +34,20 @@ app.use(globalRateLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(csrfProtectionMiddleware);
 app.use(bigIntMiddleware);
 app.use(maintenanceModeMiddleware);
 app.use(readOnlyModeMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
-app.use(express.static(publicDirectory, { index: false }));
+app.use(
+  express.static(publicDirectory, {
+    index: false,
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    },
+  })
+);
 
 app.use("/docs", docsMiddleware, renderDocs);
 app.get("/", notFoundHandler);

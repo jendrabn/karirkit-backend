@@ -3,6 +3,28 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+const buildDatabaseUrl = (): string => {
+  const directUrl = process.env.DATABASE_URL?.trim();
+  if (directUrl) {
+    return directUrl;
+  }
+
+  const host = process.env.DATABASE_HOST?.trim() || "localhost";
+  const port = process.env.DATABASE_PORT?.trim() || "3306";
+  const database = process.env.DATABASE_NAME?.trim() || "karirkit";
+  const username = encodeURIComponent(process.env.DATABASE_USER?.trim() || "");
+  const password = encodeURIComponent(process.env.DATABASE_PASSWORD ?? "");
+
+  if (!username) {
+    throw new Error(
+      "DATABASE_URL atau kombinasi DATABASE_HOST, DATABASE_PORT, DATABASE_NAME, DATABASE_USER harus disediakan"
+    );
+  }
+
+  const credentials = password ? `${username}:${password}` : username;
+  return `mysql://${credentials}@${host}:${port}/${database}`;
+};
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +32,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: buildDatabaseUrl(),
   },
 });

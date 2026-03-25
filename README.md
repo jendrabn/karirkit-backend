@@ -82,6 +82,11 @@ Edit `.env` file dengan konfigurasi Anda:
 ```env
 # Database
 DATABASE_URL="mysql://username:password@localhost:3306/karirkit"
+DATABASE_HOST="localhost"
+DATABASE_PORT=3306
+DATABASE_NAME="karirkit"
+DATABASE_USER="username"
+DATABASE_PASSWORD="password"
 
 # JWT
 JWT_SECRET="your-super-secret-jwt-key"
@@ -97,6 +102,7 @@ MAIL_HOST="smtp.gmail.com"
 MAIL_PORT=587
 MAIL_USERNAME="your-email@gmail.com"
 MAIL_PASSWORD="your-app-password"
+MAIL_ENCRYPTION="tls"
 MAIL_FROM_ADDRESS="no-reply@karirkit.com"
 MAIL_FROM_NAME="KarirKit"
 
@@ -129,9 +135,13 @@ npm run key:generate
 5. Setup database
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 npx prisma db seed
 ```
+
+Catatan database:
+- `DATABASE_URL` dipakai oleh Prisma CLI.
+- Jika `DATABASE_URL` kosong, runtime dan Prisma CLI akan membangun koneksi dari `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, dan `DATABASE_PASSWORD`.
 
 ## Development
 
@@ -149,8 +159,8 @@ Server akan berjalan di `http://localhost:3000` dengan auto-reload saat file ber
 # Generate Prisma client
 npx prisma generate
 
-# Push schema changes to database
-npx prisma db push
+# Apply schema migrations
+npx prisma migrate deploy
 
 # Reset database
 npx prisma db push --force-reset
@@ -251,6 +261,11 @@ mkdir -p logs
 # Set production environment variables
 export NODE_ENV=production
 export DATABASE_URL="mysql://user:pass@prod-host:3306/karirkit_prod"
+export DATABASE_HOST="prod-host"
+export DATABASE_PORT=3306
+export DATABASE_NAME="karirkit_prod"
+export DATABASE_USER="user"
+export DATABASE_PASSWORD="pass"
 export JWT_SECRET="your-production-jwt-secret"
 # ... set other production variables
 ```

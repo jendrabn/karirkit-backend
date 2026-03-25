@@ -26,6 +26,10 @@ import {
   type MassDeleteInput,
 } from "../validations/document.validation";
 import { ResponseError } from "../utils/response-error.util";
+import {
+  VERIFIED_UPLOAD_MIME_TYPES,
+  applyVerifiedMimeType,
+} from "../utils/file-signature.util";
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -41,11 +45,9 @@ const COMPRESSION_QUALITY_MAP = {
 
 const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   "image/jpeg": ".jpg",
-  "image/jpg": ".jpg",
   "image/png": ".png",
   "image/gif": ".gif",
   "image/webp": ".webp",
-  "image/svg+xml": ".svg",
   "application/pdf": ".pdf",
   "application/msword": ".doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
@@ -61,11 +63,9 @@ const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
 
 const IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
-  "image/jpg",
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
 ]);
 
 const DEFAULT_PDF_PRESET = {
@@ -552,9 +552,20 @@ export class DocumentService {
       throw new ResponseError(400, "Ukuran file tidak boleh lebih dari 25MB");
     }
 
-    const normalizedMime = file.mimetype.toLowerCase();
+    const detectedMimeType = applyVerifiedMimeType(file);
+    if (
+      !detectedMimeType ||
+      ![
+        ...VERIFIED_UPLOAD_MIME_TYPES.image,
+        ...VERIFIED_UPLOAD_MIME_TYPES.document,
+      ].includes(detectedMimeType as any)
+    ) {
+      throw new ResponseError(400, "Jenis file dokumen tidak valid");
+    }
+
+    const normalizedMime = detectedMimeType.toLowerCase();
     let processedBuffer = file.buffer;
-    let finalMimeType = file.mimetype;
+    let finalMimeType = detectedMimeType;
     let extension =
       MIME_TYPE_TO_EXTENSION[normalizedMime] || path.extname(file.originalname);
 

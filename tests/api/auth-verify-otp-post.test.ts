@@ -151,7 +151,7 @@ describe("POST /auth/verify-otp", () => {
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe(
-      "Kode OTP tidak valid atau kadaluarsa"
+      "Kredensial login atau OTP tidak valid"
     );
   });
 
@@ -178,7 +178,7 @@ describe("POST /auth/verify-otp", () => {
 
     expect(response.status).toBe(401);
     expect(response.body.errors.general[0]).toBe(
-      "Kode OTP tidak valid atau kadaluarsa"
+      "Kredensial login atau OTP tidak valid"
     );
   });
 });

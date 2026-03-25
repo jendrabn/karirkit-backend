@@ -1973,15 +1973,9 @@ paths:
     get:
       tags: [Admin]
       summary: List system settings
-      description: List available system settings, optionally filtered by group
+      description: List all available system settings
       security:
         - sessionCookie: []
-      parameters:
-        - name: group
-          in: query
-          schema:
-            type: string
-            enum: [system, auth, downloads, public, uploads, limits]
       responses:
         "200":
           description: System settings list
@@ -1993,40 +1987,31 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
-  /admin/system-settings/{key}:
     put:
       tags: [Admin]
-      summary: Update one system setting
-      description: Update a single editable system setting
+      summary: Update multiple system settings
+      description: Update editable system settings in one request using a full settings JSON payload
       security:
         - sessionCookie: []
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AdminUpdateSystemSettingRequest"
+              $ref: "#/components/schemas/AdminBulkUpdateSystemSettingRequest"
       responses:
         "200":
-          description: Updated system setting
+          description: Updated system settings
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SystemSettingResponse"
+                $ref: "#/components/schemas/AdminSystemSettingListResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
   /admin/users:
     get:
       tags: [Admin]
@@ -6253,12 +6238,12 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/SystemSetting"
-    AdminUpdateSystemSettingRequest:
+    AdminBulkUpdateSystemSettingRequest:
       type: object
-      properties:
-        value:
-          $ref: "#/components/schemas/SystemSettingValue"
-      required: [value]
+      additionalProperties: true
+      description: >
+        Full settings JSON. Supports nested objects such as auth.registration.enabled
+        or flat dot-notation keys.
     AdminUserSocialLinkPayload:
       type: object
       properties:

@@ -128,6 +128,29 @@ describe("PUT /account/change-password", () => {
     expect(loginResponse.headers["set-cookie"]).toBeDefined();
   });
 
+  it("invalidates the previous session token after the password changes", async () => {
+    const { user, plainPassword } = await createRealUser("change-password-session");
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .put("/account/change-password")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        current_password: plainPassword,
+        new_password: "new-secret123",
+      });
+
+    expect(response.status).toBe(200);
+
+    const meResponse = await request(app)
+      .get("/account/me")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(meResponse.status).toBe(401);
+    expect(meResponse.body.errors.general[0]).toBe("Invalid or expired session");
+  });
+
   it("returns 401 when the request is unauthenticated", async () => {
     const response = await request(app).put("/account/change-password").send({
       current_password: "secret123",

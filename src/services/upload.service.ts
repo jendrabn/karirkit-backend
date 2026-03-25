@@ -4,16 +4,18 @@ import path from "path";
 import sharp from "sharp";
 import { ResponseError } from "../utils/response-error.util";
 import { isHttpUrl } from "../utils/url.util";
+import {
+  ALL_VERIFIED_UPLOAD_MIME_TYPES,
+  applyVerifiedMimeType,
+} from "../utils/file-signature.util";
 
 // Allowed file types
 const ALLOWED_MIME_TYPES = {
   image: [
     "image/jpeg",
-    "image/jpg",
     "image/png",
     "image/gif",
     "image/webp",
-    "image/svg+xml",
   ],
   video: [
     "video/mp4",
@@ -37,11 +39,9 @@ const ALLOWED_MIME_TYPES = {
 // MIME type to extension mapping
 const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   "image/jpeg": ".jpg",
-  "image/jpg": ".jpg",
   "image/png": ".png",
   "image/gif": ".gif",
   "image/webp": ".webp",
-  "image/svg+xml": ".svg",
   "video/mp4": ".mp4",
   "video/quicktime": ".mov",
   "video/x-msvideo": ".avi",
@@ -102,13 +102,11 @@ export class UploadService {
     const webp = options.webp !== undefined ? options.webp : true;
 
     // Validation 1: Check if file type is allowed (image, video, document)
-    const allAllowedMimeTypes = [
-      ...ALLOWED_MIME_TYPES.image,
-      ...ALLOWED_MIME_TYPES.video,
-      ...ALLOWED_MIME_TYPES.document,
-    ];
-
-    if (!allAllowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+    const detectedMimeType = applyVerifiedMimeType(file);
+    if (
+      !detectedMimeType ||
+      !ALL_VERIFIED_UPLOAD_MIME_TYPES.includes(detectedMimeType as any)
+    ) {
       throw new ResponseError(
         400,
         "Jenis file tidak diperbolehkan. Hanya file gambar, video, dan dokumen yang diperbolehkan."
@@ -143,12 +141,12 @@ export class UploadService {
 
     // Process the file
     let processedBuffer = file.buffer;
-    let finalMimeType = file.mimetype;
+    let finalMimeType = detectedMimeType;
     let extension =
-      MIME_TYPE_TO_EXTENSION[file.mimetype] || path.extname(file.originalname);
+      MIME_TYPE_TO_EXTENSION[detectedMimeType] || path.extname(file.originalname);
 
     // Process image if applicable
-    const normalizedMime = file.mimetype.toLowerCase();
+    const normalizedMime = detectedMimeType.toLowerCase();
     const compressImage = options.compressImage !== false;
     const shouldProcessImage =
       compressImage && ALLOWED_MIME_TYPES.image.includes(normalizedMime);

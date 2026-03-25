@@ -95,6 +95,19 @@ describe("POST /uploads", () => {
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("File diperlukan");
   });
+
+  it("rejects SVG uploads even when the client declares an image mime type", async () => {
+    const response = await request(app)
+      .post("/uploads")
+      .set("Authorization", "Bearer user-token")
+      .attach("file", Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"), {
+        filename: "avatar.svg",
+        contentType: "image/svg+xml",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("errors.general");
+  });
 });
 
 describe("POST /uploads", () => {
@@ -157,5 +170,22 @@ describe("POST /uploads", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("File diperlukan");
+  });
+
+  it("rejects SVG uploads", async () => {
+    const { user } = await createRealUser("temp-upload-svg");
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/uploads")
+      .set("Authorization", `Bearer ${token}`)
+      .attach("file", Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"), {
+        filename: "avatar.svg",
+        contentType: "image/svg+xml",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("errors.general");
   });
 });

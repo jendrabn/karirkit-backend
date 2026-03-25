@@ -246,10 +246,10 @@ router.get(
   SystemSettingController.list,
 );
 router.put(
-  "/admin/system-settings/:key",
+  "/admin/system-settings",
   authMiddleware,
   adminMiddleware,
-  SystemSettingController.update,
+  SystemSettingController.bulkUpdate,
 );
 
 // Admin Users API

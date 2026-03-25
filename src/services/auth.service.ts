@@ -23,6 +23,7 @@ import {
   type DocumentStorageStats,
 } from "./document.service";
 import { SystemSettingService } from "./system-setting.service";
+import { createSessionToken } from "../utils/session-auth.util";
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
@@ -46,6 +47,10 @@ interface OtpLoginResult {
   expires_in?: number;
   resend_available_at?: number;
 }
+
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$13onwnyV1sH9fqfH6hS50ea8wzaWOXTmymKpB84EPCYxZ8mO2NkFe";
+const INVALID_LOGIN_MESSAGE = "Email, username, atau kata sandi salah";
 
 export class AuthService {
   static async register(request: RegisterRequest): Promise<AuthUser> {
@@ -114,7 +119,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
+      await bcrypt.compare(requestData.password, DUMMY_PASSWORD_HASH);
+      throw new ResponseError(401, INVALID_LOGIN_MESSAGE);
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -123,7 +129,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new ResponseError(401, "Kata sandi salah");
+      throw new ResponseError(401, INVALID_LOGIN_MESSAGE);
     }
 
     ensureAccountIsActive(user);
@@ -136,6 +142,7 @@ export class AuthService {
       // Generate and send OTP
       const otpResult = await OtpService.sendOtp({
         identifier: requestData.identifier,
+        user,
       });
 
       return {
@@ -149,17 +156,7 @@ export class AuthService {
     }
 
     // Normal login flow when OTP is disabled
-    const token = jwt.sign(
-      {
-        sub: user.id,
-        username: user.username,
-        email: user.email,
-      },
-      env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
-    );
-
-    const decoded = jwt.decode(token) as JwtPayload | null;
+    const { token, expires_at } = createSessionToken(user);
 
     return {
       token,
@@ -168,7 +165,7 @@ export class AuthService {
         document_storage_stats:
           await DocumentService.getStorageStats(user.id),
       },
-      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at,
     };
   }
 
@@ -267,17 +264,7 @@ export class AuthService {
 
     ensureAccountIsActive(user);
 
-    const token = jwt.sign(
-      {
-        sub: user.id,
-        username: user.username,
-        email: user.email,
-      },
-      env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
-    );
-
-    const decoded = jwt.decode(token) as JwtPayload | null;
+    const { token, expires_at } = createSessionToken(user);
 
     return {
       token,
@@ -286,7 +273,7 @@ export class AuthService {
         document_storage_stats:
           await DocumentService.getStorageStats(user.id),
       },
-      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at,
     };
   }
 
@@ -308,14 +295,25 @@ export class AuthService {
       return;
     }
 
+    const passwordResetTokenId = randomBytes(16).toString("hex");
+
     const token = jwt.sign(
       {
         sub: user.id,
         type: "password_reset",
+        jti: passwordResetTokenId,
       },
       env.jwtSecret,
       { expiresIn: env.passwordResetTokenExpiresIn }
     );
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenId,
+        updatedAt: new Date(),
+      },
+    });
 
     const resetUrl = AuthService.buildPasswordResetUrl(token);
     const plainText = AuthService.buildPasswordResetText(resetUrl, token);
@@ -355,7 +353,8 @@ export class AuthService {
     if (
       !decoded ||
       decoded.type !== "password_reset" ||
-      typeof decoded.sub !== "string"
+      typeof decoded.sub !== "string" ||
+      typeof decoded.jti !== "string"
     ) {
       throw new ResponseError(400, "Token reset kata sandi tidak valid");
     }
@@ -364,17 +363,20 @@ export class AuthService {
       where: { id: decoded.sub },
     });
 
-    if (!user) {
+    if (!user || user.passwordResetTokenId !== decoded.jti) {
       throw new ResponseError(400, "Token reset kata sandi tidak valid");
     }
 
     const hashedPassword = await bcrypt.hash(requestData.password, 10);
+    const passwordUpdatedAt = new Date();
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
-        updatedAt: new Date(),
+        passwordResetTokenId: null,
+        sessionInvalidBefore: passwordUpdatedAt,
+        updatedAt: passwordUpdatedAt,
       },
     });
   }

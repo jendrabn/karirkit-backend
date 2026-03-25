@@ -22,6 +22,8 @@ model User {
   birthDate             DateTime?             @map("birth_date") @db.Date
   googleId              String?               @map("google_id") @db.VarChar(255)
   avatar                String?               @db.VarChar(255)
+  passwordResetTokenId  String?               @map("password_reset_token_id") @db.VarChar(255)
+  sessionInvalidBefore  DateTime?             @map("session_invalid_before") @db.Timestamp(3)
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(0)
   emailVerifiedAt       DateTime?             @map("email_verified_at") @db.Timestamp(0)

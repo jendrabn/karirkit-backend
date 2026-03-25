@@ -1,4 +1,5 @@
 import type { SafeUser } from "../utils/user.util";
+import type { AuthTokenSource } from "../utils/session-auth.util";
 
 interface RateLimitState {
   limit: number;
@@ -12,6 +13,7 @@ declare global {
     interface Request {
       user?: SafeUser;
       authToken?: string;
+      authSource?: AuthTokenSource;
       rateLimit?: RateLimitState;
     }
   }

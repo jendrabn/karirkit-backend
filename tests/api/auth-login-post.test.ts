@@ -153,7 +153,9 @@ describe("POST /auth/login", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toBe("Kata sandi salah");
+    expect(response.body.errors.general[0]).toBe(
+      "Email, username, atau kata sandi salah",
+    );
   });
 
   it("allows login using the username as identifier", async () => {

@@ -1,7 +1,6 @@
-import { randomBytes, randomInt } from "crypto";
-import type { User, Otp, PrismaClient } from "../generated/prisma/client";
+import { randomInt } from "crypto";
+import type { User } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
-import jwt, { JwtPayload } from "jsonwebtoken";
 import env from "../config/env.config";
 import { prisma } from "../config/prisma.config";
 import { ResponseError } from "../utils/response-error.util";
@@ -11,6 +10,11 @@ import { enqueueEmail } from "../queues/email.queue";
 import { DocumentService } from "./document.service";
 import { ensureAccountIsActive } from "../utils/account-status.util";
 import { SystemSettingService } from "./system-setting.service";
+import { createSessionToken } from "../utils/session-auth.util";
+
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$13onwnyV1sH9fqfH6hS50ea8wzaWOXTmymKpB84EPCYxZ8mO2NkFe";
+const INVALID_OTP_LOGIN_MESSAGE = "Kredensial login atau OTP tidak valid";
 
 export class OtpService {
   static async generateOtpCode(): Promise<string> {
@@ -18,7 +22,7 @@ export class OtpService {
     return randomInt(100000, 1000000).toString();
   }
 
-  static async sendOtp(request: { identifier: string }): Promise<{
+  static async sendOtp(request: { identifier: string; user?: User }): Promise<{
     message: string;
     expires_at: number;
     expires_in: number;
@@ -31,17 +35,19 @@ export class OtpService {
     const requestData = validate(AuthValidation.SEND_OTP, request);
 
     // Find user by email or username
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: requestData.identifier },
-          { username: requestData.identifier },
-        ],
-      },
-    });
+    const user =
+      request.user ??
+      (await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: requestData.identifier },
+            { username: requestData.identifier },
+          ],
+        },
+      }));
 
     if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
+      throw new ResponseError(401, INVALID_OTP_LOGIN_MESSAGE);
     }
 
     // Generate OTP code
@@ -76,7 +82,7 @@ export class OtpService {
     await enqueueEmail({
       to: user.email,
       subject: "Kode OTP untuk Verifikasi Login",
-      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam 5 menit.`,
+      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam ${await SystemSettingService.getOtpExpiresInSeconds()} detik.`,
       template: "otp",
       context: {
         name: user.name ?? user.email,
@@ -121,17 +127,13 @@ export class OtpService {
       },
     });
 
-    if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    // Verify password (still needed for security)
+    const passwordHash = user?.password ?? DUMMY_PASSWORD_HASH;
     const isPasswordValid = await bcrypt.compare(
       requestData.password,
-      user.password
+      passwordHash
     );
-    if (!isPasswordValid) {
-      throw new ResponseError(401, "Kata sandi salah");
+    if (!user || !isPasswordValid) {
+      throw new ResponseError(401, INVALID_OTP_LOGIN_MESSAGE);
     }
 
     // Find valid OTP for this user
@@ -147,7 +149,7 @@ export class OtpService {
     });
 
     if (!otp) {
-      throw new ResponseError(401, "Kode OTP tidak valid atau kadaluarsa");
+      throw new ResponseError(401, INVALID_OTP_LOGIN_MESSAGE);
     }
 
     // Delete the used OTP
@@ -170,17 +172,7 @@ export class OtpService {
     ensureAccountIsActive(user);
 
     // Generate JWT token
-    const token = jwt.sign(
-      {
-        sub: user.id,
-        username: user.username,
-        email: user.email,
-      },
-      env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
-    );
-
-    const decoded = jwt.decode(token) as JwtPayload | null;
+    const { token, expires_at } = createSessionToken(user);
     const storageStats = await DocumentService.getStorageStats(user.id);
 
     return {
@@ -197,7 +189,7 @@ export class OtpService {
         updated_at: user.updatedAt,
         document_storage_stats: storageStats,
       },
-      expires_at: decoded?.exp ? decoded.exp * 1000 : undefined,
+      expires_at,
     };
   }
 
@@ -224,7 +216,17 @@ export class OtpService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
+      const now = Date.now();
+      const expiresIn = await SystemSettingService.getOtpExpiresInSeconds();
+      const resendCooldown =
+        await SystemSettingService.getOtpResendCooldownSeconds();
+
+      return {
+        message: "OTP telah dikirim ulang ke email Anda",
+        expires_at: now + expiresIn * 1000,
+        expires_in: expiresIn,
+        resend_available_at: now + resendCooldown * 1000,
+      };
     }
 
     // Check if there's an existing OTP that's still valid
@@ -295,7 +297,7 @@ export class OtpService {
     await enqueueEmail({
       to: user.email,
       subject: "Kode OTP untuk Verifikasi Login",
-      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam 5 menit.`,
+      text: `Kode OTP Anda adalah: ${otpCode}. Kode ini akan kadaluarsa dalam ${await SystemSettingService.getOtpExpiresInSeconds()} detik.`,
       template: "otp",
       context: {
         name: user.name ?? user.email,
@@ -342,7 +344,9 @@ export class OtpService {
     });
 
     if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
+      return {
+        has_active_otp: false,
+      };
     }
 
     // Check if there's an active OTP for this user

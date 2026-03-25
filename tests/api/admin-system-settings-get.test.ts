@@ -8,8 +8,6 @@ import {
 
 let app: typeof import("../../src/index").default;
 let SystemSettingService: typeof import("../../src/services/system-setting.service").SystemSettingService;
-let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
-
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
@@ -30,9 +28,6 @@ beforeAll(async () => {
   ({ default: app } = await import("../../src/index"));
   ({ SystemSettingService } = await import(
     "../../src/services/system-setting.service"
-  ));
-  ({ ResponseError: ResponseErrorClass } = await import(
-    "../../src/utils/response-error.util"
   ));
 });
 
@@ -67,7 +62,7 @@ describe("GET /admin/system-settings", () => {
     } as never);
 
     const response = await request(app)
-      .get("/admin/system-settings?group=auth")
+      .get("/admin/system-settings")
       .set("Authorization", "Bearer admin-token");
 
     expect(response.status).toBe(200);
@@ -89,24 +84,6 @@ describe("GET /admin/system-settings", () => {
     expect(response.status).toBe(403);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Admin access required");
-  });
-
-  it("returns 400 for an invalid group filter", async () => {
-    const listMock = jest.mocked(SystemSettingService.list);
-    listMock.mockRejectedValue(
-      new ResponseErrorClass(
-        400,
-        "Invalid option: expected one of \"system\"|\"auth\"|\"downloads\"|\"public\"|\"uploads\"|\"limits\""
-      )
-    );
-
-    const response = await request(app)
-      .get("/admin/system-settings?group=invalid")
-      .set("Authorization", "Bearer admin-token");
-
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(Array.isArray(response.body.errors.general)).toBe(true);
   });
 });
 
@@ -130,7 +107,7 @@ describe("GET /admin/system-settings", () => {
     const token = await createSessionToken(admin);
 
     const response = await request(app)
-      .get("/admin/system-settings?group=auth")
+      .get("/admin/system-settings")
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
@@ -156,21 +133,5 @@ describe("GET /admin/system-settings", () => {
     expect(response.status).toBe(403);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Admin access required");
-  });
-
-  it("returns 400 for an invalid group filter", async () => {
-    const { user: admin } = await createRealUser("system-settings-list-empty", {
-      role: "admin",
-    });
-    trackedEmails.add(admin.email);
-    const token = await createSessionToken(admin);
-
-    const response = await request(app)
-      .get("/admin/system-settings?group=invalid")
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(Array.isArray(response.body.errors.general)).toBe(true);
   });
 });

@@ -10,6 +10,10 @@ import {
 } from "../types/api-schemas";
 import { sendError, sendSuccess } from "../utils/response-builder.util";
 import { OtpService } from "../services/otp.service";
+import {
+  buildSessionClearCookieOptions,
+  buildSessionCookieOptions,
+} from "../utils/session-auth.util";
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -45,17 +49,11 @@ export class AuthController {
         expires_at?: number;
       };
 
-      const maxAge =
-        typeof expires_at === "number"
-          ? Math.max(expires_at - Date.now(), 0)
-          : 24 * 60 * 60 * 1000;
-
-      res.cookie(env.sessionCookieName, token, {
-        httpOnly: true,
-        secure: env.nodeEnv === "production",
-        sameSite: env.nodeEnv === "production" ? "none" : "lax",
-        maxAge,
-      });
+      res.cookie(
+        env.sessionCookieName,
+        token,
+        buildSessionCookieOptions(expires_at)
+      );
 
       sendSuccess(res, user);
     } catch (error) {
@@ -72,17 +70,11 @@ export class AuthController {
       const { token, user, expires_at } = await AuthService.loginWithGoogle(
         req.body as GoogleLoginRequest
       );
-      const maxAge =
-        typeof expires_at === "number"
-          ? Math.max(expires_at - Date.now(), 0)
-          : 24 * 60 * 60 * 1000;
-
-      res.cookie(env.sessionCookieName, token, {
-        httpOnly: true,
-        secure: env.nodeEnv === "production",
-        sameSite: env.nodeEnv === "production" ? "none" : "lax",
-        maxAge,
-      });
+      res.cookie(
+        env.sessionCookieName,
+        token,
+        buildSessionCookieOptions(expires_at)
+      );
 
       sendSuccess(res, user);
     } catch (error) {
@@ -92,11 +84,7 @@ export class AuthController {
 
   static async logout(_req: Request, res: Response, next: NextFunction) {
     try {
-      res.clearCookie(env.sessionCookieName, {
-        httpOnly: true,
-        secure: env.nodeEnv === "production",
-        sameSite: env.nodeEnv === "production" ? "none" : "lax",
-      });
+      res.clearCookie(env.sessionCookieName, buildSessionClearCookieOptions());
 
       sendSuccess(res);
     } catch (error) {
@@ -139,16 +127,11 @@ export class AuthController {
       const result = await OtpService.verifyOtp(req.body);
 
       // Set session cookie when OTP verification is successful
-      const maxAge = result.expires_at
-        ? Math.max(result.expires_at - Date.now(), 0)
-        : 24 * 60 * 60 * 1000;
-
-      res.cookie(env.sessionCookieName, result.token, {
-        httpOnly: true,
-        secure: env.nodeEnv === "production",
-        sameSite: env.nodeEnv === "production" ? "none" : "lax",
-        maxAge,
-      });
+      res.cookie(
+        env.sessionCookieName,
+        result.token,
+        buildSessionCookieOptions(result.expires_at)
+      );
 
       return sendSuccess(res, result.user);
     } catch (error) {

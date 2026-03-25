@@ -29,7 +29,7 @@ const transporter = nodemailer.createTransport({
   tls:
     env.mail.encryption === "tls"
       ? {
-          rejectUnauthorized: false,
+          servername: env.mail.host,
         }
       : undefined,
 });

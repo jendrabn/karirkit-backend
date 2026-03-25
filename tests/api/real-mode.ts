@@ -50,6 +50,7 @@ export const createSessionToken = async (user: {
       sub: user.id,
       username: user.username,
       email: user.email,
+      session_iat_ms: Date.now(),
     },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn },
