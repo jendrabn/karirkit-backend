@@ -67,8 +67,6 @@ const socialLinkSchema = z.object({
 });
 
 const maxDocumentStorageLimitBytes = env.documentStorageLimitMaxBytes;
-const defaultDocumentStorageLimitBytes = 100 * 1024 * 1024;
-
 export class UserValidation {
   static readonly LIST_QUERY = z
     .object({
@@ -193,13 +191,11 @@ export class UserValidation {
       .number()
       .min(0)
       .max(1000)
-      .default(10)
       .optional(),
     document_storage_limit: z.coerce
       .number()
       .min(0)
       .max(maxDocumentStorageLimitBytes)
-      .default(defaultDocumentStorageLimitBytes)
       .optional(),
     social_links: z.array(socialLinkSchema).optional(),
   });

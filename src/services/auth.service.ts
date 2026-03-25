@@ -221,6 +221,11 @@ export class AuthService {
       );
       const randomPassword = randomBytes(32).toString("hex");
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      const [defaultDailyDownloadLimit, defaultDocumentStorageLimit] =
+        await Promise.all([
+          SystemSettingService.getDefaultDailyDownloadLimit(),
+          SystemSettingService.getDefaultDocumentStorageLimit(),
+        ]);
 
       user = await prisma.user.create({
         data: {
@@ -230,6 +235,8 @@ export class AuthService {
           password: hashedPassword,
           googleId,
           avatar,
+          dailyDownloadLimit: defaultDailyDownloadLimit,
+          documentStorageLimit: defaultDocumentStorageLimit,
           emailVerifiedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),

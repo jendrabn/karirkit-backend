@@ -100,8 +100,16 @@ describe("POST /admin/users", () => {
     return;
   }
   const trackedEmails = new Set<string>();
+  const trackedSettingKeys = [
+    "limits.user.default_daily_download",
+    "limits.user.default_storage_bytes",
+  ];
 
   afterEach(async () => {
+    const prisma = await loadPrisma();
+    await prisma.systemSetting.deleteMany({
+      where: { key: { in: trackedSettingKeys } },
+    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -141,6 +149,69 @@ describe("POST /admin/users", () => {
     const stored = await prisma.user.findUnique({ where: { email } });
     expect(stored).not.toBeNull();
     expect(stored?.name).toBe(`Admin User Created ${suffix}`);
+  });
+
+  it("uses system setting defaults when admin payload omits limits", async () => {
+    const prisma = await loadPrisma();
+    const suffix = `${Date.now()}`;
+    const { user: admin } = await createRealUser("admin-users-create-defaults", {
+      role: "admin",
+    });
+    trackedEmails.add(admin.email);
+    const token = await createSessionToken(admin);
+    const email = `admin-users-defaults-${suffix}@example.com`;
+    trackedEmails.add(email);
+
+    await prisma.systemSetting.upsert({
+      where: { key: "limits.user.default_daily_download" },
+      update: {
+        valueJson: 25,
+        defaultValueJson: 10,
+        group: "limits",
+        type: "number",
+      },
+      create: {
+        key: "limits.user.default_daily_download",
+        valueJson: 25,
+        defaultValueJson: 10,
+        group: "limits",
+        type: "number",
+      },
+    });
+    await prisma.systemSetting.upsert({
+      where: { key: "limits.user.default_storage_bytes" },
+      update: {
+        valueJson: 10000000,
+        defaultValueJson: 104857600,
+        group: "limits",
+        type: "number",
+      },
+      create: {
+        key: "limits.user.default_storage_bytes",
+        valueJson: 10000000,
+        defaultValueJson: 104857600,
+        group: "limits",
+        type: "number",
+      },
+    });
+
+    const response = await request(app)
+      .post("/admin/users")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        name: `Admin User Defaults ${suffix}`,
+        username: `admin-user-defaults-${suffix}`,
+        email,
+        password: "secret123",
+        role: "user",
+      });
+
+    expect(response.status).toBe(201);
+
+    const stored = await prisma.user.findUnique({ where: { email } });
+    expect(stored).not.toBeNull();
+    expect(stored?.dailyDownloadLimit).toBe(25);
+    expect(stored?.documentStorageLimit).toBe(10000000);
   });
 
   it("returns 403 when a non-admin user calls the endpoint", async () => {

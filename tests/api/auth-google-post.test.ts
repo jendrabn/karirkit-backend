@@ -3,6 +3,7 @@ import {
   createRealUser,
   deleteUsersByEmail,
   disconnectPrisma,
+  loadPrisma,
 } from "./real-mode";
 
 let mockGooglePayload:
@@ -134,6 +135,10 @@ describe("POST /auth/google", () => {
     return;
   }
   const trackedEmails = new Set<string>();
+  const trackedSettingKeys = [
+    "limits.user.default_daily_download",
+    "limits.user.default_storage_bytes",
+  ];
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -142,6 +147,10 @@ describe("POST /auth/google", () => {
   });
 
   afterEach(async () => {
+    const prisma = await loadPrisma();
+    await prisma.systemSetting.deleteMany({
+      where: { key: { in: trackedSettingKeys } },
+    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -202,5 +211,62 @@ describe("POST /auth/google", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.role).toBe("admin");
     expect(response.body.data.email).toBe(user.email);
+  });
+
+  it("uses system setting defaults for newly created Google users", async () => {
+    const prisma = await loadPrisma();
+    const email = `google-defaults-${Date.now()}@example.com`;
+    trackedEmails.add(email);
+
+    await prisma.systemSetting.upsert({
+      where: { key: "limits.user.default_daily_download" },
+      update: {
+        valueJson: 25,
+        defaultValueJson: 10,
+        group: "limits",
+        type: "number",
+      },
+      create: {
+        key: "limits.user.default_daily_download",
+        valueJson: 25,
+        defaultValueJson: 10,
+        group: "limits",
+        type: "number",
+      },
+    });
+    await prisma.systemSetting.upsert({
+      where: { key: "limits.user.default_storage_bytes" },
+      update: {
+        valueJson: 10000000,
+        defaultValueJson: 104857600,
+        group: "limits",
+        type: "number",
+      },
+      create: {
+        key: "limits.user.default_storage_bytes",
+        valueJson: 10000000,
+        defaultValueJson: 104857600,
+        group: "limits",
+        type: "number",
+      },
+    });
+
+    mockGooglePayload = {
+      sub: `google-defaults-sub-${Date.now()}`,
+      email,
+      email_verified: true,
+      name: "Google Defaults",
+    };
+
+    const response = await request(app).post("/auth/google").send({
+      id_token: "google-id-token",
+    });
+
+    expect(response.status).toBe(200);
+
+    const stored = await prisma.user.findUnique({ where: { email } });
+    expect(stored).not.toBeNull();
+    expect(stored?.dailyDownloadLimit).toBe(25);
+    expect(stored?.documentStorageLimit).toBe(10000000);
   });
 });
