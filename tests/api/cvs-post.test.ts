@@ -137,6 +137,7 @@ describe("POST /cvs", () => {
     });
     expect(Array.isArray(response.body.data.educations)).toBe(true);
     expect(Array.isArray(response.body.data.skills)).toBe(true);
+    expect(response.body.data.educations[0]?.gpa).toBe(3.8);
     trackedCvIds.add(response.body.data.id);
   });
 

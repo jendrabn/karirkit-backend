@@ -1,3 +1,4 @@
+import { Prisma } from "../generated/prisma/client";
 import type {
   Cv as PrismaCv,
   CvAward as PrismaCvAward,
@@ -8,7 +9,6 @@ import type {
   CvSkill as PrismaCvSkill,
   CvSocialLink as PrismaCvSocialLink,
   CvOrganization as PrismaCvOrganization,
-  Prisma,
 } from "../generated/prisma/client";
 import fs from "fs/promises";
 import path from "path";
@@ -897,9 +897,31 @@ export class CvService {
       endMonth: record.end_month ?? null,
       endYear: record.end_year ?? null,
       isCurrent: record.is_current,
-      gpa: record.gpa ?? null,
+      gpa: CvService.toDecimal(record.gpa),
       description: record.description ?? null,
     };
+  }
+
+  private static toDecimal(value?: number | null): Prisma.Decimal | null {
+    if (value == null) {
+      return null;
+    }
+
+    return new Prisma.Decimal(value.toString());
+  }
+
+  private static toNumber(
+    value?: Prisma.Decimal | number | string | null
+  ): number | null {
+    if (value == null) {
+      return null;
+    }
+
+    if (value instanceof Prisma.Decimal) {
+      return value.toNumber();
+    }
+
+    return Number(value);
   }
 
   private static mapCertificateCreate(
@@ -1241,7 +1263,8 @@ export class CvService {
   private static buildTemplateContext(cv: CvWithRelations) {
     const language = CvService.normalizeLanguage(cv.language);
     const text = (value?: string | null) => value ?? "";
-    const numberText = (value?: number | null) => value ?? "";
+    const numberText = (value?: Prisma.Decimal | number | null) =>
+      CvService.toNumber(value) ?? "";
 
     return {
       name: text(cv.name).toUpperCase(),
@@ -1722,7 +1745,7 @@ export class CvService {
         end_month: record.endMonth ?? null,
         end_year: record.endYear ?? null,
         is_current: record.isCurrent,
-        gpa: record.gpa ?? null,
+        gpa: CvService.toNumber(record.gpa),
         description: record.description ?? null,
       })),
       certificates: cv.certificates.map((record) => ({

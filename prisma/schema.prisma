@@ -184,7 +184,7 @@ model CvEducation {
   endMonth       Int?     @map("end_month") @db.TinyInt
   endYear        Int?     @map("end_year") @db.Year
   isCurrent      Boolean  @default(false) @map("is_current")
-  gpa            Float?   @db.Float
+  gpa            Decimal? @db.Decimal(4, 2)
   description    String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp(0)

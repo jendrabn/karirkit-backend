@@ -131,6 +131,7 @@ describe("GET /cvs/:id", () => {
     });
     expect(Array.isArray(response.body.data.educations)).toBe(true);
     expect(Array.isArray(response.body.data.skills)).toBe(true);
+    expect(response.body.data.educations[0]?.gpa).toBe(3.8);
   });
 
   it("returns 401 when authentication is missing", async () => {
