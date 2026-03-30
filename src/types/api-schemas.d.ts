@@ -68,6 +68,37 @@ export interface User {
   status?: "active" | "suspended" | "banned";
   status_reason?: string | null;
   suspended_until?: string | null;
+  subscription_plan?: "free" | "pro" | "max";
+  subscription_expires_at?: string | null;
+  download_total_count?: number;
+  download_today_count?: number;
+}
+
+export interface AdminManagedUser {
+  id?: string;
+  name?: string;
+  username?: string;
+  email?: string;
+  phone?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  gender?: "male" | "female" | null;
+  birth_date?: string | null;
+  role?: "user" | "admin";
+  avatar?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  email_verified_at?: string | null;
+  social_links?: UserSocialLink[];
+  status?: "active" | "suspended" | "banned";
+  status_reason?: string | null;
+  suspended_until?: string | null;
+  last_login_at?: string | null;
+  subscription_plan?: "free" | "pro" | "max";
+  subscription_expires_at?: string | null;
+  download_total_count?: number;
+  download_today_count?: number;
 }
 
 export interface RegisterRequest {

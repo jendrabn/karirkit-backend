@@ -1048,7 +1048,7 @@ paths:
     get:
       tags: [Application Letters]
       summary: Download application letter
-      description: Download an application letter as PDF or DOCX. DOCX uses the daily application-letter quota, while PDF uses both the daily application-letter quota and the PDF-specific application-letter quota.
+      description: Download an application letter as PDF or DOCX. DOCX uses both the daily application-letter quota and the DOCX-specific application-letter quota, while PDF uses both the daily application-letter quota and the PDF-specific application-letter quota.
       security:
         - sessionCookie: []
       parameters:
@@ -1651,7 +1651,7 @@ paths:
     get:
       tags: [CVs]
       summary: Download CV (PDF/DOCX)
-      description: Download a CV as PDF or DOCX. DOCX uses the daily CV quota, while PDF uses both the daily CV quota and the PDF-specific CV quota.
+      description: Download a CV as PDF or DOCX. DOCX uses both the daily CV quota and the DOCX-specific CV quota, while PDF uses both the daily CV quota and the PDF-specific CV quota.
       security:
         - sessionCookie: []
       parameters:
@@ -2242,7 +2242,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminManagedUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2263,7 +2263,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminManagedUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2290,7 +2290,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminManagedUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2335,7 +2335,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminManagedUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2590,7 +2590,7 @@ paths:
     get:
       tags: [Public]
       summary: List templates
-      description: List all templates with optional filters by type and language
+      description: List all templates with optional filters by type and language. Premium templates are filtered by the caller's effective plan; unauthenticated callers are treated as `free`.
       parameters:
         - name: type
           in: query
@@ -4849,6 +4849,25 @@ components:
           format: date-time
           nullable: true
           description: Suspension expiry timestamp (if applicable)
+        subscription_plan:
+          $ref: "#/components/schemas/PlanId"
+        subscription_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        download_total_count:
+          type: integer
+        download_today_count:
+          type: integer
+    AdminManagedUser:
+      allOf:
+        - $ref: "#/components/schemas/AccountUser"
+        - type: object
+          properties:
+            last_login_at:
+              type: string
+              format: date-time
+              nullable: true
     PublicUserProfile:
       type: object
       properties:
@@ -6192,6 +6211,11 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/AccountUser"
+    AdminManagedUserResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AdminManagedUser"
     AuthUserResponse:
       type: object
       properties:
@@ -6692,7 +6716,7 @@ components:
             items:
               type: array
               items:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/AdminManagedUser"
             pagination:
               $ref: "#/components/schemas/Pagination"
     Template:
@@ -7487,45 +7511,53 @@ components:
     PlanFeatures:
       type: object
       properties:
-        canManageDocuments:
+        can_manage_documents:
           type: boolean
-        canUsePremiumCvTemplates:
+        can_use_premium_cv_templates:
           type: boolean
-        canUsePremiumApplicationLetterTemplates:
+        can_use_premium_application_letter_templates:
           type: boolean
-        canUsePremiumTemplates:
+        can_use_premium_templates:
           type: boolean
-        canDuplicateCvs:
+        can_duplicate_cvs:
           type: boolean
-        canDuplicateApplications:
+        can_duplicate_applications:
           type: boolean
-        canDuplicateApplicationLetters:
+        can_duplicate_application_letters:
           type: boolean
-        canDownloadCvPdf:
+        can_download_cv_docx:
           type: boolean
-        canDownloadApplicationLetterPdf:
+        can_download_application_letter_docx:
+          type: boolean
+        can_download_cv_pdf:
+          type: boolean
+        can_download_application_letter_pdf:
           type: boolean
     PlanDownloadLimits:
       type: object
       properties:
-        cvPerDay:
+        cv_per_day:
           type: integer
-        applicationLetterPerDay:
+        application_letter_per_day:
           type: integer
-        cvPdfPerDay:
+        cv_docx_per_day:
           type: integer
-        applicationLetterPdfPerDay:
+        application_letter_docx_per_day:
+          type: integer
+        cv_pdf_per_day:
+          type: integer
+        application_letter_pdf_per_day:
           type: integer
     AccountUserLimits:
       type: object
       properties:
-        maxCvs:
+        max_cvs:
           type: integer
-        maxApplications:
+        max_applications:
           type: integer
-        maxApplicationLetters:
+        max_application_letters:
           type: integer
-        maxDocumentStorageBytes:
+        max_document_storage_bytes:
           type: integer
         downloads:
           $ref: "#/components/schemas/PlanDownloadLimits"
@@ -7538,41 +7570,49 @@ components:
           type: string
         price:
           type: integer
-        durationDays:
+        duration_days:
           type: integer
-        maxCvs:
+        max_cvs:
           type: integer
-        maxApplications:
+        max_applications:
           type: integer
-        maxApplicationLetters:
+        max_application_letters:
           type: integer
-        maxDocumentStorageBytes:
+        max_document_storage_bytes:
           type: integer
-        cvDownloadsPerDay:
+        cv_downloads_per_day:
           type: integer
-        applicationLetterDownloadsPerDay:
+        application_letter_downloads_per_day:
           type: integer
-        cvPdfDownloadsPerDay:
+        cv_docx_downloads_per_day:
           type: integer
-        applicationLetterPdfDownloadsPerDay:
+        application_letter_docx_downloads_per_day:
           type: integer
-        canManageDocuments:
+        cv_pdf_downloads_per_day:
+          type: integer
+        application_letter_pdf_downloads_per_day:
+          type: integer
+        can_manage_documents:
           type: boolean
-        canUsePremiumCvTemplates:
+        can_use_premium_cv_templates:
           type: boolean
-        canUsePremiumApplicationLetterTemplates:
+        can_use_premium_application_letter_templates:
           type: boolean
-        canUsePremiumTemplates:
+        can_use_premium_templates:
           type: boolean
-        canDuplicateCvs:
+        can_duplicate_cvs:
           type: boolean
-        canDuplicateApplications:
+        can_duplicate_applications:
           type: boolean
-        canDuplicateApplicationLetters:
+        can_duplicate_application_letters:
           type: boolean
-        canDownloadCvPdf:
+        can_download_cv_docx:
           type: boolean
-        canDownloadApplicationLetterPdf:
+        can_download_application_letter_docx:
+          type: boolean
+        can_download_cv_pdf:
+          type: boolean
+        can_download_application_letter_pdf:
           type: boolean
     CurrentSubscription:
       type: object
@@ -7588,23 +7628,23 @@ components:
           enum: [active, pending, paid, expired, failed, cancelled]
         amount:
           type: integer
-        paidAt:
+        paid_at:
           type: string
           format: date-time
           nullable: true
-        expiresAt:
+        expires_at:
           type: string
           format: date-time
           nullable: true
-        midtransOrderId:
+        midtrans_order_id:
           type: string
           nullable: true
-        midtransPaymentType:
+        midtrans_payment_type:
           type: string
           nullable: true
-        currentLimits:
+        current_limits:
           $ref: "#/components/schemas/AccountUserLimits"
-        currentFeatures:
+        current_features:
           $ref: "#/components/schemas/PlanFeatures"
     CurrentSubscriptionResponse:
       type: object
@@ -7620,13 +7660,13 @@ components:
     CreateSubscriptionOrderResult:
       type: object
       properties:
-        subscriptionId:
+        subscription_id:
           type: string
-        orderId:
+        order_id:
           type: string
-        snapToken:
+        snap_token:
           type: string
-        snapUrl:
+        snap_url:
           type: string
         amount:
           type: integer
@@ -7688,7 +7728,7 @@ components:
       properties:
         id:
           type: string
-        userId:
+        user_id:
           type: string
         user:
           $ref: "#/components/schemas/AdminSubscriptionUser"
@@ -7698,26 +7738,26 @@ components:
           type: string
         amount:
           type: integer
-        midtransOrderId:
+        midtrans_order_id:
           type: string
-        midtransToken:
-          type: string
-          nullable: true
-        midtransPaymentType:
+        midtrans_token:
           type: string
           nullable: true
-        paidAt:
+        midtrans_payment_type:
+          type: string
+          nullable: true
+        paid_at:
           type: string
           format: date-time
           nullable: true
-        expiresAt:
+        expires_at:
           type: string
           format: date-time
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
-        updatedAt:
+        updated_at:
           type: string
           format: date-time
     AdminSubscriptionResponse:

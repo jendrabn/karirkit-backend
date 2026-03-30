@@ -27,6 +27,7 @@ model User {
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(0)
   emailVerifiedAt       DateTime?             @map("email_verified_at") @db.Timestamp(0)
+  lastLoginAt           DateTime?             @map("last_login_at") @db.Timestamp(0)
   status                UserStatus            @default(active)
   statusReason          String?               @map("status_reason") @db.Text
   suspendedUntil        DateTime?             @map("suspended_until") @db.Timestamp(0)

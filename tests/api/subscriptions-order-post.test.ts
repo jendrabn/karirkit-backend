@@ -44,8 +44,8 @@ describe("POST /subscriptions/order", () => {
 
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
-      subscriptionId: "sub-1",
-      orderId: "SUB-user-1-123",
+      subscription_id: "sub-1",
+      order_id: "SUB-user-1-123",
       amount: 25000,
       plan: "pro",
     });

@@ -135,8 +135,16 @@ describe("POST /admin/users", () => {
       username: `admin-user-created-${suffix}`,
       email,
       role: "user",
+      last_login_at: null,
+      subscription_plan: "free",
+      subscription_expires_at: null,
+      download_total_count: 0,
+      download_today_count: 0,
     });
-    expect(response.body.data).toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
 
     const stored = await prisma.user.findUnique({ where: { email } });
     expect(stored).not.toBeNull();
@@ -170,8 +178,11 @@ describe("POST /admin/users", () => {
     const stored = await prisma.user.findUnique({ where: { email } });
     expect(stored).not.toBeNull();
     expect(stored?.subscriptionPlan).toBe("free");
-    expect(response.body.data.daily_download_limit).toBe(10);
-    expect(response.body.data.document_storage_limit).toBe(0);
+    expect(response.body.data.download_total_count).toBe(0);
+    expect(response.body.data.download_today_count).toBe(0);
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
   });
 
   it("returns 403 when a non-admin user calls the endpoint", async () => {

@@ -120,12 +120,19 @@ describe("GET /admin/users/:id", () => {
       id: target.id,
       email: target.email,
       username: target.username,
+      last_login_at: null,
+      subscription_plan: "free",
+      subscription_expires_at: null,
+      download_total_count: 0,
+      download_today_count: 0,
     });
-    expect(response.body.data).toHaveProperty("download_stats");
-    expect(response.body.data).toHaveProperty("document_storage_stats");
+    expect(response.body.data).not.toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
   });
 
-  it("derives admin target download stats from plan config without admin bypass", async () => {
+  it("returns profile-shaped data without subscription limit fields", async () => {
     const { user: admin } = await createRealUser("admin-users-get-stats-admin", {
       role: "admin",
       planId: "pro",
@@ -143,15 +150,20 @@ describe("GET /admin/users/:id", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.data.download_stats).toMatchObject({
-      daily_limit: 10,
-      cv: {
-        daily_limit: 5,
-      },
-      application_letter: {
-        daily_limit: 5,
-      },
+    expect(response.body.data).toMatchObject({
+      id: target.id,
+      role: target.role,
+      status: target.status,
+      last_login_at: null,
+      subscription_plan: "free",
+      subscription_expires_at: null,
+      download_total_count: 0,
+      download_today_count: 0,
     });
+    expect(response.body.data).not.toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
   });
 
   it("returns 403 when the requester is not an admin", async () => {

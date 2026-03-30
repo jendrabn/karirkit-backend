@@ -128,8 +128,15 @@ describe("GET /admin/users", () => {
     expect(Array.isArray(response.body.data.items)).toBe(true);
     expect(response.body.data.items).toHaveLength(2);
     expect(response.body.data.items[0]).toHaveProperty("id");
-    expect(response.body.data.items[0]).toHaveProperty("download_stats");
-    expect(response.body.data.items[0]).toHaveProperty("document_storage_stats");
+    expect(response.body.data.items[0]).toHaveProperty("last_login_at");
+    expect(response.body.data.items[0].subscription_plan).toBe("free");
+    expect(response.body.data.items[0].subscription_expires_at).toBeNull();
+    expect(typeof response.body.data.items[0].download_total_count).toBe("number");
+    expect(typeof response.body.data.items[0].download_today_count).toBe("number");
+    expect(response.body.data.items[0]).not.toHaveProperty("download_stats");
+    expect(response.body.data.items[0]).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data.items[0]).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data.items[0]).not.toHaveProperty("document_storage_stats");
     expect(response.body.data.pagination).toMatchObject({
       page: 1,
       total_items: 2,

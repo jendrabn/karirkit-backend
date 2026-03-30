@@ -138,7 +138,16 @@ describe("PUT /admin/users/:id", () => {
       username: `updated-name-${suffix}`,
       email: updatedEmail,
       location: "Jakarta",
+      last_login_at: null,
+      subscription_plan: "free",
+      subscription_expires_at: null,
+      download_total_count: 0,
+      download_today_count: 0,
     });
+    expect(response.body.data).not.toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
 
     const stored = await prisma.user.findUnique({ where: { id: target.id } });
     expect(stored?.email).toBe(updatedEmail);

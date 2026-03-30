@@ -44,6 +44,7 @@ describe("GET /admin/subscriptions", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.items[0]).toMatchObject({
       id: "sub-1",
+      user_id: "user-1",
       plan: "pro",
       status: "paid",
     });

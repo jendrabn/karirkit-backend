@@ -2,7 +2,7 @@ import type { User } from "../generated/prisma/client";
 
 export type SafeUser = Omit<
   User,
-  "password" | "createdAt" | "updatedAt" | "emailVerifiedAt"
+  "password" | "createdAt" | "updatedAt" | "emailVerifiedAt" | "lastLoginAt"
 > & {
   created_at: Date;
   updated_at: Date;
@@ -10,8 +10,14 @@ export type SafeUser = Omit<
 };
 
 export const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, createdAt, updatedAt, emailVerifiedAt, ...rest } =
-    user;
+  const {
+    password: _password,
+    createdAt,
+    updatedAt,
+    emailVerifiedAt,
+    lastLoginAt: _lastLoginAt,
+    ...rest
+  } = user;
   return {
     ...rest,
     created_at: createdAt,

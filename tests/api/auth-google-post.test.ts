@@ -148,6 +148,7 @@ describe("POST /auth/google", () => {
   });
 
   it("logs in the user with Google and sets the session cookie", async () => {
+    const prisma = await loadPrisma();
     const email = `google-user-${Date.now()}@example.com`;
     trackedEmails.add(email);
     mockGooglePayload = {
@@ -169,6 +170,9 @@ describe("POST /auth/google", () => {
       role: "user",
     });
     expect(response.headers["set-cookie"]).toBeDefined();
+
+    const stored = await prisma.user.findUnique({ where: { email } });
+    expect(stored?.lastLoginAt).not.toBeNull();
   });
 
   it("returns validation errors when the Google token is invalid", async () => {
@@ -184,6 +188,7 @@ describe("POST /auth/google", () => {
   });
 
   it("preserves important user data returned by the Google auth flow", async () => {
+    const prisma = await loadPrisma();
     const { user } = await createRealUser("google-existing-admin", {
       role: "admin",
       email: `google-admin-${Date.now()}@example.com`,
@@ -203,6 +208,9 @@ describe("POST /auth/google", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.role).toBe("admin");
     expect(response.body.data.email).toBe(user.email);
+
+    const stored = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(stored?.lastLoginAt).not.toBeNull();
   });
 
   it("uses free plan defaults for newly created Google users", async () => {
@@ -226,7 +234,8 @@ describe("POST /auth/google", () => {
     const stored = await prisma.user.findUnique({ where: { email } });
     expect(stored).not.toBeNull();
     expect(stored?.subscriptionPlan).toBe("free");
-    expect(response.body.data.daily_download_limit).toBe(10);
-    expect(response.body.data.document_storage_limit).toBe(0);
+    expect(stored?.lastLoginAt).not.toBeNull();
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
   });
 });

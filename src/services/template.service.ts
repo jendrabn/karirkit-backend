@@ -4,10 +4,16 @@ import { prisma } from "../config/prisma.config";
 import { ResponseError } from "../utils/response-error.util";
 import { validate } from "../utils/validate.util";
 import { z } from "zod";
+import {
+  getPlan,
+  resolvePlanId,
+  type PlanId,
+} from "../config/subscription-plans.config";
 
 type GetTemplatesRequest = {
   type?: "cv" | "application_letter";
   language?: "en" | "id";
+  planId?: PlanId | string | null;
 };
 
 const GetTemplatesQuery = z.object({
@@ -29,6 +35,7 @@ export class TemplateService {
     }[]
   > {
     const requestData = validate(GetTemplatesQuery, query);
+    const plan = getPlan(resolvePlanId(query.planId));
 
     const where: TemplateWhereInput = {};
 
@@ -54,6 +61,20 @@ export class TemplateService {
       },
     });
 
-    return templates;
+    return templates.filter((template) => {
+      if (!template.isPremium) {
+        return true;
+      }
+
+      if (template.type === "cv") {
+        return plan.canUsePremiumCvTemplates;
+      }
+
+      if (template.type === "application_letter") {
+        return plan.canUsePremiumApplicationLetterTemplates;
+      }
+
+      return plan.canUsePremiumTemplates;
+    });
   }
 }

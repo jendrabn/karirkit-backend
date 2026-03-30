@@ -57,8 +57,12 @@ describe("POST /admin/subscriptions", () => {
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
       id: "sub-1",
+      user_id: "user-1",
       plan: "pro",
       status: "paid",
+      midtrans_order_id: "MANUAL-user-1-123",
+      paid_at: "2026-03-01T00:00:00.000Z",
+      expires_at: "2026-04-01T00:00:00.000Z",
     });
   });
 });

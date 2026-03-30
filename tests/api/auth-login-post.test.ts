@@ -3,6 +3,7 @@ import {
   createRealUser,
   deleteUsersByEmail,
   disconnectPrisma,
+  loadPrisma,
 } from "./real-mode";
 
 let app: typeof import("../../src/index").default;
@@ -121,6 +122,7 @@ describe("POST /auth/login", () => {
   });
 
   it("logs in a real user and sets the session cookie", async () => {
+    const prisma = await loadPrisma();
     const { user, plainPassword } = await createRealUser("login-success");
     trackedEmails.add(user.email);
 
@@ -140,6 +142,9 @@ describe("POST /auth/login", () => {
     expect(response.body.data).toHaveProperty("document_storage_stats");
     expect(response.headers["set-cookie"]).toBeDefined();
     expect(response.headers["set-cookie"][0]).toContain("karirkit_session=");
+
+    const stored = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(stored?.lastLoginAt).not.toBeNull();
   });
 
   it("returns 401 when the password is wrong", async () => {
@@ -159,6 +164,7 @@ describe("POST /auth/login", () => {
   });
 
   it("allows login using the username as identifier", async () => {
+    const prisma = await loadPrisma();
     const { user, plainPassword } = await createRealUser("login-username");
     trackedEmails.add(user.email);
 
@@ -171,5 +177,8 @@ describe("POST /auth/login", () => {
     expect(response.body).toHaveProperty("data.id", user.id);
     expect(response.body.data.username).toBe(user.username);
     expect(typeof response.body.data.email).toBe("string");
+
+    const stored = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(stored?.lastLoginAt).not.toBeNull();
   });
 });

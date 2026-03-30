@@ -1,5 +1,8 @@
 import request from "supertest";
 import {
+  createRealUser,
+  createSessionToken,
+  deleteUsersByEmail,
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
@@ -55,6 +58,29 @@ describe("GET /templates", () => {
       name: "Modern CV",
       type: "cv",
     });
+    expect(getTemplatesMock).toHaveBeenCalledWith({
+      type: "cv",
+      language: "id",
+      planId: undefined,
+    });
+  });
+
+  it("passes the authenticated plan into template filtering", async () => {
+    const getTemplatesMock = jest.mocked(TemplateService.getTemplates);
+    getTemplatesMock.mockResolvedValue([
+      { id: "template-2", name: "Premium CV", type: "cv" },
+    ] as never);
+
+    const response = await request(app)
+      .get("/templates?type=cv&language=id")
+      .set("Authorization", "Bearer pro-token");
+
+    expect(response.status).toBe(200);
+    expect(getTemplatesMock).toHaveBeenCalledWith({
+      type: "cv",
+      language: "id",
+      planId: "pro",
+    });
   });
 
   it("returns validation errors when the template query is invalid", async () => {
@@ -85,6 +111,7 @@ describe("GET /templates", () => {
     return;
   }
   const trackedTemplateIds = new Set<string>();
+  const trackedEmails = new Set<string>();
 
   afterEach(async () => {
     const prisma = await loadPrisma();
@@ -94,6 +121,8 @@ describe("GET /templates", () => {
       });
     }
     trackedTemplateIds.clear();
+    await deleteUsersByEmail(...trackedEmails);
+    trackedEmails.clear();
   });
 
   it("returns public templates inside the items wrapper", async () => {
@@ -125,6 +154,101 @@ describe("GET /templates", () => {
       type: "cv",
       language: "id",
     });
+  });
+
+  it("hides premium templates for guests and free users", async () => {
+    const prisma = await loadPrisma();
+    const suffix = Date.now();
+    const freeTemplate = await prisma.template.create({
+      data: {
+        name: `Free CV ${suffix}`,
+        type: "cv",
+        language: "id",
+        path: `/uploads/templates/free-template-${suffix}.docx`,
+        preview: `/uploads/templates/free-template-${suffix}.png`,
+        isPremium: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    const premiumTemplate = await prisma.template.create({
+      data: {
+        name: `Premium CV ${suffix}`,
+        type: "cv",
+        language: "id",
+        path: `/uploads/templates/premium-template-${suffix}.docx`,
+        preview: `/uploads/templates/premium-template-${suffix}.png`,
+        isPremium: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    trackedTemplateIds.add(freeTemplate.id);
+    trackedTemplateIds.add(premiumTemplate.id);
+
+    const guestResponse = await request(app).get("/templates?type=cv&language=id");
+    expect(guestResponse.status).toBe(200);
+    expect(
+      guestResponse.body.data.items.some(
+        (item: { id: string }) => item.id === premiumTemplate.id,
+      ),
+    ).toBe(false);
+    expect(
+      guestResponse.body.data.items.some(
+        (item: { id: string }) => item.id === freeTemplate.id,
+      ),
+    ).toBe(true);
+
+    const { user } = await createRealUser("templates-free-plan", {
+      planId: "free",
+    });
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+    const freeResponse = await request(app)
+      .get("/templates?type=cv&language=id")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(freeResponse.status).toBe(200);
+    expect(
+      freeResponse.body.data.items.some(
+        (item: { id: string }) => item.id === premiumTemplate.id,
+      ),
+    ).toBe(false);
+  });
+
+  it("returns premium templates for users whose plan allows them", async () => {
+    const prisma = await loadPrisma();
+    const suffix = Date.now();
+    const premiumTemplate = await prisma.template.create({
+      data: {
+        name: `Premium Letter ${suffix}`,
+        type: "application_letter",
+        language: "id",
+        path: `/uploads/templates/premium-letter-${suffix}.docx`,
+        preview: `/uploads/templates/premium-letter-${suffix}.png`,
+        isPremium: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    trackedTemplateIds.add(premiumTemplate.id);
+
+    const { user } = await createRealUser("templates-pro-plan", {
+      planId: "pro",
+    });
+    trackedEmails.add(user.email);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .get("/templates?type=application_letter&language=id")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data.items.some(
+        (item: { id: string }) => item.id === premiumTemplate.id,
+      ),
+    ).toBe(true);
   });
 
   it("returns validation errors when the template query is invalid", async () => {

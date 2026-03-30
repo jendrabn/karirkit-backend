@@ -117,6 +117,7 @@ export class PublicController {
       const templates = await TemplateService.getTemplates({
         type: type as "cv" | "application_letter",
         language: language as "en" | "id",
+        planId: req.user?.subscriptionPlan,
       });
 
       return sendSuccess(res, {

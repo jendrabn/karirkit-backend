@@ -55,6 +55,8 @@ type CurrentSubscriptionResult = {
     downloads: {
       cvPerDay: number;
       applicationLetterPerDay: number;
+      cvDocxPerDay: number;
+      applicationLetterDocxPerDay: number;
       cvPdfPerDay: number;
       applicationLetterPdfPerDay: number;
     };
@@ -67,6 +69,8 @@ type CurrentSubscriptionResult = {
     canDuplicateCvs: boolean;
     canDuplicateApplications: boolean;
     canDuplicateApplicationLetters: boolean;
+    canDownloadCvDocx: boolean;
+    canDownloadApplicationLetterDocx: boolean;
     canDownloadCvPdf: boolean;
     canDownloadApplicationLetterPdf: boolean;
   };
@@ -275,6 +279,9 @@ export class SubscriptionService {
         downloads: {
           cvPerDay: plan.cvDownloadsPerDay,
           applicationLetterPerDay: plan.applicationLetterDownloadsPerDay,
+          cvDocxPerDay: plan.cvDocxDownloadsPerDay,
+          applicationLetterDocxPerDay:
+            plan.applicationLetterDocxDownloadsPerDay,
           cvPdfPerDay: plan.cvPdfDownloadsPerDay,
           applicationLetterPdfPerDay: plan.applicationLetterPdfDownloadsPerDay,
         },
@@ -288,6 +295,9 @@ export class SubscriptionService {
         canDuplicateCvs: plan.canDuplicateCvs,
         canDuplicateApplications: plan.canDuplicateApplications,
         canDuplicateApplicationLetters: plan.canDuplicateApplicationLetters,
+        canDownloadCvDocx: plan.canDownloadCvDocx,
+        canDownloadApplicationLetterDocx:
+          plan.canDownloadApplicationLetterDocx,
         canDownloadCvPdf: plan.canDownloadCvPdf,
         canDownloadApplicationLetterPdf: plan.canDownloadApplicationLetterPdf,
       },

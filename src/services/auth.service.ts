@@ -23,6 +23,7 @@ import {
   type DocumentStorageStats,
 } from "./document.service";
 import { createSessionToken } from "../utils/session-auth.util";
+import { markUserLastLogin } from "../utils/user-login.util";
 import { buildUserSubscriptionState } from "../config/subscription-plans.config";
 
 const googleOAuthClient = new OAuth2Client(
@@ -100,7 +101,7 @@ export class AuthService {
     request: LoginRequest
   ): Promise<LoginResult | OtpLoginResult> {
     const requestData = validate(AuthValidation.LOGIN, request);
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
       where: {
         OR: [
           {
@@ -151,6 +152,7 @@ export class AuthService {
     }
 
     // Normal login flow when OTP is disabled
+    user = await markUserLastLogin(user.id);
     const { token, expires_at } = createSessionToken(user);
 
     return {
@@ -258,6 +260,7 @@ export class AuthService {
 
     ensureAccountIsActive(user);
 
+    user = await markUserLastLogin(user.id);
     const { token, expires_at } = createSessionToken(user);
 
     return {

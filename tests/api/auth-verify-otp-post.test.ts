@@ -98,7 +98,10 @@ describe("POST /auth/verify-otp", () => {
 });
 
 describe("POST /auth/verify-otp", () => {
-  if (process.env.RUN_REAL_API_TESTS !== "true") {
+  if (
+    process.env.RUN_REAL_API_TESTS !== "true" ||
+    process.env.OTP_ENABLED !== "true"
+  ) {
     return;
   }
   const trackedEmails = new Set<string>();
@@ -136,6 +139,9 @@ describe("POST /auth/verify-otp", () => {
       email: user.email,
     });
     expect(response.headers["set-cookie"]).toBeDefined();
+
+    const stored = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(stored?.lastLoginAt).not.toBeNull();
   });
 
   it("returns validation errors when the OTP is invalid", async () => {

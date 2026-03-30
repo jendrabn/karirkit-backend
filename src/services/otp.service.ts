@@ -10,6 +10,7 @@ import { enqueueEmail } from "../queues/email.queue";
 import { DocumentService } from "./document.service";
 import { ensureAccountIsActive } from "../utils/account-status.util";
 import { createSessionToken } from "../utils/session-auth.util";
+import { markUserLastLogin } from "../utils/user-login.util";
 
 const DUMMY_PASSWORD_HASH =
   "$2b$10$13onwnyV1sH9fqfH6hS50ea8wzaWOXTmymKpB84EPCYxZ8mO2NkFe";
@@ -168,14 +169,19 @@ export class OtpService {
       },
     });
 
+    const loginAt = new Date();
+
     // Update user emailVerifiedAt if not set
     if (!user.emailVerifiedAt) {
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
-          emailVerifiedAt: new Date(),
+          emailVerifiedAt: loginAt,
+          lastLoginAt: loginAt,
         },
       });
+    } else {
+      user = await markUserLastLogin(user.id);
     }
 
     ensureAccountIsActive(user);

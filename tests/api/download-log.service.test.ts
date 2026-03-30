@@ -1,5 +1,6 @@
 let DownloadLogService: typeof import("../../src/services/download-log.service").DownloadLogService;
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
+let SUBSCRIPTION_PLANS: typeof import("../../src/config/subscription-plans.config").SUBSCRIPTION_PLANS;
 
 beforeAll(async () => {
   jest.resetModules();
@@ -12,6 +13,7 @@ beforeAll(async () => {
 
   ({ DownloadLogService } = await import("../../src/services/download-log.service"));
   ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
+  ({ SUBSCRIPTION_PLANS } = await import("../../src/config/subscription-plans.config"));
 });
 
 describe("DownloadLogService", () => {
@@ -67,6 +69,59 @@ describe("DownloadLogService", () => {
       statusCode: 429,
       message: expect.stringContaining("Batas unduhan harian PDF CV tercapai"),
     });
+  });
+
+  it("enforces daily DOCX-specific download limits separately from the total type limit", async () => {
+    const prisma = getPrisma();
+    const originalTotal = SUBSCRIPTION_PLANS.free.cvDownloadsPerDay;
+    const originalDocx = SUBSCRIPTION_PLANS.free.cvDocxDownloadsPerDay;
+
+    try {
+      SUBSCRIPTION_PLANS.free.cvDownloadsPerDay = 10;
+      SUBSCRIPTION_PLANS.free.cvDocxDownloadsPerDay = 2;
+
+      prisma.user.findUnique.mockResolvedValue({
+        subscriptionPlan: "free",
+      });
+      prisma.downloadLog.count
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2);
+
+      await expect(
+        DownloadLogService.checkDownloadLimit("user-1", "cv", "docx")
+      ).rejects.toMatchObject({
+        statusCode: 429,
+        message: expect.stringContaining("Batas unduhan harian DOCX CV tercapai"),
+      });
+    } finally {
+      SUBSCRIPTION_PLANS.free.cvDownloadsPerDay = originalTotal;
+      SUBSCRIPTION_PLANS.free.cvDocxDownloadsPerDay = originalDocx;
+    }
+  });
+
+  it("allows DOCX download when only the PDF capability is disabled", async () => {
+    const prisma = getPrisma();
+    const originalPdf = SUBSCRIPTION_PLANS.free.canDownloadCvPdf;
+    const originalDocx = SUBSCRIPTION_PLANS.free.canDownloadCvDocx;
+
+    try {
+      SUBSCRIPTION_PLANS.free.canDownloadCvPdf = false;
+      SUBSCRIPTION_PLANS.free.canDownloadCvDocx = true;
+
+      prisma.user.findUnique.mockResolvedValue({
+        subscriptionPlan: "free",
+      });
+      prisma.downloadLog.count
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0);
+
+      await expect(
+        DownloadLogService.checkDownloadLimit("user-1", "cv", "docx")
+      ).resolves.toBeUndefined();
+    } finally {
+      SUBSCRIPTION_PLANS.free.canDownloadCvPdf = originalPdf;
+      SUBSCRIPTION_PLANS.free.canDownloadCvDocx = originalDocx;
+    }
   });
 
   it("returns plan-derived download stats for admins without special casing", async () => {

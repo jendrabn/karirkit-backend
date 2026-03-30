@@ -2,13 +2,29 @@ import type { NextFunction, Request, Response } from "express";
 import { SubscriptionService } from "../../services/subscription.service";
 import { sendSuccess } from "../../utils/response-builder.util";
 
+const toAdminSubscriptionResponse = (result: Record<string, any>) => ({
+  id: result.id,
+  user_id: result.userId,
+  user: result.user,
+  plan: result.plan,
+  status: result.status,
+  amount: result.amount,
+  midtrans_order_id: result.midtransOrderId,
+  midtrans_token: result.midtransToken,
+  midtrans_payment_type: result.midtransPaymentType,
+  paid_at: result.paidAt,
+  expires_at: result.expiresAt,
+  created_at: result.createdAt,
+  updated_at: result.updatedAt,
+});
+
 export class SubscriptionController {
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await SubscriptionService.createManualSubscription(
         req.body
       );
-      sendSuccess(res, result, 201);
+      sendSuccess(res, toAdminSubscriptionResponse(result), 201);
     } catch (error) {
       next(error);
     }
@@ -17,7 +33,12 @@ export class SubscriptionController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await SubscriptionService.listAdminSubscriptions(req.query);
-      sendSuccess(res, result);
+      sendSuccess(res, {
+        items: result.items.map((item) =>
+          toAdminSubscriptionResponse(item as Record<string, any>)
+        ),
+        pagination: result.pagination,
+      });
     } catch (error) {
       next(error);
     }
@@ -28,7 +49,7 @@ export class SubscriptionController {
       const result = await SubscriptionService.getAdminSubscription(
         req.params.id
       );
-      sendSuccess(res, result);
+      sendSuccess(res, toAdminSubscriptionResponse(result));
     } catch (error) {
       next(error);
     }

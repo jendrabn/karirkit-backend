@@ -73,7 +73,7 @@ router.get("/stats", PublicController.getStats);
 router.get("/dashboard", authMiddleware, DashboardController.getStats);
 
 // Templates API (public, no authentication required)
-router.get("/templates", PublicController.getTemplates);
+router.get("/templates", optionalAuthMiddleware, PublicController.getTemplates);
 router.get("/subscriptions/plans", SubscriptionController.getPlans);
 router.post(
   "/subscriptions/midtrans/notification",

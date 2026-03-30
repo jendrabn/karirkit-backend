@@ -56,8 +56,10 @@ describe("GET /admin/subscriptions/:id", () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
       id: "sub-1",
+      user_id: "user-1",
       plan: "max",
       status: "pending",
+      midtrans_order_id: "SUB-user-1-123",
     });
   });
 

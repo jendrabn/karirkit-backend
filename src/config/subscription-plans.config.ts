@@ -1,6 +1,7 @@
 export type PlanId = 'free' | 'pro' | 'max';
 
 export type DownloadKind = "cv" | "application_letter";
+export type DownloadFormat = "pdf" | "docx";
 export type DuplicateKind = "cv" | "application" | "application_letter";
 
 export interface SubscriptionPlan {
@@ -22,6 +23,10 @@ export interface SubscriptionPlan {
   cvDownloadsPerDay: number;
   /** Maximum application letter downloads per day across PDF/DOCX. -1 = unlimited */
   applicationLetterDownloadsPerDay: number;
+  /** Maximum CV DOCX downloads per day. -1 = unlimited */
+  cvDocxDownloadsPerDay: number;
+  /** Maximum application letter DOCX downloads per day. -1 = unlimited */
+  applicationLetterDocxDownloadsPerDay: number;
   /** Maximum CV PDF downloads per day. Currently mirrors cvDownloadsPerDay. -1 = unlimited */
   cvPdfDownloadsPerDay: number;
   /** Maximum application letter PDF downloads per day. Currently mirrors applicationLetterDownloadsPerDay. -1 = unlimited */
@@ -33,6 +38,8 @@ export interface SubscriptionPlan {
   canDuplicateCvs: boolean;
   canDuplicateApplications: boolean;
   canDuplicateApplicationLetters: boolean;
+  canDownloadCvDocx: boolean;
+  canDownloadApplicationLetterDocx: boolean;
   canDownloadCvPdf: boolean;
   canDownloadApplicationLetterPdf: boolean;
 }
@@ -54,6 +61,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxDocumentStorageBytes: 0,
     cvDownloadsPerDay: 5,
     applicationLetterDownloadsPerDay: 5,
+    cvDocxDownloadsPerDay: 5,
+    applicationLetterDocxDownloadsPerDay: 5,
     cvPdfDownloadsPerDay: 5,
     applicationLetterPdfDownloadsPerDay: 5,
     canManageDocuments: false,
@@ -63,6 +72,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     canDuplicateCvs: true,
     canDuplicateApplications: true,
     canDuplicateApplicationLetters: true,
+    canDownloadCvDocx: true,
+    canDownloadApplicationLetterDocx: true,
     canDownloadCvPdf: true,
     canDownloadApplicationLetterPdf: true,
   },
@@ -77,6 +88,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxDocumentStorageBytes: 104857600, // 100 MB
     cvDownloadsPerDay: 15,
     applicationLetterDownloadsPerDay: 15,
+    cvDocxDownloadsPerDay: 15,
+    applicationLetterDocxDownloadsPerDay: 15,
     cvPdfDownloadsPerDay: 15,
     applicationLetterPdfDownloadsPerDay: 15,
     canManageDocuments: true,
@@ -86,6 +99,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     canDuplicateCvs: true,
     canDuplicateApplications: true,
     canDuplicateApplicationLetters: true,
+    canDownloadCvDocx: true,
+    canDownloadApplicationLetterDocx: true,
     canDownloadCvPdf: true,
     canDownloadApplicationLetterPdf: true,
   },
@@ -100,6 +115,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxDocumentStorageBytes: 524288000, // 500 MB
     cvDownloadsPerDay: -1,
     applicationLetterDownloadsPerDay: -1,
+    cvDocxDownloadsPerDay: -1,
+    applicationLetterDocxDownloadsPerDay: -1,
     cvPdfDownloadsPerDay: -1,
     applicationLetterPdfDownloadsPerDay: -1,
     canManageDocuments: true,
@@ -109,6 +126,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     canDuplicateCvs: true,
     canDuplicateApplications: true,
     canDuplicateApplicationLetters: true,
+    canDownloadCvDocx: true,
+    canDownloadApplicationLetterDocx: true,
     canDownloadCvPdf: true,
     canDownloadApplicationLetterPdf: true,
   },
@@ -162,6 +181,32 @@ export function getPdfDownloadLimit(
   return kind === "cv"
     ? plan.cvPdfDownloadsPerDay
     : plan.applicationLetterPdfDownloadsPerDay;
+}
+
+export function getDocxDownloadLimit(
+  planId: PlanId,
+  kind: DownloadKind
+): number {
+  const plan = getPlan(planId);
+  return kind === "cv"
+    ? plan.cvDocxDownloadsPerDay
+    : plan.applicationLetterDocxDownloadsPerDay;
+}
+
+export function canDownloadByFormat(
+  planId: PlanId,
+  kind: DownloadKind,
+  format: DownloadFormat
+): boolean {
+  const plan = getPlan(planId);
+
+  if (kind === "cv") {
+    return format === "pdf" ? plan.canDownloadCvPdf : plan.canDownloadCvDocx;
+  }
+
+  return format === "pdf"
+    ? plan.canDownloadApplicationLetterPdf
+    : plan.canDownloadApplicationLetterDocx;
 }
 
 export function canDuplicateByKind(

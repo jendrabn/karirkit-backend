@@ -25,6 +25,12 @@ beforeAll(async () => {
     jest.doMock("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
+    jest.doMock("../../src/services/template.service", () => ({
+      TemplateService: {},
+    }));
+    jest.doMock("../../src/services/job.service", () => ({
+      JobService: {},
+    }));
     jest.doMock("../../src/services/subscription.service", () => ({
       SubscriptionService: {
         getCurrentSubscription: jest.fn(),
@@ -74,6 +80,8 @@ describe("GET /subscriptions/my", () => {
         downloads: {
           cvPerDay: 15,
           applicationLetterPerDay: 15,
+          cvDocxPerDay: 15,
+          applicationLetterDocxPerDay: 15,
           cvPdfPerDay: 15,
           applicationLetterPdfPerDay: 15,
         },
@@ -86,6 +94,8 @@ describe("GET /subscriptions/my", () => {
         canDuplicateCvs: true,
         canDuplicateApplications: true,
         canDuplicateApplicationLetters: true,
+        canDownloadCvDocx: true,
+        canDownloadApplicationLetterDocx: true,
         canDownloadCvPdf: true,
         canDownloadApplicationLetterPdf: true,
       },
@@ -100,6 +110,10 @@ describe("GET /subscriptions/my", () => {
       id: "sub-1",
       plan: "pro",
       status: "paid",
+      paid_at: "2026-03-01T00:00:00.000Z",
+      expires_at: "2026-04-01T00:00:00.000Z",
+      midtrans_order_id: "SUB-user-1-123",
+      midtrans_payment_type: "gopay",
     });
   });
 
@@ -158,29 +172,33 @@ describe("GET /subscriptions/my", () => {
       plan: "pro",
       status: "paid",
       amount: 25000,
-      midtransPaymentType: "gopay",
-      currentLimits: {
-        maxCvs: 15,
-        maxApplications: 500,
-        maxApplicationLetters: 15,
-        maxDocumentStorageBytes: 104857600,
+      midtrans_payment_type: "gopay",
+      current_limits: {
+        max_cvs: 15,
+        max_applications: 500,
+        max_application_letters: 15,
+        max_document_storage_bytes: 104857600,
         downloads: {
-          cvPerDay: 15,
-          applicationLetterPerDay: 15,
-          cvPdfPerDay: 15,
-          applicationLetterPdfPerDay: 15,
+          cv_per_day: 15,
+          application_letter_per_day: 15,
+          cv_docx_per_day: 15,
+          application_letter_docx_per_day: 15,
+          cv_pdf_per_day: 15,
+          application_letter_pdf_per_day: 15,
         },
       },
-      currentFeatures: {
-        canManageDocuments: true,
-        canUsePremiumCvTemplates: true,
-        canUsePremiumApplicationLetterTemplates: true,
-        canUsePremiumTemplates: true,
-        canDuplicateCvs: true,
-        canDuplicateApplications: true,
-        canDuplicateApplicationLetters: true,
-        canDownloadCvPdf: true,
-        canDownloadApplicationLetterPdf: true,
+      current_features: {
+        can_manage_documents: true,
+        can_use_premium_cv_templates: true,
+        can_use_premium_application_letter_templates: true,
+        can_use_premium_templates: true,
+        can_duplicate_cvs: true,
+        can_duplicate_applications: true,
+        can_duplicate_application_letters: true,
+        can_download_cv_docx: true,
+        can_download_application_letter_docx: true,
+        can_download_cv_pdf: true,
+        can_download_application_letter_pdf: true,
       },
     });
   });

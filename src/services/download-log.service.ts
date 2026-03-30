@@ -3,16 +3,16 @@ import { ResponseError } from "../utils/response-error.util";
 import type { Prisma } from "../generated/prisma/client";
 import type { DownloadLogWhereInput } from "../generated/prisma/models/DownloadLog";
 import {
+  canDownloadByFormat,
   type DownloadKind,
+  type DownloadFormat,
   getCombinedDownloadLimit,
+  getDocxDownloadLimit,
   getDownloadLimit,
   getPdfDownloadLimit,
-  getPlan,
   isUnlimitedLimit,
   resolvePlanId,
 } from "../config/subscription-plans.config";
-
-export type DownloadFormat = "pdf" | "docx";
 
 export interface DownloadStatsBucket {
   daily_limit: number;
@@ -31,6 +31,9 @@ const getDownloadLabel = (type: DownloadKind): string =>
 
 const getPdfDownloadLabel = (type: DownloadKind): string =>
   type === "cv" ? "PDF CV" : "PDF surat lamaran";
+
+const getDocxDownloadLabel = (type: DownloadKind): string =>
+  type === "cv" ? "DOCX CV" : "DOCX surat lamaran";
 
 const buildBucketStats = (
   limit: number,
@@ -59,19 +62,12 @@ export class DownloadLogService {
     }
 
     const planId = resolvePlanId(user.subscriptionPlan);
-    const plan = getPlan(planId);
-
-    if (type === "cv" && !plan.canDownloadCvPdf) {
-      throw new ResponseError(403, "Fitur download CV belum tersedia");
-    }
-
-    if (
-      type === "application_letter" &&
-      !plan.canDownloadApplicationLetterPdf
-    ) {
+    if (!canDownloadByFormat(planId, type, format)) {
       throw new ResponseError(
         403,
-        "Fitur download surat lamaran belum tersedia"
+        type === "cv"
+          ? `Fitur download ${format.toUpperCase()} CV belum tersedia`
+          : `Fitur download ${format.toUpperCase()} surat lamaran belum tersedia`
       );
     }
 
@@ -99,29 +95,32 @@ export class DownloadLogService {
       }
     }
 
-    if (format === "pdf") {
-      const pdfDownloadLimit = getPdfDownloadLimit(planId, type);
-      if (isUnlimitedLimit(pdfDownloadLimit)) {
-        return;
-      }
+    const formatDownloadLimit =
+      format === "pdf"
+        ? getPdfDownloadLimit(planId, type)
+        : getDocxDownloadLimit(planId, type);
+    if (isUnlimitedLimit(formatDownloadLimit)) {
+      return;
+    }
 
-      const pdfDownloadCount = await prisma.downloadLog.count({
-        where: {
-          userId,
-          type,
-          format: "pdf",
-          downloadedAt: {
-            gte: today,
-          },
+    const formatDownloadCount = await prisma.downloadLog.count({
+      where: {
+        userId,
+        type,
+        format,
+        downloadedAt: {
+          gte: today,
         },
-      });
+      },
+    });
 
-      if (pdfDownloadCount >= pdfDownloadLimit) {
-        throw new ResponseError(
-          429,
-          `Batas unduhan harian ${getPdfDownloadLabel(type)} tercapai. Anda sudah mengunduh ${pdfDownloadCount} dari ${pdfDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
-        );
-      }
+    if (formatDownloadCount >= formatDownloadLimit) {
+      const label =
+        format === "pdf" ? getPdfDownloadLabel(type) : getDocxDownloadLabel(type);
+      throw new ResponseError(
+        429,
+        `Batas unduhan harian ${label} tercapai. Anda sudah mengunduh ${formatDownloadCount} dari ${formatDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
+      );
     }
   }
 
