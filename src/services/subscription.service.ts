@@ -455,6 +455,11 @@ export class SubscriptionService {
           email: user.email,
           phone: user.phone ?? undefined,
         },
+        callbacks: {
+          finish: `${env.frontendUrl}/subscriptions`,
+          error: `${env.frontendUrl}/subscriptions`,
+          unfinish: `${env.frontendUrl}/subscriptions`,
+        },
       } as any)) as MidtransTransactionResponse;
     } catch (error) {
       throw new ResponseError(
