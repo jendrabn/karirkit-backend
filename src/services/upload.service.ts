@@ -4,6 +4,7 @@ import path from "path";
 import sharp from "sharp";
 import { ResponseError } from "../utils/response-error.util";
 import { isHttpUrl } from "../utils/url.util";
+import { StorageService } from "./storage.service";
 import {
   ALL_VERIFIED_UPLOAD_MIME_TYPES,
   applyVerifiedMimeType,
@@ -59,8 +60,6 @@ const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   "application/rtf": ".rtf",
 };
 
-const PUBLIC_ROOT = path.join(process.cwd(), "public");
-const UPLOADS_ROOT = path.join(PUBLIC_ROOT, "uploads");
 const TEMP_UPLOAD_PREFIX = "uploads/temp";
 
 export type UploadFileResult = {
@@ -178,21 +177,12 @@ export class UploadService {
       }
     }
 
-    // Create directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), "public", directory);
-    await fs.mkdir(uploadDir, { recursive: true });
-
     // Generate filename with timestamp + UUID
     const timestamp = Date.now();
     const uuid = crypto.randomUUID();
     const filename = `${timestamp}-${uuid}${extension}`;
-    const filePath = path.join(uploadDir, filename);
-
-    // Write file to disk
-    await fs.writeFile(filePath, processedBuffer);
-
-    // Return public path
     const publicPath = path.posix.join("/", directory, filename);
+    await StorageService.write(publicPath, processedBuffer, finalMimeType);
 
     return {
       path: publicPath,
@@ -204,7 +194,8 @@ export class UploadService {
 
   static async moveFromTemp(
     destinationDirectory: string,
-    filePath?: string
+    filePath?: string,
+    targetFileName?: string
   ): Promise<string> {
     if (!filePath) {
       throw new ResponseError(400, "FilePath diperlukan");
@@ -227,24 +218,24 @@ export class UploadService {
       );
     }
 
-    const fileName = path.basename(source.relativePath);
+    const fileName = targetFileName?.trim() || path.basename(source.relativePath);
     const safeDestinationDirectory =
       UploadService.normalizeUploadDirectory(destinationDirectory);
-    const destDir = path.join(UPLOADS_ROOT, safeDestinationDirectory);
-    await fs.mkdir(destDir, { recursive: true });
-
-    const finalPath = path.join(destDir, fileName);
+    const destinationPath = path.posix.join(
+      "/uploads",
+      safeDestinationDirectory,
+      fileName
+    );
 
     try {
-      await fs.rename(source.absolutePath, finalPath);
+      await StorageService.move(source.publicPath, destinationPath);
+      return destinationPath;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         throw new ResponseError(400, "File upload sementara tidak ditemukan");
       }
       throw error;
     }
-
-    return path.posix.join("/uploads", safeDestinationDirectory, fileName);
   }
 
   static async deleteUpload(
@@ -260,19 +251,14 @@ export class UploadService {
       return;
     }
 
-    try {
-      await fs.unlink(resolved.absolutePath);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw error;
-      }
-    }
+    await StorageService.delete(resolved.publicPath);
   }
 
   static async copyUpload(
     filePath: string,
     destinationDirectory: string,
-    allowedPrefixes?: string[]
+    allowedPrefixes?: string[],
+    targetFileName?: string
   ): Promise<string> {
     if (isHttpUrl(filePath)) {
       return filePath;
@@ -286,22 +272,43 @@ export class UploadService {
     const extension = path.extname(source.relativePath);
     const safeDestinationDirectory =
       UploadService.normalizeUploadDirectory(destinationDirectory);
-    const destinationRoot = path.join(UPLOADS_ROOT, safeDestinationDirectory);
-    await fs.mkdir(destinationRoot, { recursive: true });
-
-    const filename = `${Date.now()}-${crypto.randomUUID()}${extension}`;
-    const destination = path.join(destinationRoot, filename);
+    const filename =
+      targetFileName?.trim() || `${Date.now()}-${crypto.randomUUID()}${extension}`;
+    const destinationPath = path.posix.join(
+      "/uploads",
+      safeDestinationDirectory,
+      filename
+    );
 
     try {
-      await fs.copyFile(source.absolutePath, destination);
+      await StorageService.copy(source.publicPath, destinationPath);
+      return destinationPath;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         throw new ResponseError(400, "File sumber tidak ditemukan");
       }
       throw error;
     }
+  }
 
-    return path.posix.join("/uploads", safeDestinationDirectory, filename);
+  static normalizeManagedUploadPath(
+    filePath?: string | null,
+    allowedPrefixes?: string[]
+  ): string | null {
+    return UploadService.resolveUploadPath(filePath, allowedPrefixes)?.publicPath ?? null;
+  }
+
+  static async readUpload(
+    filePath: string,
+    allowedPrefixes?: string[]
+  ): Promise<Buffer> {
+    const resolved = UploadService.resolveUploadPath(filePath, allowedPrefixes);
+    if (!resolved) {
+      throw new ResponseError(400, "File tidak valid");
+    }
+
+    const stored = await StorageService.read(resolved.publicPath);
+    return stored.buffer;
   }
 
   private static normalizeUploadDirectory(directory: string): string {
@@ -328,7 +335,6 @@ export class UploadService {
     allowedPrefixes?: string[]
   ):
     | {
-        absolutePath: string;
         relativePath: string;
         publicPath: string;
       }
@@ -371,19 +377,8 @@ export class UploadService {
       return null;
     }
 
-    const absolutePath = path.join(PUBLIC_ROOT, safeInput);
-    const relativeToUploads = path.relative(UPLOADS_ROOT, absolutePath);
-    if (
-      !relativeToUploads ||
-      relativeToUploads.startsWith("..") ||
-      path.isAbsolute(relativeToUploads)
-    ) {
-      return null;
-    }
-
     return {
-      absolutePath,
-      relativePath: relativeToUploads.replace(/\\/g, "/"),
+      relativePath: posixSafeInput.slice("uploads/".length),
       publicPath: `/${posixSafeInput}`,
     };
   }

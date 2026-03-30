@@ -38,6 +38,8 @@ import { validate } from "../utils/validate.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import dayjs from "dayjs";
+import { UploadService } from "./upload.service";
+import { StorageService } from "./storage.service";
 import "dayjs/locale/id";
 import { isHttpUrl } from "../utils/url.util";
 import {
@@ -1114,35 +1116,20 @@ export class CvService {
     userId: string,
     tempPublicPath: string
   ): Promise<string> {
-    const resolved = CvService.resolveUploadFile(
+    const normalizedTempPath = UploadService.normalizeManagedUploadPath(
       tempPublicPath,
-      TEMP_PUBLIC_PREFIX,
-      TEMP_UPLOAD_DIR
+      [TEMP_PUBLIC_PREFIX]
     );
-
-    if (!resolved) {
+    if (!normalizedTempPath) {
       throw new ResponseError(
         400,
         "Foto harus merujuk ke file sementara yang diunggah"
       );
     }
 
-    await fs.mkdir(CV_UPLOAD_DIR, { recursive: true });
-
-    const extension = path.extname(resolved.absolute) || ".bin";
+    const extension = path.extname(normalizedTempPath) || ".bin";
     const fileName = CvService.buildPhotoFileName(userId, extension);
-    const destination = path.join(CV_UPLOAD_DIR, fileName);
-
-    try {
-      await fs.rename(resolved.absolute, destination);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(400, "File foto sementara tidak ditemukan");
-      }
-      throw error;
-    }
-
-    return path.posix.join("/uploads/cvs", fileName);
+    return UploadService.moveFromTemp("cvs", normalizedTempPath, fileName);
   }
 
   private static buildPhotoFileName(userId: string, extension: string) {
@@ -1154,13 +1141,7 @@ export class CvService {
   }
 
   private static normalizePublicPath(value?: string | null): string | null {
-    const resolved = CvService.resolveUploadFile(
-      value,
-      CV_PUBLIC_PREFIX,
-      CV_UPLOAD_DIR
-    );
-
-    return resolved?.publicPath ?? null;
+    return UploadService.normalizeManagedUploadPath(value, [CV_PUBLIC_PREFIX]);
   }
 
   private static resolveUploadFile(
@@ -1219,18 +1200,15 @@ export class CvService {
 
     await Promise.all(
       unique.map(async (publicPath) => {
-        const resolved = CvService.resolveUploadFile(
-          publicPath,
+        const normalized = UploadService.normalizeManagedUploadPath(publicPath, [
           CV_PUBLIC_PREFIX,
-          CV_UPLOAD_DIR
-        );
-
-        if (!resolved) {
+        ]);
+        if (!normalized) {
           return;
         }
 
         try {
-          await fs.unlink(resolved.absolute);
+          await StorageService.delete(normalized);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
             throw error;
@@ -1253,8 +1231,9 @@ export class CvService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    const templatePath = path.join(process.cwd(), "public", template.path);
-    const templateBinary = await fs.readFile(templatePath);
+    const templateBinary = (
+      await StorageService.read(template.path)
+    ).buffer;
     const context = CvService.buildTemplateContext(cv);
     
     const additionalJsContext = cv.photo
@@ -1564,23 +1543,20 @@ export class CvService {
     data: Buffer;
     extension: ".png" | ".jpg";
   } | null> {
-    const resolved = CvService.resolveUploadFile(
-      photoPath ?? "",
+    const normalized = UploadService.normalizeManagedUploadPath(photoPath ?? "", [
       CV_PUBLIC_PREFIX,
-      CV_UPLOAD_DIR
-    );
-
-    if (!resolved) {
+    ]);
+    if (!normalized) {
       return null;
     }
 
-    const extension = CvService.getImageExtension(resolved.absolute);
+    const extension = CvService.getImageExtension(normalized);
     if (!extension) {
       return null;
     }
 
     try {
-      const buffer = await fs.readFile(resolved.absolute);
+      const buffer = (await StorageService.read(normalized)).buffer;
       const dimensions = CvService.extractImageDimensions(buffer, extension);
       const aspectRatio =
         dimensions && dimensions.width > 0

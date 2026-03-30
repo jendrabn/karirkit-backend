@@ -26,6 +26,8 @@ import {
 import { ResponseError } from "../utils/response-error.util";
 import { slugify } from "../utils/slugify.util";
 import { isHttpUrl } from "../utils/url.util";
+import { UploadService } from "./upload.service";
+import { StorageService } from "./storage.service";
 
 type PortfolioListResult = {
   items: PortfolioSchema[];
@@ -644,35 +646,25 @@ export class PortfolioService {
     userId: string,
     tempPublicPath: string
   ): Promise<string> {
-    const resolved = PortfolioService.resolveUploadFile(
+    const normalizedTempPath = UploadService.normalizeManagedUploadPath(
       tempPublicPath,
-      TEMP_PUBLIC_PREFIX,
-      TEMP_UPLOAD_DIR
+      [TEMP_PUBLIC_PREFIX]
     );
 
-    if (!resolved) {
+    if (!normalizedTempPath) {
       throw new ResponseError(
         400,
         "File harus merujuk ke file sementara yang diunggah"
       );
     }
 
-    await fs.mkdir(PORTFOLIO_UPLOAD_DIR, { recursive: true });
-
-    const extension = PortfolioService.extractExtension(resolved.absolute);
+    const extension = PortfolioService.extractExtension(normalizedTempPath);
     const fileName = PortfolioService.buildPortfolioFileName(userId, extension);
-    const destination = path.join(PORTFOLIO_UPLOAD_DIR, fileName);
-
-    try {
-      await fs.rename(resolved.absolute, destination);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(400, "File sementara tidak ditemukan");
-      }
-      throw error;
-    }
-
-    return path.posix.join("/uploads/portfolios", fileName);
+    return UploadService.moveFromTemp(
+      "portfolios",
+      normalizedTempPath,
+      fileName
+    );
   }
 
   private static extractExtension(filePath: string): string {
@@ -697,13 +689,9 @@ export class PortfolioService {
   private static normalizePortfolioPublicPath(
     value?: string | null
   ): string | null {
-    const resolved = PortfolioService.resolveUploadFile(
-      value,
+    return UploadService.normalizeManagedUploadPath(value, [
       PORTFOLIO_PUBLIC_PREFIX,
-      PORTFOLIO_UPLOAD_DIR
-    );
-
-    return resolved?.publicPath ?? null;
+    ]);
   }
 
   private static resolveUploadFile(
@@ -765,18 +753,16 @@ export class PortfolioService {
   }
 
   private static async deletePortfolioFile(publicPath: string): Promise<void> {
-    const resolved = PortfolioService.resolveUploadFile(
-      publicPath,
+    const normalized = UploadService.normalizeManagedUploadPath(publicPath, [
       PORTFOLIO_PUBLIC_PREFIX,
-      PORTFOLIO_UPLOAD_DIR
-    );
+    ]);
 
-    if (!resolved) {
+    if (!normalized) {
       return;
     }
 
     try {
-      await fs.unlink(resolved.absolute);
+      await StorageService.delete(normalized);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         throw error;

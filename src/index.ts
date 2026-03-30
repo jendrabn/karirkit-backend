@@ -4,6 +4,7 @@ import express from "express";
 import path from "path";
 import env from "./config/env.config";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
+import { UploadProxyController } from "./controllers/upload-proxy.controller";
 import requestLogger, { errorLogger } from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import bigIntMiddleware from "./middleware/bigint.middleware";
@@ -18,6 +19,7 @@ import {
 import "./queues/email.queue";
 import "./queues/subscription-expiry.queue";
 import csrfProtectionMiddleware from "./middleware/csrf-protection.middleware";
+import { StorageService } from "./services/storage.service";
 
 const app = express();
 
@@ -39,6 +41,9 @@ app.use(bigIntMiddleware);
 app.use(maintenanceModeMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
+if (StorageService.isCloudStorage()) {
+  app.get("/uploads/*", UploadProxyController.serve);
+}
 app.use(
   express.static(publicDirectory, {
     index: false,

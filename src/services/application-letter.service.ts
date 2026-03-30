@@ -27,6 +27,7 @@ import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import { UploadService } from "./upload.service";
+import { StorageService } from "./storage.service";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -547,13 +548,12 @@ export class ApplicationLetterService {
     userId: string,
     tempPublicPath: string
   ): Promise<string> {
-    const resolved = ApplicationLetterService.resolveUploadFile(
+    const normalizedTempPath = UploadService.normalizeManagedUploadPath(
       tempPublicPath,
-      TEMP_PUBLIC_PREFIX,
-      TEMP_UPLOAD_DIR
+      [TEMP_PUBLIC_PREFIX]
     );
 
-    if (!resolved) {
+    if (!normalizedTempPath) {
       throw new ResponseError(
         400,
         "Tanda tangan harus merujuk ke file sementara yang diunggah"
@@ -561,7 +561,7 @@ export class ApplicationLetterService {
     }
 
     const extension = ApplicationLetterService.getSignatureFileExtension(
-      resolved.absolute
+      normalizedTempPath
     );
     if (!extension) {
       throw new ResponseError(
@@ -570,44 +570,30 @@ export class ApplicationLetterService {
       );
     }
 
-    await fs.mkdir(SIGNATURE_UPLOAD_DIR, { recursive: true });
-
     const fileName = ApplicationLetterService.buildSignatureFileName(
       userId,
       extension
     );
-    const destination = path.join(SIGNATURE_UPLOAD_DIR, fileName);
-
-    try {
-      await fs.rename(resolved.absolute, destination);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ResponseError(
-          400,
-          "File tanda tangan sementara tidak ditemukan"
-        );
-      }
-      throw error;
-    }
-
-    return path.posix.join("/uploads/signatures", fileName);
+    return UploadService.moveFromTemp(
+      "signatures",
+      normalizedTempPath,
+      fileName
+    );
   }
 
   private static async deleteSignatureFile(
     signaturePath?: string | null
   ): Promise<void> {
-    const resolved = ApplicationLetterService.resolveUploadFile(
-      signaturePath,
+    const normalized = UploadService.normalizeManagedUploadPath(signaturePath, [
       SIGNATURE_PUBLIC_PREFIX,
-      SIGNATURE_UPLOAD_DIR
-    );
+    ]);
 
-    if (!resolved) {
+    if (!normalized) {
       return;
     }
 
     try {
-      await fs.unlink(resolved.absolute);
+      await StorageService.delete(normalized);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         throw error;
@@ -618,13 +604,9 @@ export class ApplicationLetterService {
   private static normalizeSignaturePublicPath(
     value?: string | null
   ): string | null {
-    const resolved = ApplicationLetterService.resolveUploadFile(
-      value,
+    return UploadService.normalizeManagedUploadPath(value, [
       SIGNATURE_PUBLIC_PREFIX,
-      SIGNATURE_UPLOAD_DIR
-    );
-
-    return resolved?.publicPath ?? null;
+    ]);
   }
 
   private static resolveUploadFile(
@@ -699,8 +681,7 @@ export class ApplicationLetterService {
       throw new ResponseError(404, "Template tidak ditemukan");
     }
 
-    const templatePath = path.join(process.cwd(), "public", template.path);
-    const templateBinary = await fs.readFile(templatePath);
+    const templateBinary = (await StorageService.read(template.path)).buffer;
     const additionalJsContext =
       ApplicationLetterService.buildAdditionalJsContext();
 
@@ -807,7 +788,7 @@ export class ApplicationLetterService {
     }
 
     try {
-      const buffer = await fs.readFile(resolvedPath);
+      const buffer = (await StorageService.read(resolvedPath)).buffer;
       const dimensions = ApplicationLetterService.extractImageDimensions(
         buffer,
         extension
@@ -834,13 +815,9 @@ export class ApplicationLetterService {
   private static resolveSignatureFilePath(
     signaturePath?: string | null
   ): string | null {
-    const resolved = ApplicationLetterService.resolveUploadFile(
-      signaturePath,
+    return UploadService.normalizeManagedUploadPath(signaturePath, [
       SIGNATURE_PUBLIC_PREFIX,
-      SIGNATURE_UPLOAD_DIR
-    );
-
-    return resolved?.absolute ?? null;
+    ]);
   }
 
   private static getSignatureFileExtension(

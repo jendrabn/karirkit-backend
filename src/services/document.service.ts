@@ -33,6 +33,7 @@ import {
   isUnlimitedLimit,
   resolvePlanId,
 } from "../config/subscription-plans.config";
+import { StorageService } from "./storage.service";
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -497,10 +498,10 @@ export class DocumentService {
       throw new ResponseError(404, "Dokumen tidak tersedia");
     }
 
-    const absolutePath = DocumentService.getAbsolutePath(document.path);
     let buffer: Buffer;
     try {
-      buffer = await fs.readFile(absolutePath);
+      const stored = await StorageService.read(document.path);
+      buffer = stored.buffer;
     } catch (error) {
       throw new ResponseError(404, "File dokumen tidak ditemukan di server");
     }
@@ -658,14 +659,9 @@ export class DocumentService {
 
     await DocumentService.assertStorageLimit(userId, processedBuffer.length);
 
-    const uploadDir = path.join(process.cwd(), "public", DOCUMENT_DIRECTORY);
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const filename = DocumentService.buildFilename(extension);
-    const filePath = path.join(uploadDir, filename);
-
-    await fs.writeFile(filePath, processedBuffer);
     const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
+    await StorageService.write(publicPath, processedBuffer, finalMimeType);
 
     return {
       path: publicPath,
@@ -855,15 +851,12 @@ export class DocumentService {
     buffer: Buffer,
     extension: string
   ): Promise<{ path: string; size: number }> {
-    const uploadDir = path.join(process.cwd(), "public", DOCUMENT_DIRECTORY);
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const filename = DocumentService.buildFilename(extension);
-    const filePath = path.join(uploadDir, filename);
-    await fs.writeFile(filePath, buffer);
+    const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
+    await StorageService.write(publicPath, buffer, undefined);
 
     return {
-      path: path.posix.join("/", DOCUMENT_DIRECTORY, filename),
+      path: publicPath,
       size: buffer.length,
     };
   }
@@ -995,16 +988,10 @@ export class DocumentService {
     return mimetype.toLowerCase().startsWith("image/");
   }
 
-  private static getAbsolutePath(publicPath: string): string {
-    const relativePath = publicPath.replace(/^\/+/, "");
-    return path.join(process.cwd(), "public", relativePath);
-  }
-
   private static async removeFile(publicPath: string): Promise<void> {
     if (!publicPath) return;
-    const absolutePath = DocumentService.getAbsolutePath(publicPath);
     try {
-      await fs.unlink(absolutePath);
+      await StorageService.delete(publicPath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         console.warn("Failed to delete document file:", error);

@@ -194,6 +194,20 @@ const env = {
       process.env.MIDTRANS_NOTIFICATION_URL ?? undefined
     ),
   },
+  storage: {
+    driver:
+      process.env.STORAGE_DRIVER?.trim().toLowerCase() === "s3"
+        ? "s3"
+        : "local",
+    bucket: resolveOptional(process.env.STORAGE_BUCKET ?? undefined) ?? "",
+    region: resolveOptional(process.env.STORAGE_REGION ?? undefined) ?? "auto",
+    endpoint: resolveOptional(process.env.STORAGE_ENDPOINT ?? undefined),
+    accessKeyId:
+      resolveOptional(process.env.STORAGE_ACCESS_KEY_ID ?? undefined) ?? "",
+    secretAccessKey:
+      resolveOptional(process.env.STORAGE_SECRET_ACCESS_KEY ?? undefined) ?? "",
+    forcePathStyle: parseBoolean(process.env.STORAGE_FORCE_PATH_STYLE, false),
+  },
 };
 
 export default env;
