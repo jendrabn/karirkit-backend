@@ -5,6 +5,26 @@ process.env.APP_BASE_URL ||= "http://localhost:3000";
 process.env.CORS_ORIGINS ||= "http://localhost:3000";
 process.env.MAINTENANCE_MODE ||= "false";
 
+const buildMockUser = (overrides: Record<string, unknown> = {}) => ({
+  id: "user-1",
+  role: "user",
+  email: "user@example.com",
+  username: "user",
+  subscriptionPlan: "free",
+  subscriptionExpiresAt: null,
+  ...overrides,
+});
+
+const buildMockAdmin = (overrides: Record<string, unknown> = {}) => ({
+  id: "admin-1",
+  role: "admin",
+  email: "admin@example.com",
+  username: "admin",
+  subscriptionPlan: "max",
+  subscriptionExpiresAt: null,
+  ...overrides,
+});
+
 jest.mock("../../src/middleware/logger.middleware", () => {
   const requestLogger = (
     _req: unknown,
@@ -47,6 +67,19 @@ jest.mock("../../src/middleware/rate-limit.middleware", () => {
   };
 });
 
+jest.mock("../../src/middleware/system-guard.middleware", () => {
+  return {
+    __esModule: true,
+    maintenanceModeMiddleware: (
+      _req: unknown,
+      _res: unknown,
+      next: () => void,
+    ): void => {
+      next();
+    },
+  };
+});
+
 jest.mock("../../src/middleware/auth.middleware", () => {
   const { ResponseError } = require("../../src/utils/response-error.util");
 
@@ -56,25 +89,44 @@ jest.mock("../../src/middleware/auth.middleware", () => {
       const header = req.get?.("authorization");
 
       if (header === "Bearer user-token") {
-        req.user = {
-          id: "user-1",
-          role: "user",
-          email: "user@example.com",
-          username: "user",
-        };
+        req.user = buildMockUser();
         req.authToken = "user-token";
         next();
         return;
       }
 
+      if (header === "Bearer pro-token") {
+        req.user = buildMockUser({
+          subscriptionPlan: "pro",
+          subscriptionExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        });
+        req.authToken = "pro-token";
+        next();
+        return;
+      }
+
       if (header === "Bearer admin-token") {
-        req.user = {
-          id: "admin-1",
-          role: "admin",
-          email: "admin@example.com",
-          username: "admin",
-        };
+        req.user = buildMockAdmin();
         req.authToken = "admin-token";
+        next();
+        return;
+      }
+
+      if (header === "Bearer admin-pro-token") {
+        req.user = buildMockAdmin({
+          subscriptionPlan: "pro",
+          subscriptionExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        });
+        req.authToken = "admin-pro-token";
+        next();
+        return;
+      }
+
+      if (header === "Bearer admin-free-token") {
+        req.user = buildMockAdmin({
+          subscriptionPlan: "free",
+        });
+        req.authToken = "admin-free-token";
         next();
         return;
       }
@@ -112,23 +164,36 @@ jest.mock("../../src/middleware/optional-auth.middleware", () => {
       const header = req.get?.("authorization");
 
       if (header === "Bearer user-token") {
-        req.user = {
-          id: "user-1",
-          role: "user",
-          email: "user@example.com",
-          username: "user",
-        };
+        req.user = buildMockUser();
         req.authToken = "user-token";
       }
 
+      if (header === "Bearer pro-token") {
+        req.user = buildMockUser({
+          subscriptionPlan: "pro",
+          subscriptionExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        });
+        req.authToken = "pro-token";
+      }
+
       if (header === "Bearer admin-token") {
-        req.user = {
-          id: "admin-1",
-          role: "admin",
-          email: "admin@example.com",
-          username: "admin",
-        };
+        req.user = buildMockAdmin();
         req.authToken = "admin-token";
+      }
+
+      if (header === "Bearer admin-pro-token") {
+        req.user = buildMockAdmin({
+          subscriptionPlan: "pro",
+          subscriptionExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        });
+        req.authToken = "admin-pro-token";
+      }
+
+      if (header === "Bearer admin-free-token") {
+        req.user = buildMockAdmin({
+          subscriptionPlan: "free",
+        });
+        req.authToken = "admin-free-token";
       }
 
       next();
@@ -143,40 +208,5 @@ jest.mock("../../src/queues/email.queue", () => ({
     on: jest.fn(),
     process: jest.fn(),
     add: jest.fn(),
-  },
-}));
-
-jest.mock("../../src/services/system-setting.service", () => ({
-  __esModule: true,
-  SystemSettingService: {
-    isRegistrationEnabled: jest.fn().mockResolvedValue(true),
-    isGoogleLoginEnabled: jest.fn().mockResolvedValue(true),
-    isPasswordResetEnabled: jest.fn().mockResolvedValue(true),
-    isOtpEnabled: jest.fn().mockResolvedValue(false),
-    getOtpExpiresInSeconds: jest.fn().mockResolvedValue(300),
-    getOtpResendCooldownSeconds: jest.fn().mockResolvedValue(60),
-    getDefaultDailyDownloadLimit: jest.fn().mockResolvedValue(10),
-    getDefaultDocumentStorageLimit: jest
-      .fn()
-      .mockResolvedValue(100 * 1024 * 1024),
-    getTempUploadConfig: jest.fn().mockResolvedValue({
-      enabled: true,
-      maxSizeBytes: 10 * 1024 * 1024,
-    }),
-    getBlogUploadConfig: jest.fn().mockResolvedValue({
-      enabled: true,
-      maxSizeBytes: 5 * 1024 * 1024,
-    }),
-    getDocumentUploadConfig: jest.fn().mockResolvedValue({
-      enabled: true,
-      maxSizeBytes: 25 * 1024 * 1024,
-      maxFileCount: 20,
-    }),
-    assertDownloadsEnabled: jest.fn().mockResolvedValue(undefined),
-    getBoolean: jest.fn().mockResolvedValue(true),
-    getNumber: jest.fn().mockResolvedValue(1),
-    list: jest.fn(),
-    bulkUpdate: jest.fn(),
-    clearCache: jest.fn(),
   },
 }));

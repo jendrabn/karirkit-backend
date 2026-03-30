@@ -1,4 +1,5 @@
 import type { Template, Prisma } from "../generated/prisma/client";
+import type { TemplateWhereInput } from "../generated/prisma/models/Template";
 import { prisma } from "../config/prisma.config";
 import { ResponseError } from "../utils/response-error.util";
 import { validate } from "../utils/validate.util";
@@ -29,7 +30,7 @@ export class TemplateService {
   > {
     const requestData = validate(GetTemplatesQuery, query);
 
-    const where: Prisma.TemplateWhereInput = {};
+    const where: TemplateWhereInput = {};
 
     if (requestData.type) {
       where.type = requestData.type;

@@ -10,13 +10,11 @@ import type {
   Document as PrismaDocument,
   Prisma,
 } from "../generated/prisma/client";
-import { DocumentType } from "../generated/prisma/client";
 import type {
   Document as DocumentSchema,
   Pagination,
 } from "../types/api-schemas";
 import env from "../config/env.config";
-import { SystemSettingService } from "./system-setting.service";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
 import {
@@ -30,6 +28,11 @@ import {
   VERIFIED_UPLOAD_MIME_TYPES,
   applyVerifiedMimeType,
 } from "../utils/file-signature.util";
+import {
+  getPlan,
+  isUnlimitedLimit,
+  resolvePlanId,
+} from "../config/subscription-plans.config";
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -66,6 +69,53 @@ const IMAGE_MIME_TYPES = new Set([
   "image/png",
   "image/gif",
   "image/webp",
+]);
+
+const DOCUMENT_TYPES = new Set([
+  "ktp",
+  "kk",
+  "sim",
+  "paspor",
+  "npwp",
+  "bpjs_kesehatan",
+  "bpjs_ketenagakerjaan",
+  "ijazah",
+  "transkrip",
+  "kartu_pelajar",
+  "kartu_mahasiswa",
+  "pas_foto",
+  "cv",
+  "surat_lamaran",
+  "portfolio",
+  "cover_letter",
+  "skck",
+  "surat_keterangan_sehat",
+  "surat_keterangan_kerja",
+  "surat_pengalaman_kerja",
+  "surat_rekomendasi",
+  "paklaring",
+  "surat_pengunduran_diri",
+  "kontrak_kerja",
+  "slip_gaji",
+  "kartu_nama",
+  "sertifikat",
+  "sertifikat_pelatihan",
+  "sertifikat_bahasa",
+  "sertifikat_profesi",
+  "sertifikat_vaksin",
+  "surat_bebas_narkoba",
+  "surat_domisili",
+  "surat_keterangan_catatan_akademik",
+  "surat_keterangan_lulus",
+  "kartu_keluarga_sejahtera",
+  "hasil_medical_checkup",
+  "hasil_tes_psikologi",
+  "hasil_tes_narkoba",
+  "demo_reel",
+  "karya_tulis",
+  "publikasi",
+  "piagam",
+  "lainnya",
 ]);
 
 const DEFAULT_PDF_PRESET = {
@@ -124,6 +174,14 @@ export type DocumentStorageStats = {
   remaining: number;
 };
 
+type DocumentFindManyWhere = NonNullable<
+  Parameters<typeof prisma.document.findMany>[0]
+>["where"];
+
+type DocumentFindManyOrderBy = NonNullable<
+  Parameters<typeof prisma.document.findMany>[0]
+>["orderBy"];
+
 const execFileAsync = promisify(execFile);
 
 export class DocumentService {
@@ -131,7 +189,7 @@ export class DocumentService {
     const [user, usage] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { documentStorageLimit: true },
+        select: { subscriptionPlan: true },
       }),
       prisma.document.aggregate({
         where: { userId },
@@ -144,11 +202,13 @@ export class DocumentService {
     }
 
     const used = usage._sum.size ?? 0;
-    const limit = user.documentStorageLimit;
+    const limit = getPlan(
+      resolvePlanId(user.subscriptionPlan)
+    ).maxDocumentStorageBytes;
     return {
       limit,
       used,
-      remaining: Math.max(0, limit - used),
+      remaining: isUnlimitedLimit(limit) ? -1 : Math.max(0, limit - used),
     };
   }
   static async list(
@@ -160,7 +220,7 @@ export class DocumentService {
       query
     );
 
-    const where: Prisma.DocumentWhereInput = {
+    const where: DocumentFindManyWhere = {
       userId,
     };
 
@@ -198,19 +258,19 @@ export class DocumentService {
 
     if (filters.q) {
       const search = filters.q;
-      const searchConditions: Prisma.DocumentWhereInput[] = [
+      const searchConditions: DocumentFindManyWhere[] = [
         { originalName: { contains: search } },
         { mimeType: { contains: search } },
       ];
-      if (Object.values(DocumentType).includes(search as DocumentType)) {
-        searchConditions.push({ type: search as DocumentType });
+      if (DOCUMENT_TYPES.has(search)) {
+        searchConditions.push({ type: search as PrismaDocument["type"] });
       }
-      where.OR = searchConditions;
+      (where as { OR?: DocumentFindManyWhere[] }).OR = searchConditions;
     }
 
     const sortFieldMap: Record<
       DocumentListQuery["sort_by"],
-      keyof Prisma.DocumentOrderByWithRelationInput
+      "createdAt" | "updatedAt" | "originalName" | "size" | "type"
     > = {
       created_at: "createdAt",
       updated_at: "updatedAt",
@@ -218,7 +278,7 @@ export class DocumentService {
       size: "size",
       type: "type",
     };
-    const orderBy: Prisma.DocumentOrderByWithRelationInput = {
+    const orderBy: DocumentFindManyOrderBy = {
       [sortFieldMap[filters.sort_by] ?? "createdAt"]: filters.sort_order,
     };
 
@@ -419,7 +479,7 @@ export class DocumentService {
     });
 
     await Promise.all(
-      documents.map((doc) => DocumentService.removeFile(doc.path))
+      documents.map((doc: { path: string }) => DocumentService.removeFile(doc.path))
     );
 
     return {
@@ -432,8 +492,6 @@ export class DocumentService {
     userId: string,
     id: string
   ): Promise<DocumentDownloadResult> {
-    await SystemSettingService.assertDownloadsEnabled("document");
-
     const document = await DocumentService.findOwnedDocument(userId, id);
     if (!document.path) {
       throw new ResponseError(404, "Dokumen tidak tersedia");
@@ -472,7 +530,7 @@ export class DocumentService {
     const [user, usage] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { documentStorageLimit: true },
+        select: { subscriptionPlan: true },
       }),
       prisma.document.aggregate({
         where: { userId },
@@ -484,11 +542,19 @@ export class DocumentService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
+    const limit = getPlan(
+      resolvePlanId(user.subscriptionPlan)
+    ).maxDocumentStorageBytes;
+
+    if (isUnlimitedLimit(limit)) {
+      return;
+    }
+
     const currentUsage = usage._sum.size ?? 0;
-    if (currentUsage + additionalBytes > user.documentStorageLimit) {
+    if (currentUsage + additionalBytes > limit) {
       const limitMb = Math.max(
         1,
-        Math.floor(user.documentStorageLimit / (1024 * 1024))
+        Math.floor(limit / (1024 * 1024))
       );
       throw new ResponseError(
         400,

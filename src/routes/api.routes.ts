@@ -23,6 +23,17 @@ import { DocumentController } from "../controllers/document.controller";
 import { PublicController } from "../controllers/public.controller";
 import { DashboardController } from "../controllers/dashboard.controller";
 import { BlogController } from "../controllers/blog.controller";
+import { SubscriptionController } from "../controllers/subscription.controller";
+import {
+  checkApplicationDuplicateAccess,
+  checkApplicationLetterLimit,
+  checkApplicationLetterDuplicateAccess,
+  checkApplicationTrackerLimit,
+  checkCvLimit,
+  checkCvDuplicateAccess,
+  checkDocumentAccess,
+  checkPremiumTemplate,
+} from "../middleware/plan-limit.middleware";
 // Admin controllers
 import { DashboardController as AdminDashboardController } from "../controllers/admin/dashboard.controller";
 import { UserController } from "../controllers/admin/user.controller";
@@ -30,7 +41,7 @@ import { TemplateController } from "../controllers/admin/template.controller";
 import { BlogController as AdminBlogController } from "../controllers/admin/blog.controller";
 import { BlogCategoryController } from "../controllers/admin/blog-category.controller";
 import { BlogTagController } from "../controllers/admin/blog-tag.controller";
-import { SystemSettingController } from "../controllers/admin/system-setting.controller";
+import { SubscriptionController as AdminSubscriptionController } from "../controllers/admin/subscription.controller";
 
 // Job Portal controllers
 import { JobController } from "../controllers/job.controller";
@@ -63,6 +74,11 @@ router.get("/dashboard", authMiddleware, DashboardController.getStats);
 
 // Templates API (public, no authentication required)
 router.get("/templates", PublicController.getTemplates);
+router.get("/subscriptions/plans", SubscriptionController.getPlans);
+router.post(
+  "/subscriptions/midtrans/notification",
+  SubscriptionController.handleMidtransNotification,
+);
 
 // Auth API
 router.post("/auth/register", AuthController.register);
@@ -87,6 +103,21 @@ router.put(
   authMiddleware,
   AccountController.changePassword,
 );
+router.get(
+  "/subscriptions/my",
+  authMiddleware,
+  SubscriptionController.getMySubscription,
+);
+router.post(
+  "/subscriptions/order",
+  authMiddleware,
+  SubscriptionController.createOrder,
+);
+router.delete(
+  "/subscriptions/:id",
+  authMiddleware,
+  SubscriptionController.cancel,
+);
 
 // OTP API
 router.post("/auth/verify-otp", loginRateLimiter, AuthController.verifyOtp);
@@ -99,7 +130,12 @@ router.post("/auth/check-otp-status", AuthController.checkOtpStatus);
 
 // Applications API
 router.get("/applications", authMiddleware, ApplicationController.list);
-router.post("/applications", authMiddleware, ApplicationController.create);
+router.post(
+  "/applications",
+  authMiddleware,
+  checkApplicationTrackerLimit,
+  ApplicationController.create,
+);
 router.get(
   "/applications/stats",
   authMiddleware,
@@ -120,6 +156,8 @@ router.delete(
 router.post(
   "/applications/:id/duplicate",
   authMiddleware,
+  checkApplicationDuplicateAccess,
+  checkApplicationTrackerLimit,
   ApplicationController.duplicate,
 );
 
@@ -132,6 +170,8 @@ router.get(
 router.post(
   "/application-letters",
   authMiddleware,
+  checkApplicationLetterLimit,
+  checkPremiumTemplate,
   ApplicationLetterController.create,
 );
 router.delete(
@@ -147,6 +187,7 @@ router.get(
 router.put(
   "/application-letters/:id",
   authMiddleware,
+  checkPremiumTemplate,
   ApplicationLetterController.update,
 );
 router.delete(
@@ -157,6 +198,8 @@ router.delete(
 router.post(
   "/application-letters/:id/duplicate",
   authMiddleware,
+  checkApplicationLetterDuplicateAccess,
+  checkApplicationLetterLimit,
   ApplicationLetterController.duplicate,
 );
 router.get(
@@ -179,36 +222,66 @@ router.delete("/portfolios/:id", authMiddleware, PortfolioController.delete);
 
 // CVs API
 router.get("/cvs", authMiddleware, CvController.list);
-router.post("/cvs", authMiddleware, CvController.create);
+router.post(
+  "/cvs",
+  authMiddleware,
+  checkCvLimit,
+  checkPremiumTemplate,
+  CvController.create,
+);
 router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
 router.get("/cvs/:id", authMiddleware, CvController.get);
-router.put("/cvs/:id", authMiddleware, CvController.update);
+router.put(
+  "/cvs/:id",
+  authMiddleware,
+  checkPremiumTemplate,
+  CvController.update,
+);
 router.patch(
   "/cvs/:id/visibility",
   authMiddleware,
   CvController.updateSlugVisibility,
 );
 router.delete("/cvs/:id", authMiddleware, CvController.delete);
-router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
+router.post(
+  "/cvs/:id/duplicate",
+  authMiddleware,
+  checkCvDuplicateAccess,
+  checkCvLimit,
+  CvController.duplicate,
+);
 router.get("/cvs/:id/download", authMiddleware, CvController.download);
 
 // Documents API
-router.get("/documents", authMiddleware, DocumentController.list);
+router.get(
+  "/documents",
+  authMiddleware,
+  checkDocumentAccess,
+  DocumentController.list,
+);
 router.post(
   "/documents",
   authMiddleware,
+  checkDocumentAccess,
   handleDocumentUpload,
   DocumentController.create,
 );
 router.delete(
   "/documents/mass-delete",
   authMiddleware,
+  checkDocumentAccess,
   DocumentController.massDelete,
 );
-router.delete("/documents/:id", authMiddleware, DocumentController.delete);
+router.delete(
+  "/documents/:id",
+  authMiddleware,
+  checkDocumentAccess,
+  DocumentController.delete,
+);
 router.get(
   "/documents/:id/download",
   authMiddleware,
+  checkDocumentAccess,
   DocumentController.download,
 );
 
@@ -238,18 +311,47 @@ router.get(
   AdminDashboardController.getStats,
 );
 
-// Admin System Settings API
 router.get(
-  "/admin/system-settings",
+  "/admin/subscriptions",
   authMiddleware,
   adminMiddleware,
-  SystemSettingController.list,
+  AdminSubscriptionController.list,
 );
-router.put(
-  "/admin/system-settings",
+router.post(
+  "/admin/subscriptions",
   authMiddleware,
   adminMiddleware,
-  SystemSettingController.bulkUpdate,
+  AdminSubscriptionController.create,
+);
+router.get(
+  "/admin/subscriptions/:id",
+  authMiddleware,
+  adminMiddleware,
+  AdminSubscriptionController.get,
+);
+router.patch(
+  "/admin/subscriptions/:id/approve",
+  authMiddleware,
+  adminMiddleware,
+  AdminSubscriptionController.manualApprove,
+);
+router.patch(
+  "/admin/subscriptions/:id/cancel",
+  authMiddleware,
+  adminMiddleware,
+  AdminSubscriptionController.manualCancel,
+);
+router.patch(
+  "/admin/subscriptions/:id/fail",
+  authMiddleware,
+  adminMiddleware,
+  AdminSubscriptionController.markFailed,
+);
+router.patch(
+  "/admin/subscriptions/users/:userId/downgrade",
+  authMiddleware,
+  adminMiddleware,
+  AdminSubscriptionController.forceDowngrade,
 );
 
 // Admin Users API
@@ -288,18 +390,6 @@ router.patch(
   authMiddleware,
   adminMiddleware,
   UserController.updateStatus,
-);
-router.patch(
-  "/admin/users/:id/daily-download-limit",
-  authMiddleware,
-  adminMiddleware,
-  UserController.updateDailyDownloadLimit,
-);
-router.patch(
-  "/admin/users/:id/storage-download-limit",
-  authMiddleware,
-  adminMiddleware,
-  UserController.updateStorageLimit,
 );
 router.delete(
   "/admin/users/:id",

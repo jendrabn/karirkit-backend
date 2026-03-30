@@ -31,6 +31,45 @@ const parseNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseDurationSeconds = (
+  value: string | undefined,
+  fallback: number
+): number => {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric)) {
+    return Math.max(0, Math.ceil(numeric));
+  }
+
+  const match = trimmed.match(/^(\d+(?:\.\d+)?)(ms|s|m|h|d)$/);
+  if (!match) {
+    return fallback;
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2];
+  if (!Number.isFinite(amount)) {
+    return fallback;
+  }
+
+  const multiplier =
+    unit === "ms"
+      ? 1 / 1000
+      : unit === "s"
+        ? 1
+        : unit === "m"
+          ? 60
+          : unit === "h"
+            ? 3600
+            : 86400;
+
+  return Math.max(0, Math.ceil(amount * multiplier));
+};
+
 const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
   if (value === undefined) {
     return fallback;
@@ -125,9 +164,9 @@ const env = {
     db: parseNumber(process.env.REDIS_DB, 0),
   },
   otp: {
-    enabled: process.env.OTP_ENABLED === "true",
-    expiresInSeconds: parseNumber(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
-    resendCooldownInSeconds: parseNumber(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
+    enabled: parseBoolean(process.env.OTP_ENABLED, false),
+    expiresInSeconds: parseDurationSeconds(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
+    resendCooldownInSeconds: parseDurationSeconds(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
   },
   documentStorageLimitMaxBytes: parseNumber(
     process.env.DOCUMENT_STORAGE_LIMIT_MAX_BYTES,
@@ -146,7 +185,15 @@ const env = {
     60
   ),
   libreOfficeCommand: process.env.LIBREOFFICE_COMMAND ?? "soffice",
-  pdfDownloadEnabled: process.env.PDF_DOWNLOAD_ENABLED !== "false",
+  pdfDownloadEnabled: parseBoolean(process.env.PDF_DOWNLOAD_ENABLED, true),
+  midtrans: {
+    serverKey: resolveOptional(process.env.MIDTRANS_SERVER_KEY) ?? "",
+    clientKey: resolveOptional(process.env.MIDTRANS_CLIENT_KEY) ?? "",
+    isProduction: parseBoolean(process.env.MIDTRANS_IS_PRODUCTION, false),
+    notificationUrl: resolveOptional(
+      process.env.MIDTRANS_NOTIFICATION_URL ?? undefined
+    ),
+  },
 };
 
 export default env;

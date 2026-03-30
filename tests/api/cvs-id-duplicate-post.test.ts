@@ -14,10 +14,16 @@ const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let CvService: typeof import("../../src/services/cv.service").CvService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
+let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        cv: { count: jest.fn() },
+      },
+    }));
     jest.doMock("../../src/services/cv.service", () => ({
       CvService: {
         duplicate: jest.fn(),
@@ -27,6 +33,7 @@ beforeAll(async () => {
 
   ({ default: app } = await import("../../src/index"));
   ({ CvService } = await import("../../src/services/cv.service"));
+  ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
   ));
@@ -42,8 +49,14 @@ describe("POST /cvs/:id/duplicate", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
+  const getPrisma = () =>
+    prismaMock as unknown as {
+      cv: { count: jest.Mock };
+    };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    getPrisma().cv.count.mockResolvedValue(0);
   });
 
   it("duplicates the cv record", async () => {
@@ -55,7 +68,7 @@ describe("POST /cvs/:id/duplicate", () => {
 
     const response = await request(app)
       .post(`/cvs/${validId}/duplicate`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("data");
@@ -79,11 +92,44 @@ describe("POST /cvs/:id/duplicate", () => {
 
     const response = await request(app)
       .post(`/cvs/${validId}/duplicate`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("CV tidak ditemukan");
+  });
+
+  it("allows duplication for free users", async () => {
+    const duplicateMock = jest.mocked(CvService.duplicate);
+    duplicateMock.mockResolvedValue({
+      id: "660e8400-e29b-41d4-a716-446655440000",
+      name: "CV Salinan",
+    } as never);
+
+    const response = await request(app)
+      .post(`/cvs/${validId}/duplicate`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(201);
+    expect(response.body.data).toMatchObject({
+      id: "660e8400-e29b-41d4-a716-446655440000",
+      name: "CV Salinan",
+    });
+  });
+
+  it("blocks duplication for admins when their plan CV limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.cv.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post(`/cvs/${validId}/duplicate`)
+      .set("Authorization", "Bearer admin-free-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "User telah mencapai batas maksimum CV"
+    );
+    expect(response.body.code).toBe("CV_LIMIT_REACHED");
   });
 });
 
@@ -115,7 +161,9 @@ describe("POST /cvs/:id/duplicate", () => {
 
   it("duplicates the cv record", async () => {
     const prisma = await loadPrisma();
-    const { user } = await createRealUser("cv-duplicate");
+    const { user } = await createRealUser("cv-duplicate", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture("cv", "cv-duplicate");
@@ -150,7 +198,9 @@ describe("POST /cvs/:id/duplicate", () => {
   });
 
   it("returns 404 when the cv cannot be duplicated", async () => {
-    const { user } = await createRealUser("cv-duplicate-missing");
+    const { user } = await createRealUser("cv-duplicate-missing", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
 

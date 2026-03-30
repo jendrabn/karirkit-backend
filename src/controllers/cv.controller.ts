@@ -3,7 +3,6 @@ import { CvService } from "../services/cv.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { ResponseError } from "../utils/response-error.util";
 import { DownloadLogService } from "../services/download-log.service";
-import { DownloadType } from "../generated/prisma/client";
 
 export class CvController {
   static async list(req: Request, res: Response, next: NextFunction) {
@@ -106,7 +105,11 @@ export class CvController {
         : req.query.format;
       const format = typeof rawFormat === "string" ? rawFormat : undefined;
 
-      await DownloadLogService.checkDownloadLimit(req.user!.id);
+      await DownloadLogService.checkDownloadLimit(
+        req.user!.id,
+        "cv",
+        format === "pdf" ? "pdf" : "docx"
+      );
       const document = await CvService.download(
         req.user!.id,
         req.params.id,
@@ -115,9 +118,10 @@ export class CvController {
 
       await DownloadLogService.logDownload(
         req.user!.id,
-        DownloadType.cv,
+        "cv",
         req.params.id,
-        document.fileName
+        document.fileName,
+        format === "pdf" ? "pdf" : "docx"
       );
 
       res.setHeader("Content-Type", document.mimeType);

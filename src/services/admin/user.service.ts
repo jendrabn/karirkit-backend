@@ -4,6 +4,7 @@ import type {
   Prisma,
   Platform,
 } from "../../generated/prisma/client";
+import type { UserWhereInput } from "../../generated/prisma/models/User";
 import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma.config";
 import { ResponseError } from "../../utils/response-error.util";
@@ -11,9 +12,16 @@ import { validate } from "../../utils/validate.util";
 import { UserValidation } from "../../validations/admin/user.validation";
 import {
   DownloadLogService,
+  type DownloadStatsBucket,
   type DownloadStats,
 } from "../../services/download-log.service";
-import { SystemSettingService } from "../../services/system-setting.service";
+import {
+  buildUserSubscriptionState,
+  getCombinedDownloadLimit,
+  getPlan,
+  isUnlimitedLimit,
+  resolvePlanId,
+} from "../../config/subscription-plans.config";
 
 type SafeUser = {
   id: string;
@@ -73,8 +81,6 @@ type CreateUserRequest = {
   birth_date?: string | null;
   role?: "user" | "admin";
   avatar?: string | null;
-  daily_download_limit?: number;
-  document_storage_limit?: number;
   social_links?: UserSocialLinkPayload[];
 };
 
@@ -90,8 +96,6 @@ type UpdateUserRequest = {
   birth_date?: string | null;
   role?: "user" | "admin";
   avatar?: string | null;
-  daily_download_limit?: number;
-  document_storage_limit?: number;
   social_links?: UserSocialLinkPayload[];
   status?: "active" | "suspended" | "banned";
   status_reason?: string | null;
@@ -118,8 +122,7 @@ type RawUserRecord = {
   birthDate: Date | null;
   avatar: string | null;
   emailVerifiedAt: Date | null;
-  dailyDownloadLimit: number;
-  documentStorageLimit: number;
+  subscriptionPlan: string;
   status: string;
   statusReason: string | null;
   suspendedUntil: Date | null;
@@ -127,21 +130,62 @@ type RawUserRecord = {
   updatedAt: Date | null;
 };
 
+type StorageUsageRow = {
+  userId: string;
+  _sum: {
+    size: number | null;
+  };
+};
+
 const buildDownloadStats = (
   user: RawUserRecord,
-  todayCounts: Record<string, number>,
-  totalCounts: Record<string, number>
+  summaryTodayCounts: Record<string, number>,
+  summaryTotalCounts: Record<string, number>,
+  cvTodayCounts: Record<string, number>,
+  cvTotalCounts: Record<string, number>,
+  applicationLetterTodayCounts: Record<string, number>,
+  applicationLetterTotalCounts: Record<string, number>
 ): DownloadStats => {
-  const limit = user.role === "admin" ? 999999 : user.dailyDownloadLimit;
-  const todayCount = todayCounts[user.id] ?? 0;
-  const totalCount = totalCounts[user.id] ?? 0;
+  const planId = resolvePlanId(user.subscriptionPlan);
+  const plan = getPlan(planId);
+  const limit = getCombinedDownloadLimit(planId);
+  const todayCount = summaryTodayCounts[user.id] ?? 0;
+  const totalCount = summaryTotalCounts[user.id] ?? 0;
+  const cvTodayCount = cvTodayCounts[user.id] ?? 0;
+  const cvTotalCount = cvTotalCounts[user.id] ?? 0;
+  const applicationLetterTodayCount = applicationLetterTodayCounts[user.id] ?? 0;
+  const applicationLetterTotalCount = applicationLetterTotalCounts[user.id] ?? 0;
+
+  const buildBucket = (
+    bucketLimit: number,
+    bucketTodayCount: number,
+    bucketTotalCount: number
+  ): DownloadStatsBucket => ({
+    daily_limit: bucketLimit,
+    today_count: bucketTodayCount,
+    remaining: isUnlimitedLimit(bucketLimit)
+      ? -1
+      : Math.max(0, bucketLimit - bucketTodayCount),
+    total_count: bucketTotalCount,
+  });
 
   return {
     daily_limit: limit,
     today_count: todayCount,
-    remaining:
-      limit === 999999 ? 999999 : Math.max(0, limit - todayCount),
+    remaining: isUnlimitedLimit(limit)
+      ? -1
+      : Math.max(0, limit - todayCount),
     total_count: totalCount,
+    cv: buildBucket(
+      plan.cvDownloadsPerDay,
+      cvTodayCount,
+      cvTotalCount
+    ),
+    application_letter: buildBucket(
+      plan.applicationLetterDownloadsPerDay,
+      applicationLetterTodayCount,
+      applicationLetterTotalCount
+    ),
   };
 };
 
@@ -150,43 +194,51 @@ const formatSafeUser = (
   downloadStats: DownloadStats,
   storageUsed: number,
   socialLinks: UserSocialLink[]
-): SafeUser => ({
-  id: user.id,
-  name: user.name,
-  username: user.username,
-  email: user.email,
-  role: user.role,
-  phone: user.phone,
-  headline: user.headline,
-  bio: user.bio,
-  location: user.location,
-  gender: user.gender,
-  birth_date: user.birthDate ? user.birthDate.toISOString().slice(0, 10) : null,
-  avatar: user.avatar,
-  email_verified_at: user.emailVerifiedAt
-    ? user.emailVerifiedAt.toISOString()
-    : null,
-  daily_download_limit: user.dailyDownloadLimit,
-  document_storage_limit: user.documentStorageLimit,
-  document_storage_stats: buildDocumentStorageStats(
-    user.documentStorageLimit,
-    storageUsed
-  ),
-  social_links: socialLinks.map((record) => ({
-    id: record.id,
-    user_id: record.userId,
-    platform: record.platform,
-    url: record.url,
-  })),
-  status: user.status,
-  status_reason: user.statusReason,
-  suspended_until: user.suspendedUntil
-    ? user.suspendedUntil.toISOString()
-    : null,
-  created_at: user.createdAt?.toISOString() || "",
-  updated_at: user.updatedAt?.toISOString() || "",
-  download_stats: downloadStats,
-});
+): SafeUser => {
+  const plan = getPlan(resolvePlanId(user.subscriptionPlan));
+  const dailyDownloadLimit = getCombinedDownloadLimit(
+    resolvePlanId(user.subscriptionPlan)
+  );
+  const documentStorageLimit = plan.maxDocumentStorageBytes;
+
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    headline: user.headline,
+    bio: user.bio,
+    location: user.location,
+    gender: user.gender,
+    birth_date: user.birthDate ? user.birthDate.toISOString().slice(0, 10) : null,
+    avatar: user.avatar,
+    email_verified_at: user.emailVerifiedAt
+      ? user.emailVerifiedAt.toISOString()
+      : null,
+    daily_download_limit: dailyDownloadLimit,
+    document_storage_limit: documentStorageLimit,
+    document_storage_stats: buildDocumentStorageStats(
+      documentStorageLimit,
+      storageUsed
+    ),
+    social_links: socialLinks.map((record) => ({
+      id: record.id,
+      user_id: record.userId,
+      platform: record.platform,
+      url: record.url,
+    })),
+    status: user.status,
+    status_reason: user.statusReason,
+    suspended_until: user.suspendedUntil
+      ? user.suspendedUntil.toISOString()
+      : null,
+    created_at: user.createdAt?.toISOString() || "",
+    updated_at: user.updatedAt?.toISOString() || "",
+    download_stats: downloadStats,
+  };
+};
 
 const buildDocumentStorageStats = (
   limit: number,
@@ -194,7 +246,7 @@ const buildDocumentStorageStats = (
 ): { limit: number; used: number; remaining: number } => ({
   limit,
   used,
-  remaining: Math.max(0, limit - used),
+  remaining: isUnlimitedLimit(limit) ? -1 : Math.max(0, limit - used),
 });
 
 const normalizeNullableString = (
@@ -239,8 +291,8 @@ const sortFieldMap = {
 
 export class UserService {
   private static normalizeWhereAnd(
-    value: Prisma.UserWhereInput["AND"]
-  ): Prisma.UserWhereInput[] {
+    value: UserWhereInput["AND"]
+  ): UserWhereInput[] {
     if (!value) {
       return [];
     }
@@ -281,7 +333,7 @@ export class UserService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.UserWhereInput = {};
+    const where: UserWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -343,20 +395,9 @@ export class UserService {
       }
     }
 
-    if (
-      requestData.daily_download_limit_from !== undefined ||
-      requestData.daily_download_limit_to !== undefined
-    ) {
-      where.dailyDownloadLimit = {};
-      if (requestData.daily_download_limit_from !== undefined) {
-        where.dailyDownloadLimit.gte = requestData.daily_download_limit_from;
-      }
-      if (requestData.daily_download_limit_to !== undefined) {
-        where.dailyDownloadLimit.lte = requestData.daily_download_limit_to;
-      }
-    }
-
     const needsDerivedData =
+      requestData.daily_download_limit_from !== undefined ||
+      requestData.daily_download_limit_to !== undefined ||
       requestData.document_storage_used_from !== undefined ||
       requestData.document_storage_used_to !== undefined ||
       requestData.download_total_count_from !== undefined ||
@@ -378,8 +419,7 @@ export class UserService {
       birthDate: true,
       avatar: true,
       emailVerifiedAt: true,
-      dailyDownloadLimit: true,
-      documentStorageLimit: true,
+      subscriptionPlan: true,
       status: true,
       statusReason: true,
       suspendedUntil: true,
@@ -413,9 +453,29 @@ export class UserService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayCounts, totalCounts, storageUsageRows] = await Promise.all([
+    const [
+      todayCounts,
+      totalCounts,
+      todayCvCounts,
+      totalCvCounts,
+      todayApplicationLetterCounts,
+      totalApplicationLetterCounts,
+      storageUsageRows,
+    ] = await Promise.all([
       DownloadLogService.countDownloadsByUsers(userIds, today),
       DownloadLogService.countDownloadsByUsers(userIds),
+      DownloadLogService.countDownloadsByUsers(userIds, today, "cv"),
+      DownloadLogService.countDownloadsByUsers(userIds, undefined, "cv"),
+      DownloadLogService.countDownloadsByUsers(
+        userIds,
+        today,
+        "application_letter"
+      ),
+      DownloadLogService.countDownloadsByUsers(
+        userIds,
+        undefined,
+        "application_letter"
+      ),
       userIds.length
         ? prisma.document.groupBy({
             by: ["userId"],
@@ -425,13 +485,12 @@ export class UserService {
         : Promise.resolve([]),
     ]);
 
-    const storageUsage = storageUsageRows.reduce<Record<string, number>>(
-      (acc, row) => {
+    const storageUsage = (storageUsageRows as StorageUsageRow[]).reduce<
+      Record<string, number>
+    >((acc: Record<string, number>, row: StorageUsageRow) => {
         acc[row.userId] = row._sum.size ?? 0;
         return acc;
-      },
-      {}
-    );
+      }, {});
 
     const socialLinks = userIds.length
       ? await prisma.userSocialLink.findMany({
@@ -450,7 +509,15 @@ export class UserService {
     }, {});
 
     const formattedUsers = records.map((user) => {
-      const downloadStats = buildDownloadStats(user, todayCounts, totalCounts);
+      const downloadStats = buildDownloadStats(
+        user,
+        todayCounts,
+        totalCounts,
+        todayCvCounts,
+        totalCvCounts,
+        todayApplicationLetterCounts,
+        totalApplicationLetterCounts
+      );
       return formatSafeUser(
         user,
         downloadStats,
@@ -461,6 +528,18 @@ export class UserService {
 
     const applyDerivedFilters = (items: SafeUser[]) =>
       items.filter((user) => {
+        if (
+          requestData.daily_download_limit_from !== undefined &&
+          user.daily_download_limit < requestData.daily_download_limit_from
+        ) {
+          return false;
+        }
+        if (
+          requestData.daily_download_limit_to !== undefined &&
+          user.daily_download_limit > requestData.daily_download_limit_to
+        ) {
+          return false;
+        }
         if (
           requestData.document_storage_used_from !== undefined &&
           user.document_storage_stats.used <
@@ -585,8 +664,7 @@ export class UserService {
         birthDate: true,
         avatar: true,
         emailVerifiedAt: true,
-        dailyDownloadLimit: true,
-        documentStorageLimit: true,
+        subscriptionPlan: true,
         status: true,
         statusReason: true,
         suspendedUntil: true,
@@ -612,11 +690,7 @@ export class UserService {
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
     const requestData = validate(UserValidation.CREATE, request);
-    const [defaultDailyDownloadLimit, defaultDocumentStorageLimit] =
-      await Promise.all([
-        SystemSettingService.getDefaultDailyDownloadLimit(),
-        SystemSettingService.getDefaultDocumentStorageLimit(),
-      ]);
+    const freePlan = buildUserSubscriptionState("free");
 
     // Check if email already exists
     const existingEmail = await prisma.user.count({
@@ -660,12 +734,8 @@ export class UserService {
           birthDate: normalizedBirthDate,
           role: requestData.role,
           avatar: normalizedAvatar,
-          dailyDownloadLimit:
-            requestData.daily_download_limit ?? defaultDailyDownloadLimit,
-          documentStorageLimit:
-            requestData.document_storage_limit === undefined
-              ? defaultDocumentStorageLimit
-              : Math.floor(requestData.document_storage_limit),
+          subscriptionPlan: freePlan.subscriptionPlan,
+          subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -683,8 +753,7 @@ export class UserService {
           birthDate: true,
           avatar: true,
           emailVerifiedAt: true,
-          dailyDownloadLimit: true,
-          documentStorageLimit: true,
+          subscriptionPlan: true,
           status: true,
           statusReason: true,
           suspendedUntil: true,
@@ -811,16 +880,6 @@ export class UserService {
       updateData.avatar = normalizeNullableString(requestData.avatar);
     }
 
-    if (requestData.daily_download_limit !== undefined) {
-      updateData.dailyDownloadLimit = requestData.daily_download_limit;
-    }
-
-    if (requestData.document_storage_limit !== undefined) {
-      updateData.documentStorageLimit = Math.floor(
-        requestData.document_storage_limit
-      );
-    }
-
     if (
       requestData.status === undefined &&
       (requestData.status_reason !== undefined ||
@@ -879,8 +938,7 @@ export class UserService {
           birthDate: true,
           avatar: true,
           emailVerifiedAt: true,
-          dailyDownloadLimit: true,
-          documentStorageLimit: true,
+          subscriptionPlan: true,
           status: true,
           statusReason: true,
           suspendedUntil: true,
@@ -972,123 +1030,7 @@ export class UserService {
         birthDate: true,
         avatar: true,
         emailVerifiedAt: true,
-        dailyDownloadLimit: true,
-        documentStorageLimit: true,
-        status: true,
-        statusReason: true,
-        suspendedUntil: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    const [downloadStats, storageUsed, socialLinks] = await Promise.all([
-      DownloadLogService.getDownloadStats(user.id),
-      getStorageUsageForUser(user.id),
-      prisma.userSocialLink.findMany({
-        where: { userId: id },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      }),
-    ]);
-    return formatSafeUser(user, downloadStats, storageUsed, socialLinks);
-  }
-
-  static async updateDailyDownloadLimit(
-    id: string,
-    request: unknown
-  ): Promise<SafeUser> {
-    const existingUser = await prisma.user.findFirst({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const requestData = validate(
-      UserValidation.DAILY_DOWNLOAD_LIMIT_UPDATE,
-      request
-    );
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        updatedAt: new Date(),
-        dailyDownloadLimit: requestData.daily_download_limit,
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        phone: true,
-        headline: true,
-        bio: true,
-        location: true,
-        gender: true,
-        birthDate: true,
-        avatar: true,
-        emailVerifiedAt: true,
-        dailyDownloadLimit: true,
-        documentStorageLimit: true,
-        status: true,
-        statusReason: true,
-        suspendedUntil: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    const [downloadStats, storageUsed, socialLinks] = await Promise.all([
-      DownloadLogService.getDownloadStats(user.id),
-      getStorageUsageForUser(user.id),
-      prisma.userSocialLink.findMany({
-        where: { userId: id },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      }),
-    ]);
-    return formatSafeUser(user, downloadStats, storageUsed, socialLinks);
-  }
-
-  static async updateStorageLimit(
-    id: string,
-    request: unknown
-  ): Promise<SafeUser> {
-    const existingUser = await prisma.user.findFirst({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const requestData = validate(UserValidation.STORAGE_LIMIT_UPDATE, request);
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        updatedAt: new Date(),
-        documentStorageLimit: Math.floor(
-          requestData.document_storage_limit
-        ),
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        phone: true,
-        headline: true,
-        bio: true,
-        location: true,
-        gender: true,
-        birthDate: true,
-        avatar: true,
-        emailVerifiedAt: true,
-        dailyDownloadLimit: true,
-        documentStorageLimit: true,
+        subscriptionPlan: true,
         status: true,
         statusReason: true,
         suspendedUntil: true,

@@ -5,6 +5,10 @@ import type {
   Prisma,
 } from "../../generated/prisma/client";
 import type {
+  BlogOrderByWithRelationInput,
+  BlogWhereInput,
+} from "../../generated/prisma/models/Blog";
+import type {
   Blog as BlogResponse,
   BlogCategory,
   BlogTag,
@@ -82,7 +86,7 @@ export class BlogService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogWhereInput = {};
+    const where: BlogWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -169,7 +173,7 @@ export class BlogService {
     const sortField =
       sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
       "createdAt";
-    const orderBy: Prisma.BlogOrderByWithRelationInput = {
+    const orderBy: BlogOrderByWithRelationInput = {
       [sortField]: requestData.sort_order,
     };
 

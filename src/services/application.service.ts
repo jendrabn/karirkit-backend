@@ -3,6 +3,10 @@ import type {
   Prisma,
 } from "../generated/prisma/client";
 import type {
+  ApplicationOrderByWithRelationInput,
+  ApplicationWhereInput,
+} from "../generated/prisma/models/Application";
+import type {
   Application as ApplicationResponse,
   Pagination,
 } from "../types/api-schemas";
@@ -21,10 +25,31 @@ type ApplicationListResult = {
   pagination: Pagination;
 };
 
-type ApplicationMutableFields = Omit<
-  Prisma.ApplicationUncheckedCreateInput,
-  "id" | "userId" | "createdAt" | "updatedAt"
->;
+type ApplicationMutableFields = {
+  companyName: string;
+  companyUrl: string | null;
+  position: string;
+  jobSource: string | null;
+  jobType: PrismaApplication["jobType"];
+  workSystem: PrismaApplication["workSystem"];
+  salaryMin: bigint | null;
+  salaryMax: bigint | null;
+  location: string | null;
+  date: Date;
+  status: PrismaApplication["status"];
+  resultStatus: PrismaApplication["resultStatus"];
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  followUpDate: Date | null;
+  followUpNote: string | null;
+  jobUrl: string | null;
+  notes: string | null;
+};
+
+type ApplicationFindManyWhere = ApplicationWhereInput;
+
+type ApplicationFindManyOrderBy = ApplicationOrderByWithRelationInput;
 
 const sortFieldMap = {
   date: "date",
@@ -38,12 +63,14 @@ const sortFieldMap = {
 
 export class ApplicationService {
   private static normalizeWhereAnd(
-    value: Prisma.ApplicationWhereInput["AND"]
-  ): Prisma.ApplicationWhereInput[] {
+    value: ApplicationFindManyWhere | ApplicationFindManyWhere[] | undefined
+  ): ApplicationFindManyWhere[] {
     if (!value) {
       return [];
     }
-    return Array.isArray(value) ? value : [value];
+    return (Array.isArray(value) ? value : [value]).filter(
+      (item): item is ApplicationFindManyWhere => Boolean(item)
+    );
   }
 
   static async list(
@@ -57,7 +84,7 @@ export class ApplicationService {
     const page = filters.page;
     const perPage = filters.per_page;
 
-    const where: Prisma.ApplicationWhereInput = {
+    const where: ApplicationFindManyWhere = {
       userId,
     };
 
@@ -122,7 +149,7 @@ export class ApplicationService {
       filters.follow_up_date_has !== undefined ||
       filters.follow_up_overdue !== undefined
     ) {
-      const followUpConditions: Prisma.ApplicationWhereInput[] = [];
+      const followUpConditions: ApplicationFindManyWhere[] = [];
 
       if (filters.follow_up_date_has === true) {
         followUpConditions.push({ followUpDate: { not: null } });
@@ -160,15 +187,18 @@ export class ApplicationService {
       }
 
       if (followUpConditions.length) {
-        where.AND = [
+        const mergedConditions = [
           ...ApplicationService.normalizeWhereAnd(where.AND),
           ...followUpConditions,
-        ];
+        ].filter(
+          (item): item is ApplicationFindManyWhere => Boolean(item)
+        );
+        where.AND = mergedConditions as ApplicationFindManyWhere[];
       }
     }
 
     if (filters.salary_from !== undefined || filters.salary_to !== undefined) {
-      const salaryFilters: Prisma.ApplicationWhereInput[] = [
+      const salaryFilters: ApplicationFindManyWhere[] = [
         {
           NOT: { AND: [{ salaryMin: null }, { salaryMax: null }] },
         },
@@ -194,14 +224,15 @@ export class ApplicationService {
         }
       }
 
-      where.AND = [
+      const mergedConditions = [
         ...ApplicationService.normalizeWhereAnd(where.AND),
         ...salaryFilters,
-      ];
+      ].filter((item): item is ApplicationFindManyWhere => Boolean(item));
+      where.AND = mergedConditions as ApplicationFindManyWhere[];
     }
 
     const sortField = sortFieldMap[filters.sort_by] ?? "date";
-    const orderBy: Prisma.ApplicationOrderByWithRelationInput = {
+    const orderBy: ApplicationFindManyOrderBy = {
       [sortField]: filters.sort_order,
     };
 
@@ -219,7 +250,9 @@ export class ApplicationService {
       totalItems === 0 ? 0 : Math.ceil(totalItems / Math.max(perPage, 1));
 
     return {
-      items: records.map((record) => ApplicationService.toResponse(record)),
+      items: records.map((record: PrismaApplication) =>
+        ApplicationService.toResponse(record)
+      ),
       pagination: {
         page,
         per_page: perPage,

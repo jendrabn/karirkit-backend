@@ -1,12 +1,16 @@
 import type { Request, Response, NextFunction, Express } from "express";
 import multer, { MulterError } from "multer";
 import { ResponseError } from "../utils/response-error.util";
-import { SystemSettingService } from "../services/system-setting.service";
 import {
   ALL_VERIFIED_UPLOAD_MIME_TYPES,
   VERIFIED_UPLOAD_MIME_TYPES,
   applyVerifiedMimeType,
 } from "../utils/file-signature.util";
+
+const TEMP_UPLOAD_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const BLOG_UPLOAD_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const DOCUMENT_UPLOAD_MAX_SIZE_BYTES = 25 * 1024 * 1024;
+const DOCUMENT_UPLOAD_MAX_FILE_COUNT = 20;
 
 const documentMimeTypes = new Set<string>(VERIFIED_UPLOAD_MIME_TYPES.document);
 
@@ -116,13 +120,7 @@ export const handleTempUpload = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const config = await SystemSettingService.getTempUploadConfig();
-    if (!config.enabled) {
-      next(new ResponseError(503, "Fitur upload sementara sedang dinonaktifkan"));
-      return;
-    }
-
-    const upload = createSingleUpload(config.maxSizeBytes, (_req, file, cb) => {
+    const upload = createSingleUpload(TEMP_UPLOAD_MAX_SIZE_BYTES, (_req, file, cb) => {
       if (ALL_VERIFIED_UPLOAD_MIME_TYPES.includes(file.mimetype.toLowerCase() as any)) {
         cb(null, true);
         return;
@@ -148,7 +146,7 @@ export const handleTempUpload = async (
         err,
         next,
         `File size must be less than or equal to ${Math.floor(
-          config.maxSizeBytes / (1024 * 1024)
+          TEMP_UPLOAD_MAX_SIZE_BYTES / (1024 * 1024)
         )} MB`
       );
     });
@@ -163,13 +161,7 @@ export const handleBlogUpload = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const config = await SystemSettingService.getBlogUploadConfig();
-    if (!config.enabled) {
-      next(new ResponseError(503, "Fitur upload blog sedang dinonaktifkan"));
-      return;
-    }
-
-    const upload = createSingleUpload(config.maxSizeBytes, (_req, file, cb) => {
+    const upload = createSingleUpload(BLOG_UPLOAD_MAX_SIZE_BYTES, (_req, file, cb) => {
       if (ALL_VERIFIED_UPLOAD_MIME_TYPES.includes(file.mimetype.toLowerCase() as any)) {
         cb(null, true);
         return;
@@ -195,7 +187,7 @@ export const handleBlogUpload = async (
         err,
         next,
         `File size must be less than or equal to ${Math.floor(
-          config.maxSizeBytes / (1024 * 1024)
+          BLOG_UPLOAD_MAX_SIZE_BYTES / (1024 * 1024)
         )} MB`
       );
     });
@@ -210,15 +202,9 @@ export const handleDocumentUpload = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const config = await SystemSettingService.getDocumentUploadConfig();
-    if (!config.enabled) {
-      next(new ResponseError(503, "Fitur upload dokumen sedang dinonaktifkan"));
-      return;
-    }
-
     const upload = createAnyUpload(
-      config.maxSizeBytes,
-      config.maxFileCount,
+      DOCUMENT_UPLOAD_MAX_SIZE_BYTES,
+      DOCUMENT_UPLOAD_MAX_FILE_COUNT,
       (_req, file, cb) => {
         if (ALL_VERIFIED_UPLOAD_MIME_TYPES.includes(file.mimetype.toLowerCase() as any)) {
           cb(null, true);
@@ -246,11 +232,11 @@ export const handleDocumentUpload = async (
           return;
         }
 
-        if (files.length > config.maxFileCount) {
+        if (files.length > DOCUMENT_UPLOAD_MAX_FILE_COUNT) {
           next(
             new ResponseError(
               400,
-              `Maksimal ${config.maxFileCount} file per unggahan`
+              `Maksimal ${DOCUMENT_UPLOAD_MAX_FILE_COUNT} file per unggahan`
             )
           );
           return;
@@ -261,7 +247,7 @@ export const handleDocumentUpload = async (
         err,
         next,
         `File size must be less than or equal to ${Math.floor(
-          config.maxSizeBytes / (1024 * 1024)
+          DOCUMENT_UPLOAD_MAX_SIZE_BYTES / (1024 * 1024)
         )} MB`
       );
     });

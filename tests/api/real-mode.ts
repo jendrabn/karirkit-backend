@@ -13,6 +13,8 @@ type RealUserOverrides = Partial<{
   status: "active" | "suspended" | "banned";
   statusReason: string | null;
   suspendedUntil: Date | null;
+  planId: "free" | "pro" | "max";
+  subscriptionExpiresAt: Date | null;
 }>;
 
 export const buildUniqueAuthPayload = (label: string) => {
@@ -62,9 +64,20 @@ export const createRealUser = async (
   overrides: RealUserOverrides = {},
 ) => {
   const prisma = await loadPrisma();
-  const [{ default: bcrypt }] = await Promise.all([import("bcrypt")]);
+  const [{ default: bcrypt }, { buildUserSubscriptionState }] = await Promise.all([
+    import("bcrypt"),
+    import("../../src/config/subscription-plans.config"),
+  ]);
   const seed = buildUniqueAuthPayload(label);
   const plainPassword = overrides.plainPassword ?? seed.password;
+  const planId = overrides.planId ?? "free";
+  const subscriptionExpiresAt =
+    overrides.subscriptionExpiresAt ??
+    (planId === "free" ? null : new Date("2030-01-01T00:00:00.000Z"));
+  const subscriptionState = buildUserSubscriptionState(
+    planId,
+    subscriptionExpiresAt,
+  );
 
   const user = await prisma.user.create({
     data: {
@@ -76,6 +89,8 @@ export const createRealUser = async (
       status: overrides.status ?? "active",
       statusReason: overrides.statusReason ?? null,
       suspendedUntil: overrides.suspendedUntil ?? null,
+      subscriptionPlan: subscriptionState.subscriptionPlan,
+      subscriptionExpiresAt: subscriptionState.subscriptionExpiresAt,
       createdAt: new Date(),
       updatedAt: new Date(),
     },

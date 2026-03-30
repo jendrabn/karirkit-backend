@@ -10,6 +10,24 @@ import type {
   CvSocialLink as PrismaCvSocialLink,
   CvOrganization as PrismaCvOrganization,
 } from "../generated/prisma/client";
+import type {
+  CvOrderByWithRelationInput,
+  CvWhereInput,
+} from "../generated/prisma/models/Cv";
+import type { CvEducationCreateWithoutCvInput } from "../generated/prisma/models/CvEducation";
+import type { CvCertificateCreateWithoutCvInput } from "../generated/prisma/models/CvCertificate";
+import type {
+  CvExperienceCreateWithoutCvInput,
+  CvExperienceWhereInput,
+} from "../generated/prisma/models/CvExperience";
+import type {
+  CvSkillCreateWithoutCvInput,
+  CvSkillWhereInput,
+} from "../generated/prisma/models/CvSkill";
+import type { CvAwardCreateWithoutCvInput } from "../generated/prisma/models/CvAward";
+import type { CvSocialLinkCreateWithoutCvInput } from "../generated/prisma/models/CvSocialLink";
+import type { CvOrganizationCreateWithoutCvInput } from "../generated/prisma/models/CvOrganization";
+import type { CvProjectCreateWithoutCvInput } from "../generated/prisma/models/CvProject";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -46,7 +64,6 @@ import {
   type CvSocialLinkPayloadInput,
 } from "../validations/cv.validation";
 import { ResponseError } from "../utils/response-error.util";
-import { SystemSettingService } from "./system-setting.service";
 
 type CvListResult = {
   items: CvResponse[];
@@ -89,7 +106,7 @@ const sortFieldMap = {
   name: "name",
   views: "views",
   headline: "headline",
-} as const satisfies Record<string, keyof Prisma.CvOrderByWithRelationInput>;
+} as const satisfies Record<string, keyof CvOrderByWithRelationInput>;
 
 const relationInclude = {
   educations: {
@@ -122,7 +139,7 @@ export class CvService {
   static async list(userId: string, query: unknown): Promise<CvListResult> {
     const filters: CvListQueryInput = validate(CvValidation.LIST_QUERY, query);
 
-    const where: Prisma.CvWhereInput = {
+    const where: CvWhereInput = {
       userId,
     };
 
@@ -226,7 +243,7 @@ export class CvService {
     }
 
     if (filters.experiences_job_type?.length || filters.experiences_is_current !== undefined) {
-      const experienceFilters: Prisma.CvExperienceWhereInput = {};
+      const experienceFilters: CvExperienceWhereInput = {};
       if (filters.experiences_job_type?.length) {
         experienceFilters.jobType = { in: filters.experiences_job_type };
       }
@@ -239,7 +256,7 @@ export class CvService {
     }
 
     if (filters.skills_level?.length || filters.skills_skill_category?.length) {
-      const skillFilters: Prisma.CvSkillWhereInput = {};
+      const skillFilters: CvSkillWhereInput = {};
       if (filters.skills_level?.length) {
         skillFilters.level = { in: filters.skills_level };
       }
@@ -260,7 +277,7 @@ export class CvService {
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";
-    const orderBy: Prisma.CvOrderByWithRelationInput = {
+    const orderBy: CvOrderByWithRelationInput = {
       [orderByField]: filters.sort_order,
     };
 
@@ -404,10 +421,6 @@ export class CvService {
   }
 
   static async getPublicBySlug(slug: string): Promise<CvResponse> {
-    if (!(await SystemSettingService.getBoolean("public.cv.enabled"))) {
-      throw new ResponseError(503, "CV publik sedang dinonaktifkan");
-    }
-
     const cv = await prisma.cv.findFirst({
       where: {
         slug,
@@ -804,7 +817,9 @@ export class CvService {
     const baseName = CvService.buildFileName(cv);
 
     if (normalized === "pdf") {
-      await SystemSettingService.assertDownloadsEnabled("cv", "pdf");
+      if (!env.pdfDownloadEnabled) {
+        throw new ResponseError(503, "Fitur unduh PDF untuk CV sedang dinonaktifkan.");
+      }
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
@@ -816,8 +831,6 @@ export class CvService {
     if (normalized !== "docx") {
       throw new ResponseError(400, "Format unduhan tidak didukung");
     }
-
-    await SystemSettingService.assertDownloadsEnabled("cv", "docx");
 
     const fileName = `${baseName}.docx`;
 
@@ -886,7 +899,7 @@ export class CvService {
 
   private static mapEducationCreate(
     record: CvEducationPayloadInput
-  ): Prisma.CvEducationCreateWithoutCvInput {
+  ): CvEducationCreateWithoutCvInput {
     return {
       degree: record.degree,
       schoolName: record.school_name,
@@ -926,7 +939,7 @@ export class CvService {
 
   private static mapCertificateCreate(
     record: CvCertificatePayloadInput
-  ): Prisma.CvCertificateCreateWithoutCvInput {
+  ): CvCertificateCreateWithoutCvInput {
     return {
       title: record.title,
       issuer: record.issuer,
@@ -943,7 +956,7 @@ export class CvService {
 
   private static mapExperienceCreate(
     record: CvExperiencePayloadInput
-  ): Prisma.CvExperienceCreateWithoutCvInput {
+  ): CvExperienceCreateWithoutCvInput {
     return {
       jobTitle: record.job_title,
       companyName: record.company_name,
@@ -960,7 +973,7 @@ export class CvService {
 
   private static mapSkillCreate(
     record: CvSkillPayloadInput
-  ): Prisma.CvSkillCreateWithoutCvInput {
+  ): CvSkillCreateWithoutCvInput {
     return {
       name: record.name,
       level: record.level,
@@ -970,7 +983,7 @@ export class CvService {
 
   private static mapAwardCreate(
     record: CvAwardPayloadInput
-  ): Prisma.CvAwardCreateWithoutCvInput {
+  ): CvAwardCreateWithoutCvInput {
     return {
       title: record.title,
       issuer: record.issuer,
@@ -981,7 +994,7 @@ export class CvService {
 
   private static mapSocialLinkCreate(
     record: CvSocialLinkPayloadInput
-  ): Prisma.CvSocialLinkCreateWithoutCvInput {
+  ): CvSocialLinkCreateWithoutCvInput {
     return {
       platform: record.platform,
       url: record.url,
@@ -990,7 +1003,7 @@ export class CvService {
 
   private static mapOrganizationCreate(
     record: CvOrganizationPayloadInput
-  ): Prisma.CvOrganizationCreateWithoutCvInput {
+  ): CvOrganizationCreateWithoutCvInput {
     return {
       organizationName: record.organization_name,
       roleTitle: record.role_title,
@@ -1007,7 +1020,7 @@ export class CvService {
 
   private static mapProjectCreate(
     record: CvProjectPayloadInput
-  ): Prisma.CvProjectCreateWithoutCvInput {
+  ): CvProjectCreateWithoutCvInput {
     return {
       name: record.name,
       description: record.description ?? null,

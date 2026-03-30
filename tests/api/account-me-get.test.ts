@@ -14,6 +14,18 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {},
+    }));
+    jest.doMock("../../src/services/download-log.service", () => ({
+      DownloadLogService: {},
+    }));
+    jest.doMock("../../src/services/application.service", () => ({
+      ApplicationService: {},
+    }));
+    jest.doMock("../../src/services/application-letter.service", () => ({
+      ApplicationLetterService: {},
+    }));
     jest.doMock("../../src/services/account.service", () => ({
       AccountService: {
         me: jest.fn(),
@@ -150,10 +162,18 @@ describe("GET /account/me", () => {
       platform: "linkedin",
       url: "https://linkedin.com/in/test-user",
     });
-    expect(response.body.data).toHaveProperty("download_stats");
-    expect(response.body.data.download_stats.today_count).toBe(1);
-    expect(response.body.data).toHaveProperty("document_storage_stats");
-    expect(response.body.data.document_storage_stats.used).toBe(2048);
+    expect(response.body.data).not.toHaveProperty("subscription_plan");
+    expect(response.body.data).not.toHaveProperty("subscription_expires_at");
+    expect(response.body.data).not.toHaveProperty("max_cvs");
+    expect(response.body.data).not.toHaveProperty("max_applications");
+    expect(response.body.data).not.toHaveProperty("max_application_letters");
+    expect(response.body.data).not.toHaveProperty("daily_download_limit");
+    expect(response.body.data).not.toHaveProperty("document_storage_limit");
+    expect(response.body.data).not.toHaveProperty("download_limits");
+    expect(response.body.data).not.toHaveProperty("limits");
+    expect(response.body.data).not.toHaveProperty("features");
+    expect(response.body.data).not.toHaveProperty("download_stats");
+    expect(response.body.data).not.toHaveProperty("document_storage_stats");
   });
 
   it("returns 401 when the request is unauthenticated", async () => {

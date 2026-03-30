@@ -48,38 +48,6 @@ export class UserController {
     }
   }
 
-  static async updateDailyDownloadLimit(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const user = await UserService.updateDailyDownloadLimit(
-        req.params.id,
-        req.body
-      );
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async updateStorageLimit(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const user = await UserService.updateStorageLimit(
-        req.params.id,
-        req.body
-      );
-      sendSuccess(res, user);
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await UserService.delete(req.params.id);

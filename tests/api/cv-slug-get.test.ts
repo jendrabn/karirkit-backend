@@ -88,7 +88,6 @@ describe("GET /cv/:slug", () => {
   const trackedEmails = new Set<string>();
   const trackedTemplateIds = new Set<string>();
   const trackedCvIds = new Set<string>();
-  const trackedSettingKeys = ["public.cv.enabled"];
 
   afterEach(async () => {
     const prisma = await loadPrisma();
@@ -102,9 +101,6 @@ describe("GET /cv/:slug", () => {
         where: { id: { in: [...trackedTemplateIds] } },
       });
     }
-    await prisma.systemSetting.deleteMany({
-      where: { key: { in: trackedSettingKeys } },
-    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
     trackedTemplateIds.clear();
@@ -158,38 +154,5 @@ describe("GET /cv/:slug", () => {
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("CV tidak ditemukan");
-  });
-
-  it("returns 503 when public CV access is disabled", async () => {
-    const prisma = await loadPrisma();
-    const { user } = await createRealUser("cv-public-disabled");
-    trackedEmails.add(user.email);
-    const template = await createRealTemplateFixture("cv", "cv-public-disabled");
-    trackedTemplateIds.add(template.id);
-    const cv = await createRealCvFixture(user.id, template.id, {
-      visibility: "public",
-      slug: "disabled-public-cv",
-    });
-    trackedCvIds.add(cv.id);
-    await prisma.systemSetting.create({
-      data: {
-        key: "public.cv.enabled",
-        group: "public",
-        type: "boolean",
-        valueJson: false,
-        defaultValueJson: true,
-        description: "CV publik",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const response = await request(app).get("/cv/disabled-public-cv");
-
-    expect(response.status).toBe(503);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toBe(
-      "CV publik sedang dinonaktifkan"
-    );
   });
 });

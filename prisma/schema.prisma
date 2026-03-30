@@ -27,8 +27,6 @@ model User {
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(0)
   emailVerifiedAt       DateTime?             @map("email_verified_at") @db.Timestamp(0)
-  dailyDownloadLimit    Int                   @default(10) @map("daily_download_limit") @db.Int
-  documentStorageLimit  Int                   @default(104857600) @map("document_storage_limit") @db.Int
   status                UserStatus            @default(active)
   statusReason          String?               @map("status_reason") @db.Text
   suspendedUntil        DateTime?             @map("suspended_until") @db.Timestamp(0)
@@ -41,8 +39,11 @@ model User {
   otps                  Otp[]
   portfolios            Portfolio[]
   savedJobs             SavedJob[]
-  updatedSystemSettings SystemSetting[]       @relation("SystemSettingUpdatedBy")
   socialLinks           UserSocialLink[]
+  subscriptions         Subscription[]
+
+  subscriptionPlan      PlanId                @default(free) @map("subscription_plan")
+  subscriptionExpiresAt DateTime?             @map("subscription_expires_at") @db.Timestamp(0)
 
   @@map("users")
 }
@@ -554,6 +555,7 @@ model DownloadLog {
   id           String       @id @default(uuid()) @db.VarChar(255)
   userId       String       @map("user_id") @db.VarChar(255)
   type         DownloadType
+  format       DownloadFormat @default(docx)
   documentId   String       @map("document_id") @db.VarChar(255)
   documentName String       @map("document_name") @db.VarChar(255)
   downloadedAt DateTime     @default(now()) @map("downloaded_at") @db.Timestamp(0)
@@ -562,6 +564,7 @@ model DownloadLog {
   @@index([userId])
   @@index([downloadedAt])
   @@index([userId, downloadedAt])
+  @@index([userId, type, format, downloadedAt])
   @@map("download_logs")
 }
 
@@ -593,26 +596,6 @@ model UserSocialLink {
   @@index([userId], map: "idx_user_social_links_user_id")
   @@index([platform], map: "idx_user_social_links_platform")
   @@map("user_social_links")
-}
-
-model SystemSetting {
-  id                  String                @id @default(uuid()) @db.VarChar(255)
-  key                 String                @unique @db.VarChar(255)
-  group               String                @db.VarChar(100)
-  type                SystemSettingType
-  valueJson           Json                  @map("value_json")
-  defaultValueJson    Json                  @map("default_value_json")
-  description         String?               @db.Text
-  isPublic            Boolean               @default(false) @map("is_public")
-  isEditable          Boolean               @default(true) @map("is_editable")
-  updatedBy           String?               @map("updated_by") @db.VarChar(255)
-  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamp(0)
-  updatedByUser       User?                 @relation("SystemSettingUpdatedBy", fields: [updatedBy], references: [id])
-
-  @@index([group], map: "idx_system_settings_group")
-  @@index([updatedBy], map: "system_settings_updated_by_fkey")
-  @@map("system_settings")
 }
 
 enum UserRole {
@@ -941,6 +924,11 @@ enum DownloadType {
   application_letter
 }
 
+enum DownloadFormat {
+  pdf
+  docx
+}
+
 enum DocumentType {
   ktp
   kk
@@ -988,9 +976,37 @@ enum DocumentType {
   lainnya
 }
 
-enum SystemSettingType {
-  boolean
-  number
-  string
-  json
+model Subscription {
+  id                  String             @id @default(uuid()) @db.VarChar(255)
+  userId              String             @map("user_id") @db.VarChar(255)
+  plan                PlanId
+  status              SubscriptionStatus @default(pending)
+  midtransOrderId     String             @unique @map("midtrans_order_id") @db.VarChar(255)
+  midtransToken       String?            @map("midtrans_token") @db.VarChar(500)
+  midtransPaymentType String?            @map("midtrans_payment_type") @db.VarChar(100)
+  amount              Int                @db.Int
+  paidAt              DateTime?          @map("paid_at") @db.Timestamp(0)
+  expiresAt           DateTime?          @map("expires_at") @db.Timestamp(0)
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamp(0)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([midtransOrderId])
+  @@map("subscriptions")
+}
+
+enum PlanId {
+  free
+  pro
+  max
+}
+
+enum SubscriptionStatus {
+  pending
+  paid
+  expired
+  failed
+  cancelled
 }

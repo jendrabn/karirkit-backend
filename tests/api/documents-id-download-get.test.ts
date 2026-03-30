@@ -55,7 +55,7 @@ describe("GET /documents/:id/download", () => {
 
     const response = await request(app)
       .get(`/documents/${validId}/download`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(200);
     expect(response.headers["content-type"]).toContain("application/pdf");
@@ -78,11 +78,25 @@ describe("GET /documents/:id/download", () => {
 
     const response = await request(app)
       .get(`/documents/${validId}/download`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
+  });
+
+  it("returns 403 for free users", async () => {
+    const downloadMock = jest.mocked(DocumentService.download);
+
+    const response = await request(app)
+      .get(`/documents/${validId}/download`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(downloadMock).not.toHaveBeenCalled();
   });
 });
 
@@ -108,7 +122,7 @@ describe("GET /documents/:id/download", () => {
   });
 
   it("downloads a stored document", async () => {
-    const { user } = await createRealUser("documents-download");
+    const { user } = await createRealUser("documents-download", { planId: "pro" });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -138,8 +152,12 @@ describe("GET /documents/:id/download", () => {
   });
 
   it("returns 404 when the document belongs to another user", async () => {
-    const { user } = await createRealUser("documents-download-owner");
-    const { user: otherUser } = await createRealUser("documents-download-other");
+    const { user } = await createRealUser("documents-download-owner", {
+      planId: "pro",
+    });
+    const { user: otherUser } = await createRealUser("documents-download-other", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedEmails.add(otherUser.email);
     trackedUserIds.add(user.id);
@@ -157,5 +175,21 @@ describe("GET /documents/:id/download", () => {
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
+  });
+
+  it("returns 403 for free users", async () => {
+    const { user } = await createRealUser("documents-download-free");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .get(`/documents/${validId}/download`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
   });
 });

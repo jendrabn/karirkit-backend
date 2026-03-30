@@ -5,7 +5,6 @@ import {
   UserRole,
   UserStatus,
 } from "../../generated/prisma/client";
-import env from "../../config/env.config";
 import {
   commaSeparatedNativeEnum,
   optionalBooleanSchema,
@@ -66,7 +65,6 @@ const socialLinkSchema = z.object({
   url: trimmedString(500).url("Format URL tidak valid"),
 });
 
-const maxDocumentStorageLimitBytes = env.documentStorageLimitMaxBytes;
 export class UserValidation {
   static readonly LIST_QUERY = z
     .object({
@@ -187,16 +185,6 @@ export class UserValidation {
     birth_date: nullableDateString(),
     role: z.enum(["user", "admin"]).default("user"),
     avatar: z.string().or(z.literal("")).nullable().optional(),
-    daily_download_limit: z.coerce
-      .number()
-      .min(0)
-      .max(1000)
-      .optional(),
-    document_storage_limit: z.coerce
-      .number()
-      .min(0)
-      .max(maxDocumentStorageLimitBytes)
-      .optional(),
     social_links: z.array(socialLinkSchema).optional(),
   });
 
@@ -223,12 +211,6 @@ export class UserValidation {
     birth_date: nullableDateString(),
     role: z.enum(["user", "admin"]).optional(),
     avatar: z.string().or(z.literal("")).nullable().optional(),
-    daily_download_limit: z.coerce.number().min(0).max(1000).optional(),
-    document_storage_limit: z.coerce
-      .number()
-      .min(0)
-      .max(maxDocumentStorageLimitBytes)
-      .optional(),
     social_links: z.array(socialLinkSchema).optional(),
     status: z.enum(["active", "suspended", "banned"]).optional(),
     status_reason: z.string().max(500).or(z.literal("")).nullable().optional(),
@@ -265,17 +247,6 @@ export class UserValidation {
         },
         { message: "Format tanggal penangguhan tidak valid" }
       ),
-  });
-
-  static readonly DAILY_DOWNLOAD_LIMIT_UPDATE = z.object({
-    daily_download_limit: z.coerce.number().min(0).max(1000),
-  });
-
-  static readonly STORAGE_LIMIT_UPDATE = z.object({
-    document_storage_limit: z.coerce
-      .number()
-      .min(0)
-      .max(maxDocumentStorageLimitBytes),
   });
 
   static readonly MASS_DELETE = z.object({

@@ -19,6 +19,18 @@ let UploadService: typeof import("../../src/services/upload.service").UploadServ
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {},
+    }));
+    jest.doMock("../../src/services/download-log.service", () => ({
+      DownloadLogService: {},
+    }));
+    jest.doMock("../../src/services/application.service", () => ({
+      ApplicationService: {},
+    }));
+    jest.doMock("../../src/services/application-letter.service", () => ({
+      ApplicationLetterService: {},
+    }));
     jest.doMock("../../src/services/account.service", () => ({
       AccountService: {
         updateMe: jest.fn(),

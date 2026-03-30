@@ -125,6 +125,35 @@ describe("GET /admin/users/:id", () => {
     expect(response.body.data).toHaveProperty("document_storage_stats");
   });
 
+  it("derives admin target download stats from plan config without admin bypass", async () => {
+    const { user: admin } = await createRealUser("admin-users-get-stats-admin", {
+      role: "admin",
+      planId: "pro",
+    });
+    const { user: target } = await createRealUser("admin-users-get-stats-target", {
+      role: "admin",
+      planId: "free",
+    });
+    trackedEmails.add(admin.email);
+    trackedEmails.add(target.email);
+    const token = await createSessionToken(admin);
+
+    const response = await request(app)
+      .get(`/admin/users/${target.id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.download_stats).toMatchObject({
+      daily_limit: 10,
+      cv: {
+        daily_limit: 5,
+      },
+      application_letter: {
+        daily_limit: 5,
+      },
+    });
+  });
+
   it("returns 403 when the requester is not an admin", async () => {
     const { user } = await createRealUser("admin-users-get-forbidden");
     trackedEmails.add(user.email);

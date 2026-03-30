@@ -50,7 +50,7 @@ describe("GET /documents", () => {
     } as never);
 
     const response = await request(app)
-      .get("/documents").set("Authorization", "Bearer user-token");
+      .get("/documents").set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data.items");
@@ -75,12 +75,40 @@ describe("GET /documents", () => {
     listMock.mockResolvedValue({ items: [], meta: { page: 1, per_page: 20, total: 0 } } as never);
 
     const response = await request(app)
-      .get("/documents").set("Authorization", "Bearer user-token");
+      .get("/documents").set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data.items");
     expect(response.body.data.items).toEqual([]);
     expect(response.body.data.meta.total).toBe(0);
+  });
+
+  it("returns 403 for free users", async () => {
+    const listMock = jest.mocked(DocumentService.list);
+
+    const response = await request(app)
+      .get("/documents")
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(listMock).not.toHaveBeenCalled();
+  });
+
+  it("also returns 403 for admins on free plan", async () => {
+    const listMock = jest.mocked(DocumentService.list);
+
+    const response = await request(app)
+      .get("/documents")
+      .set("Authorization", "Bearer admin-free-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(listMock).not.toHaveBeenCalled();
   });
 });
 
@@ -106,7 +134,7 @@ describe("GET /documents", () => {
   });
 
   it("returns a paginated document list", async () => {
-    const { user } = await createRealUser("documents-list");
+    const { user } = await createRealUser("documents-list", { planId: "pro" });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -142,7 +170,9 @@ describe("GET /documents", () => {
   });
 
   it("supports an empty document state", async () => {
-    const { user } = await createRealUser("documents-list-empty");
+    const { user } = await createRealUser("documents-list-empty", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -155,5 +185,21 @@ describe("GET /documents", () => {
     expect(response.body).toHaveProperty("data.items");
     expect(response.body.data.items).toEqual([]);
     expect(response.body.data.pagination.total_items).toBe(0);
+  });
+
+  it("returns 403 for free users", async () => {
+    const { user } = await createRealUser("documents-list-free");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .get("/documents")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
   });
 });

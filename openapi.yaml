@@ -21,6 +21,7 @@ tags:
   - name: Uploads
   - name: Blogs
   - name: Jobs
+  - name: Subscriptions
   - name: Admin
 paths:
   /auth/register:
@@ -142,7 +143,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AccountUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
     put:
@@ -271,7 +272,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AccountUserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "400":
@@ -338,6 +339,122 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/ValidationError"
+  /subscriptions/plans:
+    get:
+      tags: [Subscriptions]
+      summary: List subscription plans
+      description: Public endpoint that returns all available plans and their flat capabilities.
+      responses:
+        "200":
+          description: Available plans
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlanListResponse"
+  /subscriptions/my:
+    get:
+      tags: [Subscriptions]
+      summary: Get current subscription state
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Current user subscription and effective limits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentSubscriptionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /subscriptions/order:
+    post:
+      tags: [Subscriptions]
+      summary: Create subscription payment order
+      description: Create a Midtrans Snap transaction for a paid subscription plan (`pro` or `max`).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionOrderRequest"
+      responses:
+        "201":
+          description: Subscription order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSubscriptionOrderResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: Failed to create Midtrans transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Midtrans configuration incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /subscriptions/midtrans/notification:
+    post:
+      tags: [Subscriptions]
+      summary: Handle Midtrans notification
+      description: Public webhook endpoint for Midtrans payment notifications.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MidtransNotificationRequest"
+      responses:
+        "200":
+          description: Notification handled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          description: Invalid Midtrans signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /subscriptions/{id}:
+    delete:
+      tags: [Subscriptions]
+      summary: Cancel pending subscription
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Subscription cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -545,6 +662,7 @@ paths:
     post:
       tags: [Applications]
       summary: Create application
+      description: Create a new application tracker entry. The number of entries is limited by the user's subscription plan.
       security:
         - sessionCookie: []
       requestBody:
@@ -562,6 +680,8 @@ paths:
                 $ref: "#/components/schemas/ApplicationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/ValidationError"
   /applications/stats:
@@ -680,6 +800,7 @@ paths:
     post:
       tags: [Applications]
       summary: Duplicate application
+      description: Duplicate an existing application tracker entry. Duplicate access is available for all plans, but the total application tracker quota still follows the user's plan.
       security:
         - sessionCookie: []
       parameters:
@@ -693,6 +814,8 @@ paths:
                 $ref: "#/components/schemas/ApplicationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /application-letters:
@@ -778,6 +901,7 @@ paths:
     post:
       tags: [Application Letters]
       summary: Create application letter
+      description: Create a new application letter. Premium templates and plan quota are enforced by the user's subscription plan.
       security:
         - sessionCookie: []
       requestBody:
@@ -795,6 +919,8 @@ paths:
                 $ref: "#/components/schemas/ApplicationLetterResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/ValidationError"
   /application-letters/{id}:
@@ -819,6 +945,7 @@ paths:
     put:
       tags: [Application Letters]
       summary: Update application letter
+      description: Update an application letter. Premium template access is enforced by the user's subscription plan.
       security:
         - sessionCookie: []
       parameters:
@@ -838,6 +965,8 @@ paths:
                 $ref: "#/components/schemas/ApplicationLetterResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     delete:
@@ -897,6 +1026,7 @@ paths:
     post:
       tags: [Application Letters]
       summary: Duplicate application letter
+      description: Duplicate an existing application letter. Requires duplicate access and available application-letter quota in the current plan.
       security:
         - sessionCookie: []
       parameters:
@@ -910,12 +1040,15 @@ paths:
                 $ref: "#/components/schemas/ApplicationLetterResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /application-letters/{id}/download:
     get:
       tags: [Application Letters]
       summary: Download application letter
+      description: Download an application letter as PDF or DOCX. DOCX uses the daily application-letter quota, while PDF uses both the daily application-letter quota and the PDF-specific application-letter quota.
       security:
         - sessionCookie: []
       parameters:
@@ -943,6 +1076,8 @@ paths:
                 $ref: "#/components/schemas/DownloadUrlResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1354,6 +1489,7 @@ paths:
       description: >
         Submit the entire CV definition (profile, sections, and optional `photo` path) in a single JSON payload.
         The referenced `photo` and section attachments must already be uploaded via `/uploads`.
+        Premium templates and plan quota are enforced by the user's subscription plan.
       security:
         - sessionCookie: []
       requestBody:
@@ -1371,6 +1507,8 @@ paths:
                 $ref: "#/components/schemas/CvResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/ValidationError"
   /cvs/{id}:
@@ -1398,7 +1536,7 @@ paths:
       summary: Update CV
       description: >
         Replace the CV with a new `CvPayload`, syncing every section (educations, experiences, etc.) and the `photo` path
-        exactly as provided in the request body.
+        exactly as provided in the request body. Premium template access is enforced by the user's subscription plan.
       security:
         - sessionCookie: []
       parameters:
@@ -1418,9 +1556,11 @@ paths:
                 $ref: "#/components/schemas/CvResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-  /cvs/{id}/visibilty:
+  /cvs/{id}/visibility:
     patch:
       tags: [CVs]
       summary: Update CV slug and visibility
@@ -1489,7 +1629,7 @@ paths:
     post:
       tags: [CVs]
       summary: Duplicate CV
-      description: Create a new CV by cloning every field, section, and photo reference from the source CV.
+      description: Create a new CV by cloning every field, section, and photo reference from the source CV. Requires duplicate access and available CV quota in the current plan.
       security:
         - sessionCookie: []
       parameters:
@@ -1503,12 +1643,15 @@ paths:
                 $ref: "#/components/schemas/CvResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /cvs/{id}/download:
     get:
       tags: [CVs]
       summary: Download CV (PDF/DOCX)
+      description: Download a CV as PDF or DOCX. DOCX uses the daily CV quota, while PDF uses both the daily CV quota and the PDF-specific CV quota.
       security:
         - sessionCookie: []
       parameters:
@@ -1536,6 +1679,8 @@ paths:
                 $ref: "#/components/schemas/DownloadUrlResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1568,7 +1713,7 @@ paths:
     get:
       tags: [Documents]
       summary: List documents
-      description: List documents owned by the authenticated user with optional filtering.
+      description: List documents owned by the authenticated user with optional filtering. Document management is only available for plans that enable document access.
       security:
         - sessionCookie: []
       parameters:
@@ -1624,6 +1769,8 @@ paths:
                 $ref: "#/components/schemas/DocumentListResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags: [Documents]
       summary: Upload documents
@@ -1671,10 +1818,13 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /documents/mass-delete:
     delete:
       tags: [Documents]
       summary: Delete multiple documents
+      description: Delete multiple documents owned by the authenticated user. Document access is only available for plans that enable document management.
       security:
         - sessionCookie: []
       requestBody:
@@ -1694,12 +1844,15 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /documents/{id}:
     delete:
       tags: [Documents]
       summary: Delete a document
+      description: Delete a stored document. Document access is only available for plans that enable document management.
       security:
         - sessionCookie: []
       parameters:
@@ -1709,13 +1862,15 @@ paths:
           description: Document deleted
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /documents/{id}/download:
     get:
       tags: [Documents]
       summary: Download a document
-      description: Retrieve the binary content for a stored document.
+      description: Retrieve the binary content for a stored document. Document access is only available for plans that enable document management.
       security:
         - sessionCookie: []
       parameters:
@@ -1730,6 +1885,8 @@ paths:
                 format: binary
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /dashboard:
@@ -1969,49 +2126,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
-  /admin/system-settings:
-    get:
-      tags: [Admin]
-      summary: List system settings
-      description: List all available system settings
-      security:
-        - sessionCookie: []
-      responses:
-        "200":
-          description: System settings list
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminSystemSettingListResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    put:
-      tags: [Admin]
-      summary: Update multiple system settings
-      description: Update editable system settings in one request using a full settings JSON payload
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminBulkUpdateSystemSettingRequest"
-      responses:
-        "200":
-          description: Updated system settings
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminSystemSettingListResponse"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
   /admin/users:
     get:
       tags: [Admin]
@@ -2230,64 +2344,207 @@ paths:
           $ref: "#/components/responses/NotFound"
         "400":
           $ref: "#/components/responses/ValidationError"
-  /admin/users/{id}/daily-download-limit:
-    patch:
+  /admin/subscriptions:
+    get:
       tags: [Admin]
-      summary: Update daily download limit
+      summary: List subscriptions
       security:
         - sessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/SortOrder"
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, paid_at, expires_at, amount]
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values of pending, paid, expired, failed, cancelled
+        - name: plan
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values of free, pro, max
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: created_at_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_at_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: amount_from
+          in: query
+          schema:
+            type: integer
+        - name: amount_to
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscription list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSubscriptionListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: Create manual subscription
+      security:
+        - sessionCookie: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AdminUpdateUserDailyDownloadLimitRequest"
+              $ref: "#/components/schemas/AdminCreateSubscriptionRequest"
       responses:
-        "200":
-          description: Updated user
+        "201":
+          description: Manual subscription created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminSubscriptionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-  /admin/users/{id}/storage-download-limit:
-    patch:
+  /admin/subscriptions/{id}:
+    get:
       tags: [Admin]
-      summary: Update document storage limit
+      summary: Get subscription detail
       security:
         - sessionCookie: []
       parameters:
         - $ref: "#/components/parameters/ResourceId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminUpdateUserStorageLimitRequest"
       responses:
         "200":
-          description: Updated user
+          description: Subscription detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/AdminSubscriptionResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/subscriptions/{id}/approve:
+    patch:
+      tags: [Admin]
+      summary: Manually approve subscription
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Subscription approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/subscriptions/{id}/cancel:
+    patch:
+      tags: [Admin]
+      summary: Manually cancel subscription
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Subscription cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/subscriptions/{id}/fail:
+    patch:
+      tags: [Admin]
+      summary: Mark subscription as failed
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Subscription marked as failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/subscriptions/users/{userId}/downgrade:
+    patch:
+      tags: [Admin]
+      summary: Force downgrade user to Free
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User downgraded to Free
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -4388,7 +4645,7 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
-      description: Forbidden - Admin access required
+      description: Forbidden
       content:
         application/json:
           schema:
@@ -4403,6 +4660,10 @@ components:
             type: array
             items:
               type: string
+        code:
+          type: string
+          nullable: true
+      additionalProperties: true
     MessageResponse:
       type: object
       properties:
@@ -4483,18 +4744,95 @@ components:
         email_verified_at:
           type: string
           format: date-time
+        subscription_plan:
+          $ref: "#/components/schemas/PlanId"
+        subscription_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        max_cvs:
+          type: integer
+        max_applications:
+          type: integer
+        max_application_letters:
+          type: integer
         download_stats:
           $ref: "#/components/schemas/DownloadStats"
         daily_download_limit:
           type: integer
-          default: 10
-          description: Daily download limit for CVs and Application Letters
+          description: Aggregate document download limit per day across CV and application letter
         document_storage_limit:
           type: integer
-          default: 100
-          description: Total document storage limit in MB
+          description: Total document storage limit in bytes
+        download_limits:
+          $ref: "#/components/schemas/PlanDownloadLimits"
+        limits:
+          $ref: "#/components/schemas/AccountUserLimits"
+        features:
+          $ref: "#/components/schemas/PlanFeatures"
         document_storage_stats:
           $ref: "#/components/schemas/DocumentStorageStats"
+        social_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSocialLink"
+        status:
+          $ref: "#/components/schemas/UserStatus"
+          default: active
+        status_reason:
+          type: string
+          nullable: true
+          description: Optional reason provided by admin
+        suspended_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Suspension expiry timestamp (if applicable)
+    AccountUser:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        headline:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        gender:
+          $ref: "#/components/schemas/Gender"
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        role:
+          $ref: "#/components/schemas/UserRole"
+        avatar:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        email_verified_at:
+          type: string
+          format: date-time
         social_links:
           type: array
           items:
@@ -5849,6 +6187,11 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/User"
+    AccountUserResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AccountUser"
     AuthUserResponse:
       type: object
       properties:
@@ -6176,74 +6519,6 @@ components:
                 admin:
                   type: integer
               description: Distribution of users by role
-    SystemSettingValue:
-      oneOf:
-        - type: boolean
-        - type: integer
-        - type: string
-        - type: object
-          additionalProperties: true
-        - type: array
-          items: {}
-    SystemSetting:
-      type: object
-      properties:
-        id:
-          type: string
-          nullable: true
-        key:
-          type: string
-        group:
-          type: string
-          enum: [system, auth, downloads, public, uploads, limits]
-        type:
-          type: string
-          enum: [boolean, number, string, json]
-        value:
-          $ref: "#/components/schemas/SystemSettingValue"
-        default_value:
-          $ref: "#/components/schemas/SystemSettingValue"
-        description:
-          type: string
-        is_public:
-          type: boolean
-        is_editable:
-          type: boolean
-        source:
-          type: string
-          enum: [default, database]
-        updated_by:
-          type: string
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-    SystemSettingResponse:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/SystemSetting"
-    AdminSystemSettingListResponse:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: "#/components/schemas/SystemSetting"
-    AdminBulkUpdateSystemSettingRequest:
-      type: object
-      additionalProperties: true
-      description: >
-        Full settings JSON. Supports nested objects such as auth.registration.enabled
-        or flat dot-notation keys.
     AdminUserSocialLinkPayload:
       type: object
       properties:
@@ -6339,13 +6614,6 @@ components:
         avatar:
           type: string
           nullable: true
-        daily_download_limit:
-          type: integer
-          default: 10
-        document_storage_limit:
-          type: integer
-          default: 100
-          description: Document storage limit in MB
         social_links:
           type: array
           items:
@@ -6385,11 +6653,6 @@ components:
         avatar:
           type: string
           nullable: true
-        daily_download_limit:
-          type: integer
-        document_storage_limit:
-          type: integer
-          description: Document storage limit in MB
         social_links:
           type: array
           items:
@@ -6420,19 +6683,6 @@ components:
           nullable: true
           description: Suspension expiry timestamp (UTC)
       required: [status]
-    AdminUpdateUserDailyDownloadLimitRequest:
-      type: object
-      properties:
-        daily_download_limit:
-          type: integer
-      required: [daily_download_limit]
-    AdminUpdateUserStorageLimitRequest:
-      type: object
-      properties:
-        document_storage_limit:
-          type: integer
-          description: Document storage limit in MB
-      required: [document_storage_limit]
     AdminUserListResponse:
       type: object
       properties:
@@ -7213,18 +7463,311 @@ components:
           type: integer
         total_count:
           type: integer
+        cv:
+          $ref: "#/components/schemas/DownloadStatsBucket"
+        application_letter:
+          $ref: "#/components/schemas/DownloadStatsBucket"
+    DownloadStatsBucket:
+      type: object
+      properties:
+        daily_limit:
+          type: integer
+        today_count:
+          type: integer
+        remaining:
+          type: integer
+        total_count:
+          type: integer
+    PlanId:
+      type: string
+      enum: [free, pro, max]
+    SubscriptionStatus:
+      type: string
+      enum: [pending, paid, expired, failed, cancelled]
+    PlanFeatures:
+      type: object
+      properties:
+        canManageDocuments:
+          type: boolean
+        canUsePremiumCvTemplates:
+          type: boolean
+        canUsePremiumApplicationLetterTemplates:
+          type: boolean
+        canUsePremiumTemplates:
+          type: boolean
+        canDuplicateCvs:
+          type: boolean
+        canDuplicateApplications:
+          type: boolean
+        canDuplicateApplicationLetters:
+          type: boolean
+        canDownloadCvPdf:
+          type: boolean
+        canDownloadApplicationLetterPdf:
+          type: boolean
+    PlanDownloadLimits:
+      type: object
+      properties:
+        cvPerDay:
+          type: integer
+        applicationLetterPerDay:
+          type: integer
+        cvPdfPerDay:
+          type: integer
+        applicationLetterPdfPerDay:
+          type: integer
+    AccountUserLimits:
+      type: object
+      properties:
+        maxCvs:
+          type: integer
+        maxApplications:
+          type: integer
+        maxApplicationLetters:
+          type: integer
+        maxDocumentStorageBytes:
+          type: integer
+        downloads:
+          $ref: "#/components/schemas/PlanDownloadLimits"
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/PlanId"
+        name:
+          type: string
+        price:
+          type: integer
+        durationDays:
+          type: integer
+        maxCvs:
+          type: integer
+        maxApplications:
+          type: integer
+        maxApplicationLetters:
+          type: integer
+        maxDocumentStorageBytes:
+          type: integer
+        cvDownloadsPerDay:
+          type: integer
+        applicationLetterDownloadsPerDay:
+          type: integer
+        cvPdfDownloadsPerDay:
+          type: integer
+        applicationLetterPdfDownloadsPerDay:
+          type: integer
+        canManageDocuments:
+          type: boolean
+        canUsePremiumCvTemplates:
+          type: boolean
+        canUsePremiumApplicationLetterTemplates:
+          type: boolean
+        canUsePremiumTemplates:
+          type: boolean
+        canDuplicateCvs:
+          type: boolean
+        canDuplicateApplications:
+          type: boolean
+        canDuplicateApplicationLetters:
+          type: boolean
+        canDownloadCvPdf:
+          type: boolean
+        canDownloadApplicationLetterPdf:
+          type: boolean
+    CurrentSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        plan:
+          $ref: "#/components/schemas/PlanId"
+        status:
+          type: string
+          description: "`active` when the effective user plan is active but there is no pending or paid subscription row to return."
+          enum: [active, pending, paid, expired, failed, cancelled]
+        amount:
+          type: integer
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        midtransOrderId:
+          type: string
+          nullable: true
+        midtransPaymentType:
+          type: string
+          nullable: true
+        currentLimits:
+          $ref: "#/components/schemas/AccountUserLimits"
+        currentFeatures:
+          $ref: "#/components/schemas/PlanFeatures"
+    CurrentSubscriptionResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CurrentSubscription"
+    CreateSubscriptionOrderRequest:
+      type: object
+      properties:
+        planId:
+          $ref: "#/components/schemas/PlanId"
+      required: [planId]
+    CreateSubscriptionOrderResult:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        orderId:
+          type: string
+        snapToken:
+          type: string
+        snapUrl:
+          type: string
+        amount:
+          type: integer
+        plan:
+          $ref: "#/components/schemas/PlanId"
+    CreateSubscriptionOrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CreateSubscriptionOrderResult"
+    MidtransNotificationRequest:
+      type: object
+      required: [order_id, transaction_status, gross_amount]
+      properties:
+        order_id:
+          type: string
+        status_code:
+          oneOf:
+            - type: string
+            - type: number
+        transaction_status:
+          type: string
+        payment_type:
+          type: string
+          nullable: true
+        fraud_status:
+          type: string
+          nullable: true
+        gross_amount:
+          oneOf:
+            - type: string
+            - type: number
+        signature_key:
+          type: string
+          nullable: true
+      additionalProperties: true
+    SubscriptionPlanListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlan"
+    AdminSubscriptionUser:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+    AdminSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        user:
+          $ref: "#/components/schemas/AdminSubscriptionUser"
+        plan:
+          $ref: "#/components/schemas/PlanId"
+        status:
+          type: string
+        amount:
+          type: integer
+        midtransOrderId:
+          type: string
+        midtransToken:
+          type: string
+          nullable: true
+        midtransPaymentType:
+          type: string
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AdminSubscriptionResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AdminSubscription"
+    AdminSubscriptionListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminSubscription"
+            pagination:
+              $ref: "#/components/schemas/Pagination"
+    AdminCreateSubscriptionRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        plan:
+          type: string
+          enum: [pro, max]
+        status:
+          type: string
+          enum: [pending, paid]
+          default: paid
+        amount:
+          type: integer
+        paid_at:
+          type: string
+          format: date-time
+      required: [user_id, plan]
     DocumentStorageStats:
       type: object
       properties:
         limit:
           type: integer
-          description: Storage limit in MB
+          description: Storage limit in bytes
         used:
           type: integer
-          description: Used storage in MB
+          description: Used storage in bytes
         remaining:
           type: integer
-          description: Remaining storage in MB
+          description: Remaining storage in bytes
     UserSocialLink:
       type: object
       properties:

@@ -188,7 +188,7 @@ describe("DELETE /admin/jobs", () => {
     const response = await request(app)
       .delete("/admin/jobs")
       .set("Authorization", `Bearer ${token}`)
-      .send({ ids: jobs.map((job) => job.id) });
+      .send({ ids: jobs.map((job: { id: string }) => job.id) });
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data");
@@ -197,7 +197,7 @@ describe("DELETE /admin/jobs", () => {
     });
 
     const remaining = await prisma.job.findMany({
-      where: { id: { in: jobs.map((job) => job.id) } },
+      where: { id: { in: jobs.map((job: { id: string }) => job.id) } },
     });
     expect(remaining).toHaveLength(0);
   });

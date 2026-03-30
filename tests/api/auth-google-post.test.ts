@@ -135,10 +135,6 @@ describe("POST /auth/google", () => {
     return;
   }
   const trackedEmails = new Set<string>();
-  const trackedSettingKeys = [
-    "limits.user.default_daily_download",
-    "limits.user.default_storage_bytes",
-  ];
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -147,10 +143,6 @@ describe("POST /auth/google", () => {
   });
 
   afterEach(async () => {
-    const prisma = await loadPrisma();
-    await prisma.systemSetting.deleteMany({
-      where: { key: { in: trackedSettingKeys } },
-    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -213,43 +205,10 @@ describe("POST /auth/google", () => {
     expect(response.body.data.email).toBe(user.email);
   });
 
-  it("uses system setting defaults for newly created Google users", async () => {
+  it("uses free plan defaults for newly created Google users", async () => {
     const prisma = await loadPrisma();
     const email = `google-defaults-${Date.now()}@example.com`;
     trackedEmails.add(email);
-
-    await prisma.systemSetting.upsert({
-      where: { key: "limits.user.default_daily_download" },
-      update: {
-        valueJson: 25,
-        defaultValueJson: 10,
-        group: "limits",
-        type: "number",
-      },
-      create: {
-        key: "limits.user.default_daily_download",
-        valueJson: 25,
-        defaultValueJson: 10,
-        group: "limits",
-        type: "number",
-      },
-    });
-    await prisma.systemSetting.upsert({
-      where: { key: "limits.user.default_storage_bytes" },
-      update: {
-        valueJson: 10000000,
-        defaultValueJson: 104857600,
-        group: "limits",
-        type: "number",
-      },
-      create: {
-        key: "limits.user.default_storage_bytes",
-        valueJson: 10000000,
-        defaultValueJson: 104857600,
-        group: "limits",
-        type: "number",
-      },
-    });
 
     mockGooglePayload = {
       sub: `google-defaults-sub-${Date.now()}`,
@@ -266,7 +225,8 @@ describe("POST /auth/google", () => {
 
     const stored = await prisma.user.findUnique({ where: { email } });
     expect(stored).not.toBeNull();
-    expect(stored?.dailyDownloadLimit).toBe(25);
-    expect(stored?.documentStorageLimit).toBe(10000000);
+    expect(stored?.subscriptionPlan).toBe("free");
+    expect(response.body.data.daily_download_limit).toBe(10);
+    expect(response.body.data.document_storage_limit).toBe(0);
   });
 });

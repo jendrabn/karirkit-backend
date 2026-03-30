@@ -10,6 +10,7 @@ jest.setTimeout(20_000);
 
 const importAppFresh = async () => {
   jest.resetModules();
+  jest.unmock("../../src/middleware/system-guard.middleware");
   const module = await import("../../src/index");
   return module.default;
 };

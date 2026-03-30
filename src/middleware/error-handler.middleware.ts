@@ -45,7 +45,12 @@ export const errorHandler = (
   _next: NextFunction
 ): void => {
   if (err instanceof ResponseError) {
-    sendError(res, toErrorPayload(err.details, err.message), err.statusCode);
+    sendError(
+      res,
+      toErrorPayload(err.details, err.message),
+      err.statusCode,
+      err.additionalData
+    );
     return;
   } else if (err instanceof ZodError) {
     const validationErrors = formatZodErrors(err);

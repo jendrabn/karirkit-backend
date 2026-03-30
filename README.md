@@ -115,7 +115,8 @@ REDIS_DB=0
 
 # OTP Configuration
 OTP_ENABLED=true
-OTP_EXPIRES_IN=300
+OTP_EXPIRES_IN=5m
+OTP_RESEND_COOLDOWN=60s
 
 # Google OAuth (Optional)
 GOOGLE_CLIENT_ID="your-google-client-id"
@@ -337,4 +338,3 @@ pm2 reload ecosystem.config.js --env production
 Catatan penting:
 - `npx prisma migrate deploy` tidak akan menghapus data lama kecuali file migration yang Anda buat sendiri memang berisi perubahan destruktif seperti `DROP`, `DELETE`, atau perubahan kolom yang tidak kompatibel.
 - Jangan jalankan `npx prisma db seed` saat redeploy production. File seed proyek ini menghapus data lama dengan `deleteMany()` sebelum mengisi ulang data.
-- Jika hanya ingin mengubah nilai `system_settings`, cukup deploy kode terbaru bila ada perubahan definisi, lalu update nilainya melalui endpoint admin `PUT /admin/system-settings`. Tidak perlu reset atau seed database.

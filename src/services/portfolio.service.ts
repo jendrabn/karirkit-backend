@@ -4,6 +4,10 @@ import type {
   PortfolioTool as PrismaPortfolioTool,
   Prisma,
 } from "../generated/prisma/client";
+import type {
+  PortfolioOrderByWithRelationInput,
+  PortfolioWhereInput,
+} from "../generated/prisma/models/Portfolio";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -70,7 +74,7 @@ const sortFieldMap = {
   industry: "industry",
 } as const satisfies Record<
   string,
-  keyof Prisma.PortfolioOrderByWithRelationInput
+  keyof PortfolioOrderByWithRelationInput
 >;
 
 const portfolioInclude = {
@@ -91,7 +95,7 @@ export class PortfolioService {
       PortfolioValidation.LIST_QUERY,
       query
     );
-    const where: Prisma.PortfolioWhereInput = {
+    const where: PortfolioWhereInput = {
       userId,
     };
 
@@ -163,7 +167,7 @@ export class PortfolioService {
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";
-    const orderBy: Prisma.PortfolioOrderByWithRelationInput = {
+    const orderBy: PortfolioOrderByWithRelationInput = {
       [orderByField]: filters.sort_order,
     };
 

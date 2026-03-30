@@ -40,10 +40,19 @@ const buildApplicationData = (userId: string) => {
 let app: typeof import("../../src/index").default;
 let ApplicationService: typeof import("../../src/services/application.service").ApplicationService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
+let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        application: { count: jest.fn() },
+      },
+    }));
+    jest.doMock("../../src/services/application-letter.service", () => ({
+      ApplicationLetterService: {},
+    }));
     jest.doMock("../../src/services/application.service", () => ({
       ApplicationService: {
         duplicate: jest.fn(),
@@ -52,6 +61,7 @@ beforeAll(async () => {
   }
 
   ({ default: app } = await import("../../src/index"));
+  ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
   ({ ApplicationService } = await import("../../src/services/application.service"));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
@@ -68,8 +78,13 @@ describe("POST /applications/:id/duplicate", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
+  const getPrisma = () =>
+    prismaMock as unknown as {
+      application: { count: jest.Mock };
+    };
   beforeEach(() => {
     jest.clearAllMocks();
+    getPrisma().application.count.mockResolvedValue(0);
   });
 
   it("duplicates the application record", async () => {
@@ -112,6 +127,36 @@ describe("POST /applications/:id/duplicate", () => {
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Lamaran tidak ditemukan");
+  });
+
+  it("blocks duplication when the free application tracker limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.application.count.mockResolvedValue(100);
+
+    const response = await request(app)
+      .post(`/applications/${validId}/duplicate`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Batas maksimum application tracker telah tercapai"
+    );
+    expect(response.body.code).toBe("APPLICATION_LIMIT_REACHED");
+  });
+
+  it("also blocks duplication for admins when their plan application tracker limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.application.count.mockResolvedValue(100);
+
+    const response = await request(app)
+      .post(`/applications/${validId}/duplicate`)
+      .set("Authorization", "Bearer admin-free-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Batas maksimum application tracker telah tercapai"
+    );
+    expect(response.body.code).toBe("APPLICATION_LIMIT_REACHED");
   });
 });
 

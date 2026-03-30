@@ -5,6 +5,10 @@ import type {
   Prisma,
 } from "../generated/prisma/client";
 import type {
+  BlogOrderByWithRelationInput,
+  BlogWhereInput,
+} from "../generated/prisma/models/Blog";
+import type {
   Blog as BlogResponse,
   BlogCategory,
   BlogTag,
@@ -68,7 +72,7 @@ export class BlogService {
     const page = filters.page;
     const perPage = filters.per_page;
 
-    const where: Prisma.BlogWhereInput = {
+    const where: BlogWhereInput = {
       status: filters.status,
     };
 
@@ -114,7 +118,7 @@ export class BlogService {
     }
 
     const sortField = sortFieldMap[filters.sort_by] ?? "publishedAt";
-    const orderBy: Prisma.BlogOrderByWithRelationInput = {
+    const orderBy: BlogOrderByWithRelationInput = {
       [sortField]: filters.sort_order,
     };
 

@@ -51,7 +51,7 @@ describe("DELETE /documents/:id", () => {
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
-      .delete(`/documents/${validId}`).set("Authorization", "Bearer user-token");
+      .delete(`/documents/${validId}`).set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(204);
     expect(response.text).toBe("");
@@ -73,11 +73,25 @@ describe("DELETE /documents/:id", () => {
     );
 
     const response = await request(app)
-      .delete(`/documents/${validId}`).set("Authorization", "Bearer user-token");
+      .delete(`/documents/${validId}`).set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Document tidak ditemukan");
+  });
+
+  it("returns 403 for free users", async () => {
+    const deleteMock = jest.mocked(DocumentService.delete);
+
+    const response = await request(app)
+      .delete(`/documents/${validId}`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(deleteMock).not.toHaveBeenCalled();
   });
 });
 
@@ -103,7 +117,7 @@ describe("DELETE /documents/:id", () => {
   });
 
   it("deletes the document resource", async () => {
-    const { user } = await createRealUser("documents-delete");
+    const { user } = await createRealUser("documents-delete", { planId: "pro" });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -130,7 +144,9 @@ describe("DELETE /documents/:id", () => {
   });
 
   it("returns 404 when the document cannot be found", async () => {
-    const { user } = await createRealUser("documents-delete-missing");
+    const { user } = await createRealUser("documents-delete-missing", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -141,5 +157,21 @@ describe("DELETE /documents/:id", () => {
 
     expect(response.status).toBe(404);
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
+  });
+
+  it("returns 403 for free users", async () => {
+    const { user } = await createRealUser("documents-delete-free");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .delete(`/documents/${validId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
   });
 });

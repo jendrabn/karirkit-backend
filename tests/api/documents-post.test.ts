@@ -51,7 +51,7 @@ describe("POST /documents", () => {
 
     const response = await request(app)
       .post("/documents")
-      .set("Authorization", "Bearer user-token")
+      .set("Authorization", "Bearer pro-token")
       .attach("file", Buffer.from("fake-pdf"), {
         filename: "resume.pdf",
         contentType: "application/pdf",
@@ -82,7 +82,7 @@ describe("POST /documents", () => {
 
     const response = await request(app)
       .post("/documents?merge=true")
-      .set("Authorization", "Bearer user-token")
+      .set("Authorization", "Bearer pro-token")
       .attach("files", Buffer.from("fake-pdf-1"), {
         filename: "resume-1.pdf",
         contentType: "application/pdf",
@@ -99,6 +99,24 @@ describe("POST /documents", () => {
     });
     expect(createMergedMock).toHaveBeenCalledTimes(1);
     expect(createManyMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for free users", async () => {
+    const createMock = jest.mocked(DocumentService.create);
+
+    const response = await request(app)
+      .post("/documents")
+      .set("Authorization", "Bearer user-token")
+      .attach("file", Buffer.from("fake-pdf"), {
+        filename: "resume.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(createMock).not.toHaveBeenCalled();
   });
 });
 
@@ -124,7 +142,7 @@ describe("POST /documents", () => {
   });
 
   it("uploads a single document for the authenticated user", async () => {
-    const { user } = await createRealUser("documents-upload");
+    const { user } = await createRealUser("documents-upload", { planId: "pro" });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -159,7 +177,9 @@ describe("POST /documents", () => {
   });
 
   it("returns 400 for invalid merge options", async () => {
-    const { user } = await createRealUser("documents-upload-invalid-merge");
+    const { user } = await createRealUser("documents-upload-invalid-merge", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -176,5 +196,26 @@ describe("POST /documents", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Opsi merge tidak dikenal");
+  });
+
+  it("returns 403 for free users", async () => {
+    const { user } = await createRealUser("documents-upload-free");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .post("/documents")
+      .set("Authorization", `Bearer ${token}`)
+      .field("type", "cv")
+      .attach("file", Buffer.from("hello document"), {
+        filename: "resume.txt",
+        contentType: "text/plain",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
   });
 });

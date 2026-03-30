@@ -2,6 +2,7 @@ import type {
   BlogCategory as PrismaBlogCategory,
   Prisma,
 } from "../../generated/prisma/client";
+import type { BlogCategoryWhereInput } from "../../generated/prisma/models/BlogCategory";
 import type { BlogCategory } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
@@ -43,7 +44,7 @@ export class BlogCategoryService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogCategoryWhereInput = {};
+    const where: BlogCategoryWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;

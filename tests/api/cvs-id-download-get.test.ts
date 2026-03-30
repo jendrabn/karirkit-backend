@@ -82,6 +82,41 @@ describe("GET /cvs/:id/download", () => {
     );
     expect(response.headers["content-disposition"]).toContain("attachment;");
     expect(logDownloadMock).toHaveBeenCalledTimes(1);
+    expect(checkLimitMock).toHaveBeenCalledWith("user-1", "cv", "docx");
+    expect(logDownloadMock).toHaveBeenCalledWith(
+      "user-1",
+      "cv",
+      validId,
+      "resume.docx",
+      "docx"
+    );
+  });
+
+  it("passes document download limit arguments for PDF downloads", async () => {
+    const downloadMock = jest.mocked(CvService.download);
+    const checkLimitMock = jest.mocked(DownloadLogService.checkDownloadLimit);
+    const logDownloadMock = jest.mocked(DownloadLogService.logDownload);
+    checkLimitMock.mockResolvedValue(undefined as never);
+    logDownloadMock.mockResolvedValue(undefined as never);
+    downloadMock.mockResolvedValue({
+      fileName: "resume.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("pdf-content"),
+    } as never);
+
+    const response = await request(app)
+      .get(`/cvs/${validId}/download?format=pdf`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(200);
+    expect(checkLimitMock).toHaveBeenCalledWith("user-1", "cv", "pdf");
+    expect(logDownloadMock).toHaveBeenCalledWith(
+      "user-1",
+      "cv",
+      validId,
+      "resume.pdf",
+      "pdf"
+    );
   });
 
   it("returns 401 when the request is unauthenticated", async () => {
@@ -157,6 +192,12 @@ describe("GET /cvs/:id/download", () => {
       where: { userId: user.id, documentId: cv.id },
     });
     expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      userId: user.id,
+      documentId: cv.id,
+      type: "cv",
+      format: "docx",
+    });
   });
 
   it("returns 401 when the request is unauthenticated", async () => {

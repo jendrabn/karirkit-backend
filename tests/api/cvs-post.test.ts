@@ -12,10 +12,17 @@ import {
 let app: typeof import("../../src/index").default;
 let CvService: typeof import("../../src/services/cv.service").CvService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
+let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        cv: { count: jest.fn() },
+        template: { findUnique: jest.fn() },
+      },
+    }));
     jest.doMock("../../src/services/cv.service", () => ({
       CvService: {
         create: jest.fn(),
@@ -25,6 +32,7 @@ beforeAll(async () => {
 
   ({ default: app } = await import("../../src/index"));
   ({ CvService } = await import("../../src/services/cv.service"));
+  ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
   ));
@@ -40,8 +48,17 @@ describe("POST /cvs", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
+  const getPrisma = () =>
+    prismaMock as unknown as {
+      cv: { count: jest.Mock };
+      template: { findUnique: jest.Mock };
+    };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    const prisma = getPrisma();
+    prisma.cv.count.mockResolvedValue(0);
+    prisma.template.findUnique.mockResolvedValue(null);
   });
 
   it("creates a cv record", async () => {
@@ -85,6 +102,83 @@ describe("POST /cvs", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Payload tidak valid");
+  });
+
+  it("blocks creation when the free CV limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.cv.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post("/cvs")
+      .set("Authorization", "Bearer user-token")
+      .send(buildCvPayload("template-basic"));
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "User telah mencapai batas maksimum CV"
+    );
+    expect(response.body.code).toBe("CV_LIMIT_REACHED");
+  });
+
+  it("also blocks admins when their plan CV limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.cv.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post("/cvs")
+      .set("Authorization", "Bearer admin-free-token")
+      .send(buildCvPayload("template-basic"));
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "User telah mencapai batas maksimum CV"
+    );
+    expect(response.body.code).toBe("CV_LIMIT_REACHED");
+  });
+
+  it("blocks premium templates for free users", async () => {
+    const prisma = getPrisma();
+    prisma.template.findUnique.mockResolvedValue({
+      id: "template-premium",
+      isPremium: true,
+    });
+
+    const response = await request(app)
+      .post("/cvs")
+      .set("Authorization", "Bearer user-token")
+      .send({
+        name: "CV Premium",
+        template_id: "template-premium",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Template ini khusus untuk pengguna Pro atau Max"
+    );
+    expect(response.body.code).toBe("PREMIUM_TEMPLATE_REQUIRED");
+  });
+
+  it("also blocks premium templates for admins on free plan", async () => {
+    const prisma = getPrisma();
+    prisma.template.findUnique.mockResolvedValue({
+      id: "template-premium",
+      isPremium: true,
+      type: "cv",
+    });
+
+    const response = await request(app)
+      .post("/cvs")
+      .set("Authorization", "Bearer admin-free-token")
+      .send({
+        name: "CV Premium Admin",
+        template_id: "template-premium",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Template ini khusus untuk pengguna Pro atau Max"
+    );
+    expect(response.body.code).toBe("PREMIUM_TEMPLATE_REQUIRED");
   });
 });
 

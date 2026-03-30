@@ -16,6 +16,7 @@ import {
   notFoundHandler,
 } from "./middleware/error-handler.middleware";
 import "./queues/email.queue";
+import "./queues/subscription-expiry.queue";
 import csrfProtectionMiddleware from "./middleware/csrf-protection.middleware";
 
 const app = express();

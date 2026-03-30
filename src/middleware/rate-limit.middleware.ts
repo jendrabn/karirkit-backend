@@ -21,7 +21,9 @@ export const globalRateLimiter = rateLimit({
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS", // Skip rate limit for preflight requests
+  skip: (req) =>
+    req.method === "OPTIONS" ||
+    req.path === "/subscriptions/midtrans/notification",
   handler: buildHandler(60_000, "Too many requests from this IP"),
 });
 

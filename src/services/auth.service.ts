@@ -22,8 +22,8 @@ import {
   DocumentService,
   type DocumentStorageStats,
 } from "./document.service";
-import { SystemSettingService } from "./system-setting.service";
 import { createSessionToken } from "../utils/session-auth.util";
+import { buildUserSubscriptionState } from "../config/subscription-plans.config";
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
@@ -54,10 +54,6 @@ const INVALID_LOGIN_MESSAGE = "Email, username, atau kata sandi salah";
 
 export class AuthService {
   static async register(request: RegisterRequest): Promise<AuthUser> {
-    if (!(await SystemSettingService.isRegistrationEnabled())) {
-      throw new ResponseError(503, "Registrasi akun sedang dinonaktifkan");
-    }
-
     const requestData = validate(AuthValidation.REGISTER, request);
 
     const totalUserWithSameEmail = await prisma.user.count({
@@ -81,14 +77,13 @@ export class AuthService {
     }
 
     requestData.password = await bcrypt.hash(requestData.password, 10);
+    const freePlan = buildUserSubscriptionState("free");
 
     const user = await prisma.user.create({
       data: {
         ...requestData,
-        dailyDownloadLimit:
-          await SystemSettingService.getDefaultDailyDownloadLimit(),
-        documentStorageLimit:
-          await SystemSettingService.getDefaultDocumentStorageLimit(),
+        subscriptionPlan: freePlan.subscriptionPlan,
+        subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -135,7 +130,7 @@ export class AuthService {
     ensureAccountIsActive(user);
 
     // If OTP is enabled, send OTP and return different response
-    if (await SystemSettingService.isOtpEnabled()) {
+    if (env.otp.enabled) {
       // Import OtpService to send OTP
       const { OtpService } = await import("./otp.service");
 
@@ -172,10 +167,6 @@ export class AuthService {
   static async loginWithGoogle(
     request: GoogleLoginRequest
   ): Promise<LoginResult> {
-    if (!(await SystemSettingService.isGoogleLoginEnabled())) {
-      throw new ResponseError(503, "Login Google sedang dinonaktifkan");
-    }
-
     const requestData = validate(AuthValidation.GOOGLE_LOGIN, request);
 
     let payload: TokenPayload | undefined;
@@ -221,11 +212,7 @@ export class AuthService {
       );
       const randomPassword = randomBytes(32).toString("hex");
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
-      const [defaultDailyDownloadLimit, defaultDocumentStorageLimit] =
-        await Promise.all([
-          SystemSettingService.getDefaultDailyDownloadLimit(),
-          SystemSettingService.getDefaultDocumentStorageLimit(),
-        ]);
+      const freePlan = buildUserSubscriptionState("free");
 
       user = await prisma.user.create({
         data: {
@@ -235,8 +222,8 @@ export class AuthService {
           password: hashedPassword,
           googleId,
           avatar,
-          dailyDownloadLimit: defaultDailyDownloadLimit,
-          documentStorageLimit: defaultDocumentStorageLimit,
+          subscriptionPlan: freePlan.subscriptionPlan,
+          subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
           emailVerifiedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -287,10 +274,6 @@ export class AuthService {
   static async sendPasswordResetLink(
     request: ForgotPasswordRequest
   ): Promise<void> {
-    if (!(await SystemSettingService.isPasswordResetEnabled())) {
-      throw new ResponseError(503, "Fitur reset kata sandi sedang dinonaktifkan");
-    }
-
     const requestData = validate(AuthValidation.FORGOT_PASSWORD, request);
     const email = requestData.email.toLowerCase();
 
@@ -341,10 +324,6 @@ export class AuthService {
   }
 
   static async resetPassword(request: ResetPasswordRequest): Promise<void> {
-    if (!(await SystemSettingService.isPasswordResetEnabled())) {
-      throw new ResponseError(503, "Fitur reset kata sandi sedang dinonaktifkan");
-    }
-
     const requestData = validate(AuthValidation.RESET_PASSWORD, request);
 
     let decoded: JwtPayload;

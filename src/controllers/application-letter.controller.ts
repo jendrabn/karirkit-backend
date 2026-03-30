@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { ApplicationLetterService } from "../services/application-letter.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { DownloadLogService } from "../services/download-log.service";
-import { DownloadType } from "../generated/prisma/client";
 
 export class ApplicationLetterController {
   static async list(req: Request, res: Response, next: NextFunction) {
@@ -82,7 +81,11 @@ export class ApplicationLetterController {
         : req.query.format;
       const format = typeof rawFormat === "string" ? rawFormat : undefined;
 
-      await DownloadLogService.checkDownloadLimit(req.user!.id);
+      await DownloadLogService.checkDownloadLimit(
+        req.user!.id,
+        "application_letter",
+        format === "pdf" ? "pdf" : "docx"
+      );
       const document = await ApplicationLetterService.download(
         req.user!.id,
         req.params.id,
@@ -91,9 +94,10 @@ export class ApplicationLetterController {
 
       await DownloadLogService.logDownload(
         req.user!.id,
-        DownloadType.application_letter,
+        "application_letter",
         req.params.id,
-        document.fileName
+        document.fileName,
+        format === "pdf" ? "pdf" : "docx"
       );
 
       res.setHeader("Content-Type", document.mimeType);

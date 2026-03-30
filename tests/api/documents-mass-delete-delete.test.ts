@@ -51,7 +51,7 @@ describe("DELETE /documents/mass-delete", () => {
     massDeleteMock.mockResolvedValue({ deleted_count: 2, ids: ["550e8400-e29b-41d4-a716-446655440000", "660e8400-e29b-41d4-a716-446655440000"] } as never);
 
     const response = await request(app)
-      .delete("/documents/mass-delete").set("Authorization", "Bearer user-token")
+      .delete("/documents/mass-delete").set("Authorization", "Bearer pro-token")
       .send({ ids: ["550e8400-e29b-41d4-a716-446655440000", "660e8400-e29b-41d4-a716-446655440000"] });
 
     expect(response.status).toBe(200);
@@ -77,12 +77,27 @@ describe("DELETE /documents/mass-delete", () => {
     );
 
     const response = await request(app)
-      .delete("/documents/mass-delete").set("Authorization", "Bearer user-token")
+      .delete("/documents/mass-delete").set("Authorization", "Bearer pro-token")
       .send({ ids: [] });
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Minimal satu data harus dipilih");
+  });
+
+  it("returns 403 for free users", async () => {
+    const massDeleteMock = jest.mocked(DocumentService.massDelete);
+
+    const response = await request(app)
+      .delete("/documents/mass-delete")
+      .set("Authorization", "Bearer user-token")
+      .send({ ids: [validId] });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
+    expect(massDeleteMock).not.toHaveBeenCalled();
   });
 });
 
@@ -108,7 +123,9 @@ describe("DELETE /documents/mass-delete", () => {
   });
 
   it("deletes multiple document records", async () => {
-    const { user } = await createRealUser("documents-mass-delete");
+    const { user } = await createRealUser("documents-mass-delete", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -145,7 +162,9 @@ describe("DELETE /documents/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const { user } = await createRealUser("documents-mass-delete-empty");
+    const { user } = await createRealUser("documents-mass-delete-empty", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
@@ -158,5 +177,22 @@ describe("DELETE /documents/mass-delete", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.ids");
     expect(Array.isArray(response.body.errors.ids)).toBe(true);
+  });
+
+  it("returns 403 for free users", async () => {
+    const { user } = await createRealUser("documents-mass-delete-free");
+    trackedEmails.add(user.email);
+    trackedUserIds.add(user.id);
+    const token = await createSessionToken(user);
+
+    const response = await request(app)
+      .delete("/documents/mass-delete")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ids: [validId] });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Fitur dokumen khusus untuk pengguna Pro atau Max"
+    );
   });
 });

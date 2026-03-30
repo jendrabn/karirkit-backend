@@ -14,10 +14,16 @@ const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
+let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        applicationLetter: { count: jest.fn() },
+      },
+    }));
     jest.doMock("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
         duplicate: jest.fn(),
@@ -26,6 +32,7 @@ beforeAll(async () => {
   }
 
   ({ default: app } = await import("../../src/index"));
+  ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
   ({ ApplicationLetterService } = await import(
     "../../src/services/application-letter.service"
   ));
@@ -44,8 +51,14 @@ describe("POST /application-letters/:id/duplicate", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
+  const getPrisma = () =>
+    prismaMock as unknown as {
+      applicationLetter: { count: jest.Mock };
+    };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    getPrisma().applicationLetter.count.mockResolvedValue(0);
   });
 
   it("duplicates the application letter record", async () => {
@@ -57,7 +70,7 @@ describe("POST /application-letters/:id/duplicate", () => {
 
     const response = await request(app)
       .post(`/application-letters/${validId}/duplicate`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("data");
@@ -85,11 +98,44 @@ describe("POST /application-letters/:id/duplicate", () => {
 
     const response = await request(app)
       .post(`/application-letters/${validId}/duplicate`)
-      .set("Authorization", "Bearer user-token");
+      .set("Authorization", "Bearer pro-token");
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Surat lamaran tidak ditemukan");
+  });
+
+  it("allows duplication for free users", async () => {
+    const duplicateMock = jest.mocked(ApplicationLetterService.duplicate);
+    duplicateMock.mockResolvedValue({
+      id: "660e8400-e29b-41d4-a716-446655440000",
+      name: "Application Letter Salinan",
+    } as never);
+
+    const response = await request(app)
+      .post(`/application-letters/${validId}/duplicate`)
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(201);
+    expect(response.body.data).toMatchObject({
+      id: "660e8400-e29b-41d4-a716-446655440000",
+      name: "Application Letter Salinan",
+    });
+  });
+
+  it("blocks duplication for admins when their plan application letter limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.applicationLetter.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post(`/application-letters/${validId}/duplicate`)
+      .set("Authorization", "Bearer admin-free-token");
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Batas maksimum surat lamaran telah tercapai"
+    );
+    expect(response.body.code).toBe("APP_LETTER_LIMIT_REACHED");
   });
 });
 
@@ -121,7 +167,9 @@ describe("POST /application-letters/:id/duplicate", () => {
 
   it("duplicates the application letter record", async () => {
     const prisma = await loadPrisma();
-    const { user } = await createRealUser("application-letter-duplicate");
+    const { user } = await createRealUser("application-letter-duplicate", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
@@ -165,7 +213,12 @@ describe("POST /application-letters/:id/duplicate", () => {
   });
 
   it("returns 404 when the application letter cannot be duplicated", async () => {
-    const { user } = await createRealUser("application-letter-duplicate-missing");
+    const { user } = await createRealUser(
+      "application-letter-duplicate-missing",
+      {
+        planId: "pro",
+      }
+    );
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
 

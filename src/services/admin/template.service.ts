@@ -1,4 +1,8 @@
 import type { Template, Prisma } from "../../generated/prisma/client";
+import type {
+  TemplateOrderByWithRelationInput,
+  TemplateWhereInput,
+} from "../../generated/prisma/models/Template";
 import { prisma } from "../../config/prisma.config";
 import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
@@ -64,7 +68,7 @@ export class TemplateService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.TemplateWhereInput = {};
+    const where: TemplateWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;
@@ -114,7 +118,7 @@ export class TemplateService {
     const sortField =
       sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
       "createdAt";
-    const orderBy: Prisma.TemplateOrderByWithRelationInput = {
+    const orderBy: TemplateOrderByWithRelationInput = {
       [sortField]: requestData.sort_order,
     };
 

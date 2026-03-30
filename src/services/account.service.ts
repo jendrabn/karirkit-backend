@@ -4,11 +4,6 @@ import { prisma } from "../config/prisma.config";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
-import { DownloadLogService, type DownloadStats } from "./download-log.service";
-import {
-  DocumentService,
-  type DocumentStorageStats,
-} from "./document.service";
 import { validate } from "../utils/validate.util";
 import { AccountValidation } from "../validations/account.validation";
 
@@ -31,23 +26,17 @@ export type SafeUser = {
   email_verified_at: string | null;
   status_reason: string | null;
   suspended_until: string | null;
-  daily_download_limit: number;
-  document_storage_limit: number;
   social_links: {
     id: string;
     user_id: string;
     platform: string;
     url: string;
   }[];
-  download_stats: DownloadStats;
-  document_storage_stats: DocumentStorageStats;
 };
 
 const toSafeUser = (
   user: User,
-  socialLinks: UserSocialLink[],
-  downloadStats: DownloadStats,
-  storageStats: DocumentStorageStats
+  socialLinks: UserSocialLink[]
 ): SafeUser => {
   const {
     password: _password,
@@ -55,12 +44,11 @@ const toSafeUser = (
     updatedAt,
     birthDate,
     emailVerifiedAt,
-    dailyDownloadLimit,
-    documentStorageLimit,
     statusReason,
     suspendedUntil,
     ...rest
   } = user;
+
   return {
     id: rest.id,
     name: rest.name,
@@ -78,8 +66,6 @@ const toSafeUser = (
     suspended_until: suspendedUntil ? suspendedUntil.toISOString() : null,
     birth_date: birthDate ? birthDate.toISOString().slice(0, 10) : null,
     email_verified_at: emailVerifiedAt ? emailVerifiedAt.toISOString() : null,
-    daily_download_limit: dailyDownloadLimit,
-    document_storage_limit: documentStorageLimit,
     social_links: socialLinks.map((record) => ({
       id: record.id,
       user_id: record.userId,
@@ -88,8 +74,6 @@ const toSafeUser = (
     })),
     created_at: createdAt ? createdAt.toISOString() : null,
     updated_at: updatedAt ? updatedAt.toISOString() : null,
-    download_stats: downloadStats,
-    document_storage_stats: storageStats,
   };
 };
 
@@ -108,11 +92,7 @@ export class AccountService {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    const [downloadStats, storageStats] = await Promise.all([
-      DownloadLogService.getDownloadStats(userId),
-      DocumentService.getStorageStats(userId),
-    ]);
-    return toSafeUser(user, user.socialLinks, downloadStats, storageStats);
+    return toSafeUser(user, user.socialLinks);
   }
 
   static async updateMe(
@@ -221,7 +201,9 @@ export class AccountService {
         where: { userId },
         select: { id: true },
       });
-      const existingIds = new Set(existingLinks.map((link) => link.id));
+      const existingIds = new Set(
+        existingLinks.map((link: { id: string }) => link.id)
+      );
       const invalidIds = socialLinkIds.filter((id) => !existingIds.has(id));
       if (invalidIds.length > 0) {
         throw new ResponseError(400, "Social link tidak ditemukan");
@@ -305,15 +287,11 @@ export class AccountService {
         ]);
       }
 
-      const [downloadStats, storageStats] = await Promise.all([
-        DownloadLogService.getDownloadStats(userId),
-        DocumentService.getStorageStats(userId),
-      ]);
       const socialLinks = await prisma.userSocialLink.findMany({
         where: { userId },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      return toSafeUser(user, socialLinks, downloadStats, storageStats);
+      return toSafeUser(user, socialLinks);
     } catch (error) {
       if (movedAvatarPath) {
         await UploadService.deleteUpload(movedAvatarPath, ["uploads/avatars"]);

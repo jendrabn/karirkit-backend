@@ -115,13 +115,8 @@ describe("POST /auth/register", () => {
     return;
   }
   const trackedEmails = new Set<string>();
-  const trackedSettingKeys = ["auth.registration.enabled"];
 
   afterEach(async () => {
-    const prisma = await loadPrisma();
-    await prisma.systemSetting.deleteMany({
-      where: { key: { in: trackedSettingKeys } },
-    });
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
   });
@@ -187,31 +182,5 @@ describe("POST /auth/register", () => {
     expect(response.body).toHaveProperty("errors.username");
     expect(response.body).toHaveProperty("errors.email");
     expect(response.body.errors.username[0]).toBe("Username minimal 3 karakter");
-  });
-
-  it("returns 503 when registration is disabled", async () => {
-    const prisma = await loadPrisma();
-    await prisma.systemSetting.create({
-      data: {
-        key: "auth.registration.enabled",
-        group: "auth",
-        type: "boolean",
-        valueJson: false,
-        defaultValueJson: true,
-        description: "Registrasi akun baru",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const payload = buildUniqueAuthPayload("register-disabled");
-    trackedEmails.add(payload.email);
-    const response = await request(app).post("/auth/register").send(payload);
-
-    expect(response.status).toBe(503);
-    expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toBe(
-      "Registrasi akun sedang dinonaktifkan"
-    );
   });
 });

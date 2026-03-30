@@ -2,6 +2,7 @@ import type {
   BlogTag as PrismaBlogTag,
   Prisma,
 } from "../../generated/prisma/client";
+import type { BlogTagWhereInput } from "../../generated/prisma/models/BlogTag";
 import type { BlogTag } from "../../types/api-schemas";
 import { prisma } from "../../config/prisma.config";
 import { validate } from "../../utils/validate.util";
@@ -41,7 +42,7 @@ export class BlogTagService {
     const page = requestData.page;
     const perPage = requestData.per_page;
 
-    const where: Prisma.BlogTagWhereInput = {};
+    const where: BlogTagWhereInput = {};
 
     if (requestData.q) {
       const search = requestData.q;

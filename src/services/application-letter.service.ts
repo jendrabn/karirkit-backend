@@ -2,6 +2,10 @@ import type {
   ApplicationLetter as PrismaApplicationLetter,
   Prisma,
 } from "../generated/prisma/client";
+import type {
+  ApplicationLetterOrderByWithRelationInput,
+  ApplicationLetterWhereInput,
+} from "../generated/prisma/models/ApplicationLetter";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs/promises";
@@ -23,7 +27,6 @@ import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import { UploadService } from "./upload.service";
-import { SystemSettingService } from "./system-setting.service";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -58,7 +61,7 @@ const sortFieldMap = {
   name: "name",
 } as const satisfies Record<
   string,
-  keyof Prisma.ApplicationLetterOrderByWithRelationInput
+  keyof ApplicationLetterOrderByWithRelationInput
 >;
 
 const MAX_SIGNATURE_HEIGHT_CM = 2;
@@ -82,7 +85,7 @@ export class ApplicationLetterService {
       query
     );
 
-    const where: Prisma.ApplicationLetterWhereInput = {
+    const where: ApplicationLetterWhereInput = {
       userId,
     };
 
@@ -153,7 +156,7 @@ export class ApplicationLetterService {
     }
 
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";
-    const orderBy: Prisma.ApplicationLetterOrderByWithRelationInput = {
+    const orderBy: ApplicationLetterOrderByWithRelationInput = {
       [orderByField]: filters.sort_order,
     };
 
@@ -392,7 +395,12 @@ export class ApplicationLetterService {
     const baseName = ApplicationLetterService.buildFileName(letter);
 
     if (normalized === "pdf") {
-      await SystemSettingService.assertDownloadsEnabled("application_letter", "pdf");
+      if (!env.pdfDownloadEnabled) {
+        throw new ResponseError(
+          503,
+          "Fitur unduh PDF untuk surat lamaran sedang dinonaktifkan."
+        );
+      }
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
@@ -404,11 +412,6 @@ export class ApplicationLetterService {
     if (normalized !== "docx") {
       throw new ResponseError(400, "Format unduhan tidak didukung");
     }
-
-    await SystemSettingService.assertDownloadsEnabled(
-      "application_letter",
-      "docx"
-    );
 
     return {
       buffer: docxBuffer,

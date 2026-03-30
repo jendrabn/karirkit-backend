@@ -10,6 +10,7 @@ import { ResponseError } from "../utils/response-error.util";
 import { prisma } from "../config/prisma.config";
 import { JobValidation } from "../validations/job.validation";
 import { JobStatus, Prisma } from "../generated/prisma/client";
+import type { SavedJobWhereInput } from "../generated/prisma/models/SavedJob";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -332,7 +333,7 @@ export class JobService {
     const skip = (requestData.page - 1) * requestData.per_page;
     const take = requestData.per_page;
 
-    const where: Prisma.SavedJobWhereInput = {
+    const where: SavedJobWhereInput = {
       userId,
       job: {
         status: JobStatus.published,

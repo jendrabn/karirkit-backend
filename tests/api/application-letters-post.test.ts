@@ -13,10 +13,20 @@ import {
 let app: typeof import("../../src/index").default;
 let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
+let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        applicationLetter: { count: jest.fn() },
+        template: { findUnique: jest.fn() },
+      },
+    }));
+    jest.doMock("../../src/services/application.service", () => ({
+      ApplicationService: {},
+    }));
     jest.doMock("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
         create: jest.fn(),
@@ -25,6 +35,7 @@ beforeAll(async () => {
   }
 
   ({ default: app } = await import("../../src/index"));
+  ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
   ({ ApplicationLetterService } = await import(
     "../../src/services/application-letter.service"
   ));
@@ -43,8 +54,17 @@ describe("POST /application-letters", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
+  const getPrisma = () =>
+    prismaMock as unknown as {
+      applicationLetter: { count: jest.Mock };
+      template: { findUnique: jest.Mock };
+    };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    const prisma = getPrisma();
+    prisma.applicationLetter.count.mockResolvedValue(0);
+    prisma.template.findUnique.mockResolvedValue(null);
   });
 
   it("creates an application letter record", async () => {
@@ -92,6 +112,84 @@ describe("POST /application-letters", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Payload tidak valid");
+  });
+
+  it("blocks creation when the free application letter limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.applicationLetter.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post("/application-letters")
+      .set("Authorization", "Bearer user-token")
+      .send(buildApplicationLetterPayload("template-basic"));
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Batas maksimum surat lamaran telah tercapai"
+    );
+    expect(response.body.code).toBe("APP_LETTER_LIMIT_REACHED");
+  });
+
+  it("also blocks admins when their plan application letter limit is reached", async () => {
+    const prisma = getPrisma();
+    prisma.applicationLetter.count.mockResolvedValue(5);
+
+    const response = await request(app)
+      .post("/application-letters")
+      .set("Authorization", "Bearer admin-free-token")
+      .send(buildApplicationLetterPayload("template-basic"));
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Batas maksimum surat lamaran telah tercapai"
+    );
+    expect(response.body.code).toBe("APP_LETTER_LIMIT_REACHED");
+  });
+
+  it("blocks premium application-letter templates for free users", async () => {
+    const prisma = getPrisma();
+    prisma.template.findUnique.mockResolvedValue({
+      id: "template-premium",
+      isPremium: true,
+      type: "application_letter",
+    });
+
+    const response = await request(app)
+      .post("/application-letters")
+      .set("Authorization", "Bearer user-token")
+      .send({
+        name: "Application Letter Premium",
+        template_id: "template-premium",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Template ini khusus untuk pengguna Pro atau Max"
+    );
+    expect(response.body.code).toBe("PREMIUM_TEMPLATE_REQUIRED");
+  });
+
+  it("also blocks premium application-letter templates for admins on free plan", async () => {
+    const prisma = getPrisma();
+    prisma.template.findUnique.mockResolvedValue({
+      id: "template-premium",
+      isPremium: true,
+      type: "application_letter",
+    });
+
+    const response = await request(app)
+      .post("/application-letters")
+      .set("Authorization", "Bearer admin-free-token")
+      .send({
+        name: "Application Letter Premium Admin",
+        template_id: "template-premium",
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.errors.general[0]).toBe(
+      "Template ini khusus untuk pengguna Pro atau Max"
+    );
+    expect(response.body.code).toBe("PREMIUM_TEMPLATE_REQUIRED");
   });
 });
 
