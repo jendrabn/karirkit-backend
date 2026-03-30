@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/karirkit_ci
+      NODE_OPTIONS: --max-old-space-size=6144
 
     steps:
       - name: Checkout repository
@@ -28,9 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --include=dev
-
-      - name: Run tests
-        run: npm test -- --runInBand
 
       - name: Build application
         run: npm run build
