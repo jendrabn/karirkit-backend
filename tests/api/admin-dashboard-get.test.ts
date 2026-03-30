@@ -43,8 +43,11 @@ describe("GET /admin/dashboard", () => {
   it("returns dashboard statistics for admin users", async () => {
     const getStatsMock = jest.mocked(DashboardService.getStats);
     getStatsMock.mockResolvedValue({
+      total_accounts: 14,
       total_users: 12,
+      total_admins: 2,
       total_jobs: 5,
+      total_subscriptions: 3,
     } as never);
 
     const response = await request(app)
@@ -54,8 +57,10 @@ describe("GET /admin/dashboard", () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data");
     expect(response.body.data).toMatchObject({
+      total_accounts: 14,
       total_users: 12,
       total_jobs: 5,
+      total_subscriptions: 3,
     });
   });
 
@@ -177,12 +182,27 @@ describe("GET /admin/dashboard", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data");
-    expect(response.body.data.total_users).toBe(await prisma.user.count());
+    expect(response.body.data.total_accounts).toBe(await prisma.user.count());
+    expect(response.body.data.total_users).toBe(
+      await prisma.user.count({ where: { role: "user" } }),
+    );
     expect(response.body.data.total_admins).toBe(
       await prisma.user.count({ where: { role: "admin" } }),
     );
     expect(response.body.data.total_blogs).toBe(await prisma.blog.count());
     expect(response.body.data.total_templates).toBe(await prisma.template.count());
+    expect(response.body.data.total_jobs).toBe(await prisma.job.count());
+    expect(response.body.data.total_companies).toBe(await prisma.company.count());
+    expect(response.body.data.total_job_roles).toBe(await prisma.jobRole.count());
+    expect(response.body.data.total_subscriptions).toBe(
+      await prisma.subscription.count(),
+    );
+    expect(typeof response.body.data.total_subscription_revenue).toBe("number");
+    expect(response.body.data).toHaveProperty("user_status_distribution");
+    expect(response.body.data).toHaveProperty("job_status_distribution");
+    expect(response.body.data).toHaveProperty(
+      "subscription_status_distribution",
+    );
     expect(Array.isArray(response.body.data.recent_users)).toBe(true);
     expect(Array.isArray(response.body.data.recent_blogs)).toBe(true);
   });

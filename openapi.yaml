@@ -1893,7 +1893,7 @@ paths:
     get:
       tags: [Dashboard]
       summary: Get user dashboard statistics
-      description: Retrieve comprehensive statistics about user's job applications, CVs, portfolios, and application letters for the dashboard.
+      description: Retrieve comprehensive user dashboard statistics including application pipeline, saved jobs, documents, subscription, and download usage.
       security:
         - sessionCookie: []
       responses:
@@ -2112,7 +2112,7 @@ paths:
     get:
       tags: [Admin]
       summary: Get dashboard statistics
-      description: Retrieve comprehensive statistics for the admin dashboard
+      description: Retrieve comprehensive statistics for the admin dashboard including users, content, jobs, subscriptions, and revenue.
       security:
         - sessionCookie: []
       responses:
@@ -6290,6 +6290,27 @@ components:
             inactive_applications:
               type: integer
               description: Number of inactive applications (rejected or accepted)
+            interview_applications:
+              type: integer
+              description: Number of applications currently in interview stages
+            offer_applications:
+              type: integer
+              description: Number of applications currently in offering stage
+            accepted_applications:
+              type: integer
+              description: Number of accepted applications
+            rejected_applications:
+              type: integer
+              description: Number of rejected applications
+            needs_followup_applications:
+              type: integer
+              description: Number of applications that already have a follow-up date
+            overdue_applications:
+              type: integer
+              description: Number of active applications with overdue follow-up date
+            no_followup_applications:
+              type: integer
+              description: Number of active applications without follow-up date
             total_application_letters:
               type: integer
               description: Total number of application letters
@@ -6299,6 +6320,33 @@ components:
             total_portfolios:
               type: integer
               description: Total number of portfolios
+            total_documents:
+              type: integer
+              description: Total number of uploaded documents
+            saved_jobs_count:
+              type: integer
+              description: Total number of saved jobs
+            subscription_plan:
+              $ref: "#/components/schemas/PlanId"
+            subscription_expires_at:
+              type: string
+              format: date-time
+              nullable: true
+            download_today_count:
+              type: integer
+              description: Total document downloads made by the user today
+            download_total_count:
+              type: integer
+              description: Total document downloads made by the user
+            document_storage_limit:
+              type: integer
+              description: Document storage limit in bytes based on current plan
+            document_storage_used:
+              type: integer
+              description: Document storage currently used in bytes
+            document_storage_remaining:
+              type: integer
+              description: Remaining document storage in bytes, or -1 for unlimited plans
     BlogStatus:
       type: string
       enum: [draft, published, archived]
@@ -6485,9 +6533,12 @@ components:
         data:
           type: object
           properties:
+            total_accounts:
+              type: integer
+              description: Total number of accounts including admins
             total_users:
               type: integer
-              description: Total number of users
+              description: Total number of end-user accounts excluding admins
             total_admins:
               type: integer
               description: Total number of admin users
@@ -6500,6 +6551,9 @@ components:
             total_draft_blogs:
               type: integer
               description: Total number of draft blog posts
+            total_archived_blogs:
+              type: integer
+              description: Total number of archived blog posts
             total_categories:
               type: integer
               description: Total number of blog categories
@@ -6515,6 +6569,48 @@ components:
             total_application_letter_templates:
               type: integer
               description: Total number of application letter templates
+            total_jobs:
+              type: integer
+              description: Total number of jobs
+            total_published_jobs:
+              type: integer
+              description: Total number of published jobs
+            total_draft_jobs:
+              type: integer
+              description: Total number of draft jobs
+            total_closed_jobs:
+              type: integer
+              description: Total number of closed jobs
+            total_archived_jobs:
+              type: integer
+              description: Total number of archived jobs
+            total_companies:
+              type: integer
+              description: Total number of companies
+            total_job_roles:
+              type: integer
+              description: Total number of job roles
+            total_subscriptions:
+              type: integer
+              description: Total number of subscriptions
+            total_pending_subscriptions:
+              type: integer
+              description: Total number of pending subscriptions
+            total_paid_subscriptions:
+              type: integer
+              description: Total number of paid subscriptions
+            total_failed_subscriptions:
+              type: integer
+              description: Total number of failed subscriptions
+            total_cancelled_subscriptions:
+              type: integer
+              description: Total number of cancelled subscriptions
+            total_expired_subscriptions:
+              type: integer
+              description: Total number of expired subscriptions
+            total_subscription_revenue:
+              type: integer
+              description: Total paid subscription amount
             recent_users:
               type: array
               items:
@@ -6543,6 +6639,42 @@ components:
                 admin:
                   type: integer
               description: Distribution of users by role
+            user_status_distribution:
+              type: object
+              properties:
+                active:
+                  type: integer
+                suspended:
+                  type: integer
+                banned:
+                  type: integer
+              description: Distribution of users by account status
+            job_status_distribution:
+              type: object
+              properties:
+                draft:
+                  type: integer
+                published:
+                  type: integer
+                closed:
+                  type: integer
+                archived:
+                  type: integer
+              description: Distribution of jobs by status
+            subscription_status_distribution:
+              type: object
+              properties:
+                pending:
+                  type: integer
+                paid:
+                  type: integer
+                failed:
+                  type: integer
+                cancelled:
+                  type: integer
+                expired:
+                  type: integer
+              description: Distribution of subscriptions by status
     AdminUserSocialLinkPayload:
       type: object
       properties:
@@ -7622,6 +7754,11 @@ components:
           nullable: true
         plan:
           $ref: "#/components/schemas/PlanId"
+        pending_plan:
+          allOf:
+            - $ref: "#/components/schemas/PlanId"
+          nullable: true
+          description: Pending plan waiting for payment confirmation, if any.
         status:
           type: string
           description: "`active` when the effective user plan is active but there is no pending or paid subscription row to return."
@@ -7639,6 +7776,17 @@ components:
         midtrans_order_id:
           type: string
           nullable: true
+        snap_token:
+          type: string
+          nullable: true
+          description: Present for pending subscriptions so the client can reopen the Snap payment popup.
+        snap_url:
+          type: string
+          nullable: true
+          description: Nullable because resumed pending payments may only expose a Snap token.
+        can_resume_payment:
+          type: boolean
+          description: Whether the pending payment can be resumed from the stored Snap token.
         midtrans_payment_type:
           type: string
           nullable: true
@@ -7668,6 +7816,7 @@ components:
           type: string
         snap_url:
           type: string
+          nullable: true
         amount:
           type: integer
         plan:

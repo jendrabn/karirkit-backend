@@ -46,6 +46,35 @@ describe("POST /subscriptions/order", () => {
     expect(response.body.data).toMatchObject({
       subscription_id: "sub-1",
       order_id: "SUB-user-1-123",
+      snap_token: "snap-token",
+      snap_url: "https://app.sandbox.midtrans.com/snap/v2/vtweb/token",
+      amount: 25000,
+      plan: "pro",
+    });
+  });
+
+  it("returns existing pending order data when the same plan is still pending", async () => {
+    const createOrderMock = jest.mocked(SubscriptionService.createSubscriptionOrder);
+    createOrderMock.mockResolvedValue({
+      subscriptionId: "sub-pending-1",
+      orderId: "SUB-PRO-ABC123",
+      snapToken: "snap-token-pending",
+      snapUrl: "",
+      amount: 25000,
+      plan: "pro",
+    } as never);
+
+    const response = await request(app)
+      .post("/subscriptions/order")
+      .set("Authorization", "Bearer user-token")
+      .send({ planId: "pro" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data).toMatchObject({
+      subscription_id: "sub-pending-1",
+      order_id: "SUB-PRO-ABC123",
+      snap_token: "snap-token-pending",
+      snap_url: null,
       amount: 25000,
       plan: "pro",
     });

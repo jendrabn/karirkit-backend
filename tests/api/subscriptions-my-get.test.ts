@@ -66,11 +66,15 @@ describe("GET /subscriptions/my", () => {
     getCurrentMock.mockResolvedValue({
       id: "sub-1",
       plan: "pro",
+      pendingPlan: null,
       status: "paid",
       amount: 25000,
       paidAt: "2026-03-01T00:00:00.000Z",
       expiresAt: "2026-04-01T00:00:00.000Z",
       midtransOrderId: "SUB-user-1-123",
+      midtransToken: null,
+      snapUrl: null,
+      canResumePayment: false,
       midtransPaymentType: "gopay",
       currentLimits: {
         maxCvs: 15,
@@ -113,7 +117,72 @@ describe("GET /subscriptions/my", () => {
       paid_at: "2026-03-01T00:00:00.000Z",
       expires_at: "2026-04-01T00:00:00.000Z",
       midtrans_order_id: "SUB-user-1-123",
+      snap_token: null,
+      snap_url: null,
+      can_resume_payment: false,
       midtrans_payment_type: "gopay",
+    });
+  });
+
+  it("returns pending payment resume data when subscription is pending", async () => {
+    const getCurrentMock = jest.mocked(
+      SubscriptionService.getCurrentSubscription
+    );
+    getCurrentMock.mockResolvedValue({
+      id: "sub-2",
+      plan: "free",
+      pendingPlan: "pro",
+      status: "pending",
+      amount: 25000,
+      paidAt: null,
+      expiresAt: null,
+      midtransOrderId: "SUB-PRO-ABC123",
+      midtransToken: "snap-token-pending",
+      snapUrl: null,
+      canResumePayment: true,
+      midtransPaymentType: null,
+      currentLimits: {
+        maxCvs: 2,
+        maxApplications: 50,
+        maxApplicationLetters: 2,
+        maxDocumentStorageBytes: 10485760,
+        downloads: {
+          cvPerDay: 2,
+          applicationLetterPerDay: 2,
+          cvDocxPerDay: 0,
+          applicationLetterDocxPerDay: 0,
+          cvPdfPerDay: 2,
+          applicationLetterPdfPerDay: 2,
+        },
+      },
+      currentFeatures: {
+        canManageDocuments: false,
+        canUsePremiumCvTemplates: false,
+        canUsePremiumApplicationLetterTemplates: false,
+        canUsePremiumTemplates: false,
+        canDuplicateCvs: false,
+        canDuplicateApplications: false,
+        canDuplicateApplicationLetters: false,
+        canDownloadCvDocx: false,
+        canDownloadApplicationLetterDocx: false,
+        canDownloadCvPdf: true,
+        canDownloadApplicationLetterPdf: true,
+      },
+    } as never);
+
+    const response = await request(app)
+      .get("/subscriptions/my")
+      .set("Authorization", "Bearer user-token");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      plan: "free",
+      pending_plan: "pro",
+      status: "pending",
+      midtrans_order_id: "SUB-PRO-ABC123",
+      snap_token: "snap-token-pending",
+      snap_url: null,
+      can_resume_payment: true,
     });
   });
 
@@ -170,8 +239,12 @@ describe("GET /subscriptions/my", () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
       plan: "pro",
+      pending_plan: null,
       status: "paid",
       amount: 25000,
+      snap_token: null,
+      snap_url: null,
+      can_resume_payment: false,
       midtrans_payment_type: "gopay",
       current_limits: {
         max_cvs: 15,

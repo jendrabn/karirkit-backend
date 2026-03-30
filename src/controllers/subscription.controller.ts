@@ -37,11 +37,15 @@ const toPlanResponse = (plan: Record<string, any>) => ({
 const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
   id: result.id,
   plan: result.plan,
+  pending_plan: result.pendingPlan,
   status: result.status,
   amount: result.amount,
   paid_at: result.paidAt,
   expires_at: result.expiresAt,
   midtrans_order_id: result.midtransOrderId,
+  snap_token: result.midtransToken,
+  snap_url: result.snapUrl,
+  can_resume_payment: result.canResumePayment,
   midtrans_payment_type: result.midtransPaymentType,
   current_limits: {
     max_cvs: result.currentLimits.maxCvs,
@@ -84,7 +88,7 @@ const toOrderResponse = (result: Record<string, any>) => ({
   subscription_id: result.subscriptionId,
   order_id: result.orderId,
   snap_token: result.snapToken,
-  snap_url: result.snapUrl,
+  snap_url: result.snapUrl || null,
   amount: result.amount,
   plan: result.plan,
 });

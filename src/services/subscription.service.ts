@@ -41,11 +41,15 @@ type MidtransTransactionResponse = {
 type CurrentSubscriptionResult = {
   id: string | null;
   plan: ConfigPlanId;
+  pendingPlan: ConfigPlanId | null;
   status: string;
   amount: number;
   paidAt: string | null;
   expiresAt: string | null;
   midtransOrderId: string | null;
+  midtransToken: string | null;
+  snapUrl: string | null;
+  canResumePayment: boolean;
   midtransPaymentType: string | null;
   currentLimits: {
     maxCvs: number;
@@ -110,6 +114,12 @@ const toDbPlanId = (planId: ConfigPlanId): DbPlanId => {
 
 const toConfigPlanId = (planId: DbPlanId | string): ConfigPlanId =>
   resolvePlanId(planId);
+
+const buildMidtransOrderId = (planId: ConfigPlanId): string => {
+  return `SUB-${planId}-${Date.now().toString(36)}-${crypto
+    .randomBytes(6)
+    .toString("hex")}`.toUpperCase();
+};
 
 export class SubscriptionService {
   static getPlans() {
@@ -257,11 +267,17 @@ export class SubscriptionService {
         });
 
     const subscription = activePaid ?? pending;
-    const plan = getPlan(toConfigPlanId(user.subscriptionPlan));
+    const effectivePlanId = toConfigPlanId(user.subscriptionPlan);
+    const pendingPlanId =
+      subscription?.status === SubscriptionStatus.pending
+        ? toConfigPlanId(subscription.plan)
+        : null;
+    const plan = getPlan(effectivePlanId);
 
     return {
       id: subscription?.id ?? null,
-      plan: toConfigPlanId(user.subscriptionPlan),
+      plan: effectivePlanId,
+      pendingPlan: pendingPlanId,
       status: subscription?.status ?? "active",
       amount: subscription?.amount ?? 0,
       paidAt: subscription?.paidAt?.toISOString() ?? null,
@@ -270,6 +286,14 @@ export class SubscriptionService {
         user.subscriptionExpiresAt?.toISOString() ??
         null,
       midtransOrderId: subscription?.midtransOrderId ?? null,
+      midtransToken:
+        subscription?.status === SubscriptionStatus.pending
+          ? subscription.midtransToken ?? null
+          : null,
+      snapUrl: null,
+      canResumePayment:
+        subscription?.status === SubscriptionStatus.pending &&
+        Boolean(subscription.midtransToken),
       midtransPaymentType: subscription?.midtransPaymentType ?? null,
       currentLimits: {
         maxCvs: plan.maxCvs,
@@ -368,10 +392,35 @@ export class SubscriptionService {
           },
         ],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        plan: true,
+        midtransOrderId: true,
+        midtransToken: true,
+      },
     });
 
     if (existing) {
+      if (existing.status === SubscriptionStatus.pending) {
+        if (!existing.midtransOrderId || !existing.midtransToken) {
+          throw new ResponseError(
+            409,
+            "Subscription pending sebelumnya tidak memiliki token pembayaran yang valid"
+          );
+        }
+
+        return {
+          subscriptionId: existing.id,
+          orderId: existing.midtransOrderId,
+          snapToken: existing.midtransToken,
+          snapUrl: "",
+          amount: existing.amount,
+          plan: toConfigPlanId(existing.plan),
+        };
+      }
+
       throw new ResponseError(
         400,
         "Masih ada transaksi subscription untuk plan ini yang belum selesai"
@@ -379,7 +428,7 @@ export class SubscriptionService {
     }
 
     const plan = getPlan(payload.planId);
-    const orderId = `SUB-${userId}-${Date.now()}`;
+    const orderId = buildMidtransOrderId(payload.planId);
     const snap = new midtransClient.Snap({
       isProduction: env.midtrans.isProduction,
       serverKey: env.midtrans.serverKey,

@@ -32,16 +32,32 @@ type SafeBlog = {
 };
 
 type DashboardStats = {
+  total_accounts: number;
   total_users: number;
   total_admins: number;
   total_blogs: number;
   total_published_blogs: number;
   total_draft_blogs: number;
+  total_archived_blogs: number;
   total_categories: number;
   total_tags: number;
   total_templates: number;
   total_cv_templates: number;
   total_application_letter_templates: number;
+  total_jobs: number;
+  total_published_jobs: number;
+  total_draft_jobs: number;
+  total_closed_jobs: number;
+  total_archived_jobs: number;
+  total_companies: number;
+  total_job_roles: number;
+  total_subscriptions: number;
+  total_pending_subscriptions: number;
+  total_paid_subscriptions: number;
+  total_failed_subscriptions: number;
+  total_cancelled_subscriptions: number;
+  total_expired_subscriptions: number;
+  total_subscription_revenue: number;
   recent_users: SafeUser[];
   recent_blogs: SafeBlog[];
   blog_status_distribution: {
@@ -53,67 +69,62 @@ type DashboardStats = {
     user: number;
     admin: number;
   };
+  user_status_distribution: {
+    active: number;
+    suspended: number;
+    banned: number;
+  };
+  job_status_distribution: {
+    draft: number;
+    published: number;
+    closed: number;
+    archived: number;
+  };
+  subscription_status_distribution: {
+    pending: number;
+    paid: number;
+    failed: number;
+    cancelled: number;
+    expired: number;
+  };
 };
 
 export class DashboardService {
   static async getStats(): Promise<DashboardStats> {
     const [
-      totalUsers,
-      totalAdmins,
-      totalBlogs,
-      totalPublishedBlogs,
-      totalDraftBlogs,
+      totalAccounts,
       totalCategories,
       totalTags,
       totalTemplates,
       totalCvTemplates,
       totalApplicationLetterTemplates,
+      totalCompanies,
+      totalJobRoles,
+      totalSubscriptionRevenue,
       recentUsers,
       recentBlogs,
       blogStatusDistribution,
       userRoleDistribution,
+      userStatusDistribution,
+      jobStatusDistribution,
+      subscriptionStatusDistribution,
     ] = await Promise.all([
-      // Total users
       prisma.user.count(),
-
-      // Total admins
-      prisma.user.count({
-        where: { role: "admin" },
-      }),
-
-      // Total blogs
-      prisma.blog.count(),
-
-      // Total published blogs
-      prisma.blog.count({
-        where: { status: "published" },
-      }),
-
-      // Total draft blogs
-      prisma.blog.count({
-        where: { status: "draft" },
-      }),
-
-      // Total categories
       prisma.blogCategory.count(),
-
-      // Total tags
       prisma.blogTag.count(),
-
-      // Total templates
       prisma.template.count(),
-
-      // Total CV templates
       prisma.template.count({
         where: { type: "cv" },
       }),
-
-      // Total application letter templates
       prisma.template.count({
         where: { type: "application_letter" },
       }),
-
-      // Recent users (last 5)
+      prisma.company.count(),
+      prisma.jobRole.count(),
+      prisma.subscription.aggregate({
+        where: { status: "paid" },
+        _sum: { amount: true },
+      }),
       prisma.user.findMany({
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -128,8 +139,6 @@ export class DashboardService {
           updatedAt: true,
         },
       }),
-
-      // Recent blogs (last 5)
       prisma.blog.findMany({
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -150,21 +159,28 @@ export class DashboardService {
           },
         },
       }),
-
-      // Blog status distribution
       prisma.blog.groupBy({
         by: ["status"],
         _count: { status: true },
       }),
-
-      // User role distribution
       prisma.user.groupBy({
         by: ["role"],
         _count: { role: true },
       }),
+      prisma.user.groupBy({
+        by: ["status"],
+        _count: { status: true },
+      }),
+      prisma.job.groupBy({
+        by: ["status"],
+        _count: { status: true },
+      }),
+      prisma.subscription.groupBy({
+        by: ["status"],
+        _count: { status: true },
+      }),
     ]);
 
-    // Process blog status distribution
     const blogStatusCounts = blogStatusDistribution.reduce(
       (acc, item) => {
         acc[item.status as keyof typeof acc] = item._count.status;
@@ -173,7 +189,6 @@ export class DashboardService {
       { draft: 0, published: 0, archived: 0 }
     );
 
-    // Process user role distribution
     const userRoleCounts = userRoleDistribution.reduce(
       (acc, item) => {
         acc[item.role as keyof typeof acc] = item._count.role;
@@ -182,7 +197,30 @@ export class DashboardService {
       { user: 0, admin: 0 }
     );
 
-    // Format recent blogs
+    const userStatusCounts = userStatusDistribution.reduce(
+      (acc, item) => {
+        acc[item.status as keyof typeof acc] = item._count.status;
+        return acc;
+      },
+      { active: 0, suspended: 0, banned: 0 }
+    );
+
+    const jobStatusCounts = jobStatusDistribution.reduce(
+      (acc, item) => {
+        acc[item.status as keyof typeof acc] = item._count.status;
+        return acc;
+      },
+      { draft: 0, published: 0, closed: 0, archived: 0 }
+    );
+
+    const subscriptionStatusCounts = subscriptionStatusDistribution.reduce(
+      (acc, item) => {
+        acc[item.status as keyof typeof acc] = item._count.status;
+        return acc;
+      },
+      { pending: 0, paid: 0, failed: 0, cancelled: 0, expired: 0 }
+    );
+
     const formattedRecentBlogs = recentBlogs.map((blog) => ({
       id: blog.id,
       user_id: blog.userId,
@@ -211,7 +249,6 @@ export class DashboardService {
         : [],
     }));
 
-    // Format recent users
     const formattedRecentUsers = recentUsers.map((user) => ({
       ...user,
       created_at: user.createdAt?.toISOString(),
@@ -219,20 +256,51 @@ export class DashboardService {
     }));
 
     return {
-      total_users: totalUsers,
-      total_admins: totalAdmins,
-      total_blogs: totalBlogs,
-      total_published_blogs: totalPublishedBlogs,
-      total_draft_blogs: totalDraftBlogs,
+      total_accounts: totalAccounts,
+      total_users: userRoleCounts.user,
+      total_admins: userRoleCounts.admin,
+      total_blogs:
+        blogStatusCounts.draft +
+        blogStatusCounts.published +
+        blogStatusCounts.archived,
+      total_published_blogs: blogStatusCounts.published,
+      total_draft_blogs: blogStatusCounts.draft,
+      total_archived_blogs: blogStatusCounts.archived,
       total_categories: totalCategories,
       total_tags: totalTags,
       total_templates: totalTemplates,
       total_cv_templates: totalCvTemplates,
       total_application_letter_templates: totalApplicationLetterTemplates,
+      total_jobs:
+        jobStatusCounts.draft +
+        jobStatusCounts.published +
+        jobStatusCounts.closed +
+        jobStatusCounts.archived,
+      total_published_jobs: jobStatusCounts.published,
+      total_draft_jobs: jobStatusCounts.draft,
+      total_closed_jobs: jobStatusCounts.closed,
+      total_archived_jobs: jobStatusCounts.archived,
+      total_companies: totalCompanies,
+      total_job_roles: totalJobRoles,
+      total_subscriptions:
+        subscriptionStatusCounts.pending +
+        subscriptionStatusCounts.paid +
+        subscriptionStatusCounts.failed +
+        subscriptionStatusCounts.cancelled +
+        subscriptionStatusCounts.expired,
+      total_pending_subscriptions: subscriptionStatusCounts.pending,
+      total_paid_subscriptions: subscriptionStatusCounts.paid,
+      total_failed_subscriptions: subscriptionStatusCounts.failed,
+      total_cancelled_subscriptions: subscriptionStatusCounts.cancelled,
+      total_expired_subscriptions: subscriptionStatusCounts.expired,
+      total_subscription_revenue: totalSubscriptionRevenue._sum.amount ?? 0,
       recent_users: formattedRecentUsers as SafeUser[],
       recent_blogs: formattedRecentBlogs as SafeBlog[],
       blog_status_distribution: blogStatusCounts,
       user_role_distribution: userRoleCounts,
+      user_status_distribution: userStatusCounts,
+      job_status_distribution: jobStatusCounts,
+      subscription_status_distribution: subscriptionStatusCounts,
     };
   }
 }

@@ -42,7 +42,27 @@ describe("GET /dashboard", () => {
     const getUserStatsMock = jest.mocked(DashboardService.getUserStats);
     getUserStatsMock.mockResolvedValue({
       total_applications: 12,
+      active_applications: 8,
+      inactive_applications: 4,
+      interview_applications: 3,
+      offer_applications: 1,
+      accepted_applications: 1,
+      rejected_applications: 3,
+      needs_followup_applications: 5,
+      overdue_applications: 2,
+      no_followup_applications: 3,
+      total_application_letters: 4,
       total_cvs: 3,
+      total_portfolios: 2,
+      total_documents: 6,
+      saved_jobs_count: 7,
+      subscription_plan: "pro",
+      subscription_expires_at: "2026-12-31T00:00:00.000Z",
+      download_today_count: 2,
+      download_total_count: 14,
+      document_storage_limit: 1073741824,
+      document_storage_used: 1024,
+      document_storage_remaining: 1073740800,
     } as never);
 
     const response = await request(app)
@@ -54,6 +74,8 @@ describe("GET /dashboard", () => {
     expect(response.body.data).toMatchObject({
       total_applications: 12,
       total_cvs: 3,
+      subscription_plan: "pro",
+      download_total_count: 14,
     });
     expect(typeof response.body.data.total_applications).toBe("number");
   });
@@ -70,7 +92,27 @@ describe("GET /dashboard", () => {
     const getUserStatsMock = jest.mocked(DashboardService.getUserStats);
     getUserStatsMock.mockResolvedValue({
       total_applications: 0,
+      active_applications: 0,
+      inactive_applications: 0,
+      interview_applications: 0,
+      offer_applications: 0,
+      accepted_applications: 0,
+      rejected_applications: 0,
+      needs_followup_applications: 0,
+      overdue_applications: 0,
+      no_followup_applications: 0,
+      total_application_letters: 0,
       total_cvs: 0,
+      total_portfolios: 0,
+      total_documents: 0,
+      saved_jobs_count: 0,
+      subscription_plan: "free",
+      subscription_expires_at: null,
+      download_today_count: 0,
+      download_total_count: 0,
+      document_storage_limit: 1073741824,
+      document_storage_used: 0,
+      document_storage_remaining: 1073741824,
     } as never);
 
     const response = await request(app)
@@ -80,6 +122,7 @@ describe("GET /dashboard", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.total_applications).toBe(0);
     expect(response.body.data.total_cvs).toBe(0);
+    expect(response.body.data.download_total_count).toBe(0);
   });
 });
 
@@ -149,9 +192,21 @@ describe("GET /dashboard", () => {
       total_applications: 2,
       active_applications: 1,
       inactive_applications: 1,
+      interview_applications: 0,
+      offer_applications: 0,
+      accepted_applications: 0,
+      rejected_applications: 1,
+      needs_followup_applications: 0,
+      overdue_applications: 0,
+      no_followup_applications: 1,
       total_application_letters: 0,
       total_cvs: 0,
       total_portfolios: 0,
+      total_documents: 0,
+      saved_jobs_count: 0,
+      subscription_plan: "free",
+      download_today_count: 0,
+      download_total_count: 0,
     });
   });
 
@@ -175,5 +230,7 @@ describe("GET /dashboard", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.total_applications).toBe(0);
     expect(response.body.data.total_cvs).toBe(0);
+    expect(response.body.data.subscription_plan).toBe("free");
+    expect(response.body.data.total_documents).toBe(0);
   });
 });
