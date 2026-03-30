@@ -5,6 +5,10 @@ import { ResponseError } from "../utils/response-error.util";
 export class UploadProxyController {
   static async serve(req: Request, res: Response, next: NextFunction) {
     try {
+      if (StorageService.isPrivateUploadPath(req.path)) {
+        throw new ResponseError(404, "File tidak ditemukan");
+      }
+
       const normalizedPath = StorageService.normalizeUploadsPath(req.path);
       if (!normalizedPath) {
         throw new ResponseError(404, "File tidak ditemukan");

@@ -12,6 +12,7 @@ import { ResponseError } from "../utils/response-error.util";
 
 const PUBLIC_ROOT = path.join(process.cwd(), "public");
 const UPLOADS_PREFIX = "uploads";
+const PRIVATE_UPLOAD_PREFIXES = ["uploads/documents"];
 
 type StoredFile = {
   buffer: Buffer;
@@ -135,6 +136,17 @@ const isUploadsPath = (publicPath: string): boolean => {
   );
 };
 
+const isPrivateUploadPath = (publicPath: string): boolean => {
+  const normalized = normalizeUploadsPath(publicPath)
+    .replace(/^\/+/, "")
+    .toLowerCase();
+
+  return PRIVATE_UPLOAD_PREFIXES.some(
+    (prefix) =>
+      normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
+};
+
 export class StorageService {
   static isCloudStorage(): boolean {
     return env.storage.driver === "s3";
@@ -154,6 +166,23 @@ export class StorageService {
       return normalizeUploadsPath(trimmed);
     } catch {
       return null;
+    }
+  }
+
+  static isPrivateUploadPath(publicPath?: string | null): boolean {
+    if (!publicPath) {
+      return false;
+    }
+
+    const trimmed = publicPath.trim();
+    if (!trimmed) {
+      return false;
+    }
+
+    try {
+      return isPrivateUploadPath(trimmed);
+    } catch {
+      return false;
     }
   }
 

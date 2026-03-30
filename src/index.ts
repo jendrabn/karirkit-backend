@@ -16,6 +16,7 @@ import {
   errorHandler,
   notFoundHandler,
 } from "./middleware/error-handler.middleware";
+import { ResponseError } from "./utils/response-error.util";
 import "./queues/email.queue";
 import "./queues/subscription-expiry.queue";
 import csrfProtectionMiddleware from "./middleware/csrf-protection.middleware";
@@ -41,6 +42,9 @@ app.use(bigIntMiddleware);
 app.use(maintenanceModeMiddleware);
 
 const publicDirectory = path.resolve(__dirname, "..", "public");
+app.use("/uploads/documents", (_req, _res, next) => {
+  next(new ResponseError(404, "File tidak ditemukan"));
+});
 if (StorageService.isCloudStorage()) {
   app.get("/uploads/*", UploadProxyController.serve);
 }
