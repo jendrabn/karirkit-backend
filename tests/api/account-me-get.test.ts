@@ -60,6 +60,10 @@ describe("GET /account/me", () => {
       id: "user-1",
       email: "user@example.com",
       username: "user",
+      subscription_plan: "pro",
+      subscription_expires_at: "2030-01-01T00:00:00.000Z",
+      download_total_count: 12,
+      download_today_count: 2,
     } as never);
 
     const response = await request(app)
@@ -72,6 +76,10 @@ describe("GET /account/me", () => {
       id: "user-1",
       email: "user@example.com",
       username: "user",
+      subscription_plan: "pro",
+      subscription_expires_at: "2030-01-01T00:00:00.000Z",
+      download_total_count: 12,
+      download_today_count: 2,
     });
     expect(typeof response.body.data.id).toBe("string");
   });
@@ -110,7 +118,9 @@ describe("GET /account/me", () => {
 
   it("returns the authenticated account profile from the database", async () => {
     const prisma = await loadPrisma();
-    const { user } = await createRealUser("account-me-success");
+    const { user } = await createRealUser("account-me-success", {
+      planId: "pro",
+    });
     trackedEmails.add(user.email);
 
     await prisma.userSocialLink.create({
@@ -156,14 +166,16 @@ describe("GET /account/me", () => {
       username: user.username,
       role: "user",
       status: "active",
+      subscription_plan: "pro",
+      download_total_count: 1,
+      download_today_count: 1,
     });
     expect(Array.isArray(response.body.data.social_links)).toBe(true);
     expect(response.body.data.social_links[0]).toMatchObject({
       platform: "linkedin",
       url: "https://linkedin.com/in/test-user",
     });
-    expect(response.body.data).not.toHaveProperty("subscription_plan");
-    expect(response.body.data).not.toHaveProperty("subscription_expires_at");
+    expect(response.body.data.subscription_expires_at).toBeTruthy();
     expect(response.body.data).not.toHaveProperty("max_cvs");
     expect(response.body.data).not.toHaveProperty("max_applications");
     expect(response.body.data).not.toHaveProperty("max_application_letters");

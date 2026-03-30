@@ -1,79 +1,36 @@
-import type { User, UserSocialLink } from "../generated/prisma/client";
+import type { User } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma.config";
 import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
 import { validate } from "../utils/validate.util";
+import { DownloadLogService } from "./download-log.service";
+import {
+  toAccountUserProfile,
+  type AccountUserProfile,
+} from "../utils/user-profile.util";
 import { AccountValidation } from "../validations/account.validation";
+export type SafeUser = AccountUserProfile;
 
-export type SafeUser = {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  role: User["role"];
-  phone: string | null;
-  headline: string | null;
-  bio: string | null;
-  location: string | null;
-  gender: User["gender"] | null;
-  avatar: string | null;
-  status: User["status"];
-  created_at: string | null;
-  updated_at: string | null;
-  birth_date: string | null;
-  email_verified_at: string | null;
-  status_reason: string | null;
-  suspended_until: string | null;
-  social_links: {
-    id: string;
-    user_id: string;
-    platform: string;
-    url: string;
-  }[];
+const getTodayStart = (): Date => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
 };
 
-const toSafeUser = (
-  user: User,
-  socialLinks: UserSocialLink[]
-): SafeUser => {
-  const {
-    password: _password,
-    createdAt,
-    updatedAt,
-    birthDate,
-    emailVerifiedAt,
-    statusReason,
-    suspendedUntil,
-    ...rest
-  } = user;
+const getUserDownloadCounts = async (
+  userId: string
+): Promise<Pick<SafeUser, "download_today_count" | "download_total_count">> => {
+  const today = getTodayStart();
+  const [todayCounts, totalCounts] = await Promise.all([
+    DownloadLogService.countDownloadsByUsers([userId], today),
+    DownloadLogService.countDownloadsByUsers([userId]),
+  ]);
 
   return {
-    id: rest.id,
-    name: rest.name,
-    username: rest.username,
-    email: rest.email,
-    phone: rest.phone,
-    headline: rest.headline,
-    bio: rest.bio,
-    location: rest.location,
-    gender: rest.gender,
-    role: rest.role,
-    avatar: rest.avatar,
-    status: rest.status,
-    status_reason: statusReason,
-    suspended_until: suspendedUntil ? suspendedUntil.toISOString() : null,
-    birth_date: birthDate ? birthDate.toISOString().slice(0, 10) : null,
-    email_verified_at: emailVerifiedAt ? emailVerifiedAt.toISOString() : null,
-    social_links: socialLinks.map((record) => ({
-      id: record.id,
-      user_id: record.userId,
-      platform: record.platform,
-      url: record.url,
-    })),
-    created_at: createdAt ? createdAt.toISOString() : null,
-    updated_at: updatedAt ? updatedAt.toISOString() : null,
+    download_today_count: todayCounts[userId] ?? 0,
+    download_total_count: totalCounts[userId] ?? 0,
   };
 };
 
@@ -92,7 +49,8 @@ export class AccountService {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    return toSafeUser(user, user.socialLinks);
+    const downloadCounts = await getUserDownloadCounts(userId);
+    return toAccountUserProfile(user, user.socialLinks, downloadCounts);
   }
 
   static async updateMe(
@@ -291,7 +249,8 @@ export class AccountService {
         where: { userId },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      return toSafeUser(user, socialLinks);
+      const downloadCounts = await getUserDownloadCounts(userId);
+      return toAccountUserProfile(user, socialLinks, downloadCounts);
     } catch (error) {
       if (movedAvatarPath) {
         await UploadService.deleteUpload(movedAvatarPath, ["uploads/avatars"]);
