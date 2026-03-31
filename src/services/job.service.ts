@@ -219,23 +219,6 @@ export class JobService {
       where.salaryMin = { gte: requestData.salary_min };
     }
 
-    // Filter out expired jobs - combine with search conditions if they exist
-    const expirationFilter = {
-      OR: [{ expirationDate: null }, { expirationDate: { gte: new Date() } }],
-    };
-
-    if (where.OR) {
-      // If we already have OR conditions (from search), we need to combine them properly
-      where.AND = [
-        { OR: where.OR }, // Existing search conditions
-        expirationFilter, // Expiration filter
-      ];
-      delete where.OR; // Remove the OR since we moved it to AND
-    } else {
-      // No search conditions, just apply expiration filter
-      Object.assign(where, expirationFilter);
-    }
-
     const sortField =
       sortFieldMap[requestData.sort_by as keyof typeof sortFieldMap] ??
       "createdAt";
@@ -290,7 +273,6 @@ export class JobService {
       where: {
         slug,
         status: "published", // Only show published jobs for public API
-        OR: [{ expirationDate: null }, { expirationDate: { gte: new Date() } }],
       },
       include: jobInclude,
     });

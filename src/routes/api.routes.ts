@@ -72,8 +72,8 @@ router.get("/stats", PublicController.getStats);
 // Dashboard API (authenticated users)
 router.get("/dashboard", authMiddleware, DashboardController.getStats);
 
-// Templates API (public, no authentication required)
-router.get("/templates", optionalAuthMiddleware, PublicController.getTemplates);
+// Templates API (authenticated users only)
+router.get("/templates", authMiddleware, PublicController.getTemplates);
 router.get("/subscriptions/plans", SubscriptionController.getPlans);
 router.post(
   "/subscriptions/midtrans/notification",
