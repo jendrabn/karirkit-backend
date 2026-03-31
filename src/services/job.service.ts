@@ -319,10 +319,6 @@ export class JobService {
       userId,
       job: {
         status: JobStatus.published,
-        OR: [
-          { expirationDate: null },
-          { expirationDate: { gte: new Date() } },
-        ],
       },
     };
 
@@ -507,16 +503,11 @@ export class JobService {
     hasJobs: boolean = true,
     provinceId?: string
   ): Promise<CityResponse[]> {
-    // Get cities that have active (published) jobs or all cities based on hasJobs parameter
     const whereCondition: any = hasJobs
       ? {
           jobs: {
             some: {
               status: "published",
-              OR: [
-                { expirationDate: null },
-                { expirationDate: { gte: new Date() } },
-              ],
             },
           },
         }
@@ -533,10 +524,6 @@ export class JobService {
               ? {
                   where: {
                     status: "published",
-                    OR: [
-                      { expirationDate: null },
-                      { expirationDate: { gte: new Date() } },
-                    ],
                   },
                 }
               : true,
