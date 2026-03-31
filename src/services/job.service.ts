@@ -374,7 +374,6 @@ export class JobService {
       where: {
         id: payload.id,
         status: "published",
-        OR: [{ expirationDate: null }, { expirationDate: { gte: new Date() } }],
       },
       include: jobInclude,
     });
