@@ -5,6 +5,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { AuthValidation } from "../../src/validations/auth.validation";
 
 let app: typeof import("../../src/index").default;
 let AuthService: typeof import("../../src/services/auth.service").AuthService;
@@ -108,6 +109,17 @@ describe("POST /auth/register", () => {
       "Username minimal 3 karakter",
     );
   });
+
+  it("accepts null username in the register payload", () => {
+    const result = AuthValidation.REGISTER.parse({
+      name: "User Test",
+      username: null,
+      email: "user@example.com",
+      password: "secret123",
+    });
+
+    expect(result.username).toBeNull();
+  });
 });
 
 describe("POST /auth/register", () => {
@@ -182,5 +194,21 @@ describe("POST /auth/register", () => {
     expect(response.body).toHaveProperty("errors.username");
     expect(response.body).toHaveProperty("errors.email");
     expect(response.body.errors.username[0]).toBe("Username minimal 3 karakter");
+  });
+
+  it("auto-generates a username when the payload username is null", async () => {
+    const payload = buildUniqueAuthPayload("register-null-username");
+    trackedEmails.add(payload.email);
+
+    const response = await request(app).post("/auth/register").send({
+      ...payload,
+      username: null,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty("data.username");
+    expect(typeof response.body.data.username).toBe("string");
+    expect(response.body.data.username.length).toBeGreaterThanOrEqual(3);
+    expect(response.body.data.username).not.toBeNull();
   });
 });

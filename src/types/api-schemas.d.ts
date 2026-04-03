@@ -103,7 +103,7 @@ export interface AdminManagedUser {
 
 export interface RegisterRequest {
   name: string;
-  username: string;
+  username?: string | null;
   email: string;
   password: string;
   phone?: string | null;

@@ -1,15 +1,29 @@
 import { z } from "zod";
 
+const autoUsernameSchema = z.preprocess(
+  (value) => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed;
+    }
+
+    return value;
+  },
+  z
+    .string()
+    .min(3, "Username minimal 3 karakter")
+    .max(100, "Username maksimal 100 karakter")
+    .nullable()
+    .optional()
+);
+
 export class AuthValidation {
   static readonly REGISTER = z.object({
     name: z
       .string()
       .min(3, "Nama minimal 3 karakter")
       .max(100, "Nama maksimal 100 karakter"),
-    username: z
-      .string()
-      .min(3, "Username minimal 3 karakter")
-      .max(100, "Username maksimal 100 karakter"),
+    username: autoUsernameSchema,
     email: z
       .email("Format email tidak valid")
       .min(5, "Email minimal 5 karakter")

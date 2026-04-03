@@ -56,6 +56,12 @@ const INVALID_LOGIN_MESSAGE = "Email, username, atau kata sandi salah";
 export class AuthService {
   static async register(request: RegisterRequest): Promise<AuthUser> {
     const requestData = validate(AuthValidation.REGISTER, request);
+    const emailLocalPart = requestData.email.split("@")[0];
+    const username = requestData.username
+      ? requestData.username
+      : await AuthService.generateUniqueUsername(
+          emailLocalPart || requestData.name
+        );
 
     const totalUserWithSameEmail = await prisma.user.count({
       where: {
@@ -67,14 +73,16 @@ export class AuthService {
       throw new ResponseError(400, "Email sudah terdaftar");
     }
 
-    const totalUserWithSameUsername = await prisma.user.count({
-      where: {
-        username: requestData.username,
-      },
-    });
+    if (requestData.username) {
+      const totalUserWithSameUsername = await prisma.user.count({
+        where: {
+          username: requestData.username,
+        },
+      });
 
-    if (totalUserWithSameUsername > 0) {
-      throw new ResponseError(400, "Username sudah terdaftar");
+      if (totalUserWithSameUsername > 0) {
+        throw new ResponseError(400, "Username sudah terdaftar");
+      }
     }
 
     requestData.password = await bcrypt.hash(requestData.password, 10);
@@ -83,6 +91,7 @@ export class AuthService {
     const user = await prisma.user.create({
       data: {
         ...requestData,
+        username,
         subscriptionPlan: freePlan.subscriptionPlan,
         subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
         createdAt: new Date(),
