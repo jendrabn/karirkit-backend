@@ -27,6 +27,19 @@ const mediaSchema = z.object({
     .max(255, "Maksimal 255 karakter"),
 });
 
+const emptyStringToNull = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed === "" ? null : trimmed;
+      }
+
+      return value;
+    },
+    schema.nullable().optional()
+  );
+
 export class JobValidation {
   static readonly LIST_QUERY = z
     .object({
@@ -208,22 +221,20 @@ export class JobValidation {
           z.string().url("URL tidak valid").nullable(),
         ])
         .optional(),
-      contact_name: z
-        .string()
-        .min(3, "Nama kontak minimal 3 karakter")
-        .max(255, "Nama kontak maksimal 255 karakter")
-        .nullable()
-        .optional(),
-      contact_email: z
-        .string()
-        .email("Email tidak valid")
-        .nullable()
-        .optional(),
-      contact_phone: z
-        .string()
-        .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
-        .nullable()
-        .optional(),
+      contact_name: emptyStringToNull(
+        z
+          .string()
+          .min(3, "Nama kontak minimal 3 karakter")
+          .max(255, "Nama kontak maksimal 255 karakter")
+      ),
+      contact_email: emptyStringToNull(
+        z.string().email("Email tidak valid")
+      ),
+      contact_phone: emptyStringToNull(
+        z
+          .string()
+          .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
+      ),
       medias: z.array(mediaSchema).optional(),
       status: z
         .enum(
@@ -348,22 +359,20 @@ export class JobValidation {
           z.string().url("URL tidak valid").nullable(),
         ])
         .optional(),
-      contact_name: z
-        .string()
-        .min(3, "Nama kontak minimal 3 karakter")
-        .max(255, "Nama kontak maksimal 255 karakter")
-        .nullable()
-        .optional(),
-      contact_email: z
-        .string()
-        .email("Email tidak valid")
-        .nullable()
-        .optional(),
-      contact_phone: z
-        .string()
-        .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
-        .nullable()
-        .optional(),
+      contact_name: emptyStringToNull(
+        z
+          .string()
+          .min(3, "Nama kontak minimal 3 karakter")
+          .max(255, "Nama kontak maksimal 255 karakter")
+      ),
+      contact_email: emptyStringToNull(
+        z.string().email("Email tidak valid")
+      ),
+      contact_phone: emptyStringToNull(
+        z
+          .string()
+          .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format telepon tidak valid")
+      ),
       medias: z.array(mediaSchema).optional(),
       status: z
         .enum(

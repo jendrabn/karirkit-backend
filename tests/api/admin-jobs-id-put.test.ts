@@ -252,4 +252,30 @@ describe("PUT /admin/jobs/:id", () => {
       "Lowongan pekerjaan tidak ditemukan"
     );
   });
+
+  it("accepts an empty contact phone and normalizes it to null", async () => {
+    const updateMock = jest.mocked(AdminJobService.update);
+    updateMock.mockResolvedValue({
+      id: validId,
+      title: "Updated Backend Engineer",
+    } as never);
+
+    const response = await request(app)
+      .put(`/admin/jobs/${validId}`)
+      .set("Authorization", "Bearer admin-token")
+      .send({
+        title: "Updated Backend Engineer",
+        description: "Updated backend engineering role.",
+        requirements: "Updated backend engineering requirements.",
+        contact_phone: "",
+      });
+
+    expect(response.status).toBe(200);
+    expect(updateMock).toHaveBeenCalledWith(
+      validId,
+      expect.objectContaining({
+        contact_phone: null,
+      })
+    );
+  });
 });

@@ -97,6 +97,37 @@ describe("POST /admin/jobs", () => {
     expect(response.body).toHaveProperty("errors.title");
     expect(Array.isArray(response.body.errors.title)).toBe(true);
   });
+
+  it("accepts an empty contact phone and normalizes it to null", async () => {
+    const createMock = jest.mocked(AdminJobService.create);
+    createMock.mockResolvedValue({
+      id: "job-2",
+      title: "Senior Backend Engineer",
+    } as never);
+
+    const response = await request(app)
+      .post("/admin/jobs")
+      .set("Authorization", "Bearer admin-token")
+      .send({
+        company_id: companyId,
+        job_role_id: roleId,
+        title: "Senior Backend Engineer",
+        job_type: "full_time",
+        work_system: "remote",
+        education_level: "bachelor",
+        min_years_of_experience: 2,
+        description: "Detailed backend engineering role.",
+        requirements: "Detailed backend engineering requirements.",
+        contact_phone: "",
+      });
+
+    expect(response.status).toBe(201);
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contact_phone: null,
+      })
+    );
+  });
 });
 
 describe("POST /admin/jobs", () => {
