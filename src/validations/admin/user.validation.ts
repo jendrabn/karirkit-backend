@@ -197,6 +197,14 @@ export class UserValidation {
       .min(5, "Email minimal 5 karakter")
       .max(100, "Email maksimal 100 karakter")
       .optional(),
+    password: z
+      .string()
+      .trim()
+      .min(6, "Password minimal 6 karakter")
+      .max(100, "Password maksimal 100 karakter")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
     phone: z
       .string()
       .regex(/^(?:\+62|62|0)\d{8,13}$/, "Format: 08xxx, 62xxx, atau +62xxx")

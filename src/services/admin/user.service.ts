@@ -61,6 +61,7 @@ type UpdateUserRequest = {
   name?: string;
   username?: string;
   email?: string;
+  password?: string | null;
   phone?: string | null;
   headline?: string | null;
   bio?: string | null;
@@ -780,6 +781,15 @@ export class UserService {
 
     if (requestData.email !== undefined) {
       updateData.email = requestData.email;
+    }
+
+    if (typeof requestData.password === "string") {
+      const trimmedPassword = requestData.password.trim();
+      if (trimmedPassword) {
+        updateData.password = await bcrypt.hash(trimmedPassword, 10);
+        updateData.passwordResetTokenId = null;
+        updateData.sessionInvalidBefore = new Date();
+      }
     }
 
     if (requestData.phone !== undefined) {

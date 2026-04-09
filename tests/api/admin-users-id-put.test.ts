@@ -1,4 +1,5 @@
 import request from "supertest";
+import bcrypt from "bcrypt";
 import {
   createRealUser,
   createSessionToken,
@@ -188,5 +189,82 @@ describe("PUT /admin/users/:id", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.email");
     expect(Array.isArray(response.body.errors.email)).toBe(true);
+  });
+
+  it("updates the password when a non-empty password is provided", async () => {
+    const prisma = await loadPrisma();
+    const { user: admin } = await createRealUser(
+      "admin-users-update-password-admin",
+      {
+        role: "admin",
+      }
+    );
+    const { user: target } = await createRealUser(
+      "admin-users-update-password-target"
+    );
+    trackedEmails.add(admin.email);
+    trackedEmails.add(target.email);
+    const token = await createSessionToken(admin);
+    const newPassword = "newsecret123";
+
+    const response = await request(app)
+      .put(`/admin/users/${target.id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ password: newPassword });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("data.id", target.id);
+
+    const stored = await prisma.user.findUnique({
+      where: { id: target.id },
+      select: {
+        password: true,
+        sessionInvalidBefore: true,
+        passwordResetTokenId: true,
+      },
+    });
+
+    expect(stored).not.toBeNull();
+    expect(stored?.password).toBeDefined();
+    expect(stored?.passwordResetTokenId).toBeNull();
+    expect(stored?.sessionInvalidBefore).not.toBeNull();
+    expect(await bcrypt.compare(newPassword, stored!.password)).toBe(true);
+  });
+
+  it("ignores an empty password value", async () => {
+    const prisma = await loadPrisma();
+    const { user: admin } = await createRealUser(
+      "admin-users-update-password-empty-admin",
+      {
+        role: "admin",
+      }
+    );
+    const { user: target } = await createRealUser(
+      "admin-users-update-password-empty-target"
+    );
+    trackedEmails.add(admin.email);
+    trackedEmails.add(target.email);
+    const token = await createSessionToken(admin);
+
+    const before = await prisma.user.findUnique({
+      where: { id: target.id },
+      select: { password: true },
+    });
+
+    const response = await request(app)
+      .put(`/admin/users/${target.id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ password: "" });
+
+    expect(response.status).toBe(200);
+    const after = await prisma.user.findUnique({
+      where: { id: target.id },
+      select: { password: true, sessionInvalidBefore: true },
+    });
+
+    expect(before).not.toBeNull();
+    expect(after).not.toBeNull();
+    expect(after?.password).toBe(before?.password);
+    expect(after?.sessionInvalidBefore).toBeNull();
   });
 });

@@ -168,6 +168,29 @@ export interface ChangePasswordRequest {
   new_password: string;
 }
 
+export interface AdminUpdateUserRequest {
+  name?: string;
+  username?: string;
+  email?: string;
+  password?: string | null;
+  phone?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  gender?: "male" | "female" | null;
+  birth_date?: string | null;
+  role?: "user" | "admin";
+  avatar?: string | null;
+  social_links?: {
+    id?: string | null;
+    platform: string;
+    url: string;
+  }[];
+  status?: "active" | "suspended" | "banned";
+  status_reason?: string | null;
+  suspended_until?: string | null;
+}
+
 export type JobType =
   | "full_time"
   | "contract"

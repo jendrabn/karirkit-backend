@@ -7916,6 +7916,10 @@ components:
         email:
           type: string
           format: email
+        password:
+          type: string
+          nullable: true
+          description: Optional new password; when provided, the password will be replaced
         phone:
           type: string
           nullable: true
