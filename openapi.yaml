@@ -4788,6 +4788,27 @@ components:
           format: date-time
           nullable: true
           description: Suspension expiry timestamp (if applicable)
+      required:
+        - id
+        - name
+        - username
+        - email
+        - phone
+        - headline
+        - bio
+        - location
+        - gender
+        - birth_date
+        - role
+        - avatar
+        - created_at
+        - updated_at
+        - email_verified_at
+        - subscription_plan
+        - subscription_expires_at
+        - status
+        - status_reason
+        - suspended_until
     AccountUser:
       type: object
       properties:
@@ -4859,6 +4880,30 @@ components:
           type: integer
         download_today_count:
           type: integer
+      required:
+        - id
+        - name
+        - username
+        - email
+        - phone
+        - headline
+        - bio
+        - location
+        - gender
+        - birth_date
+        - role
+        - avatar
+        - created_at
+        - updated_at
+        - email_verified_at
+        - social_links
+        - status
+        - status_reason
+        - suspended_until
+        - subscription_plan
+        - subscription_expires_at
+        - download_total_count
+        - download_today_count
     AdminManagedUser:
       allOf:
         - $ref: "#/components/schemas/AccountUser"
@@ -5771,6 +5816,7 @@ components:
                   type: array
                   items:
                     $ref: "#/components/schemas/UserSocialLink"
+              required: [id, name, username, headline, bio, location, avatar, social_links]
             portfolios:
               type: array
               items:
@@ -5795,6 +5841,7 @@ components:
                   type: array
                   items:
                     $ref: "#/components/schemas/UserSocialLink"
+              required: [id, name, username, headline, bio, location, avatar, social_links]
             portfolio:
               $ref: "#/components/schemas/Portfolio"
     CvEducation:

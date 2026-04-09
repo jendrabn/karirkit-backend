@@ -73,7 +73,11 @@ describe("PUT /account/me", () => {
     } as never);
     updateMeMock.mockResolvedValue({
       id: "user-1",
+      name: "User Test",
       username: "user",
+      email: "user@example.com",
+      role: "user",
+      status: "active",
       avatar: "/uploads/avatars/avatar.webp",
       social_links: [
         {
@@ -104,7 +108,9 @@ describe("PUT /account/me", () => {
     expect(response.body).toHaveProperty("data");
     expect(response.body.data).toMatchObject({
       id: "user-1",
+      name: "User Test",
       username: "user",
+      email: "user@example.com",
       avatar: "/uploads/avatars/avatar.webp",
     });
     expect(Array.isArray(response.body.data.social_links)).toBe(true);

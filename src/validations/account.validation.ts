@@ -14,7 +14,6 @@ const optionalTrimmedString = (min = 1, max = 255) =>
     .trim()
     .min(min, `Minimal ${min} karakter`)
     .max(max, `Maksimal ${max} karakter`)
-    .or(z.literal(""))
     .optional();
 
 const nullableTrimmedString = (max = 255) =>
@@ -57,10 +56,10 @@ export class AccountValidation {
       username: optionalTrimmedString(3, 100),
       email: z
         .string()
+        .trim()
         .email("Format email tidak valid")
         .min(5, "Email minimal 5 karakter")
         .max(100, "Email maksimal 100 karakter")
-        .or(z.literal(""))
         .optional(),
       phone: z
         .string()
