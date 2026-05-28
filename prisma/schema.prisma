@@ -21,6 +21,8 @@ model User {
   gender                Gender?
   birthDate             DateTime?             @map("birth_date") @db.Date
   googleId              String?               @map("google_id") @db.VarChar(255)
+  facebookId            String?               @map("facebook_id") @db.VarChar(255)
+  appleId               String?               @map("apple_id") @db.VarChar(255)
   avatar                String?               @db.VarChar(255)
   passwordResetTokenId  String?               @map("password_reset_token_id") @db.VarChar(255)
   sessionInvalidBefore  DateTime?             @map("session_invalid_before") @db.Timestamp(3)
@@ -46,6 +48,9 @@ model User {
   subscriptionPlan      PlanId                @default(free) @map("subscription_plan")
   subscriptionExpiresAt DateTime?             @map("subscription_expires_at") @db.Timestamp(0)
 
+  @@index([googleId], map: "idx_users_google_id")
+  @@index([facebookId], map: "idx_users_facebook_id")
+  @@index([appleId], map: "idx_users_apple_id")
   @@map("users")
 }
 

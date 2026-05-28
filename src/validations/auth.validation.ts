@@ -49,6 +49,20 @@ export class AuthValidation {
     id_token: z.string().min(1, "ID Token wajib diisi"),
   });
 
+  static readonly FACEBOOK_LOGIN = z.object({
+    access_token: z.string().min(1, "Access token wajib diisi"),
+  });
+
+  static readonly APPLE_LOGIN = z.object({
+    id_token: z.string().min(1, "ID Token wajib diisi"),
+    name: z
+      .string()
+      .min(1, "Nama minimal 1 karakter")
+      .max(100, "Nama maksimal 100 karakter")
+      .nullable()
+      .optional(),
+  });
+
   static readonly FORGOT_PASSWORD = z.object({
     email: z
       .email("Format email tidak valid")

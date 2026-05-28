@@ -1,10 +1,12 @@
-import { randomBytes } from "crypto";
+import { createPublicKey, randomBytes } from "crypto";
 import type { User } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import env from "../config/env.config";
 import { prisma } from "../config/prisma.config";
 import {
+  AppleLoginRequest,
+  FacebookLoginRequest,
   ForgotPasswordRequest,
   GoogleLoginRequest,
   LoginRequest,
@@ -31,6 +33,9 @@ const googleOAuthClient = new OAuth2Client(
   env.googleClientSecret
 );
 
+const APPLE_ISSUER = "https://appleid.apple.com";
+const APPLE_KEYS_URL = `${APPLE_ISSUER}/auth/keys`;
+
 type AuthUser = SafeUser & {
   document_storage_stats: DocumentStorageStats;
 };
@@ -47,6 +52,39 @@ interface OtpLoginResult {
   expires_at?: number;
   expires_in?: number;
   resend_available_at?: number;
+}
+
+interface FacebookDebugTokenResponse {
+  data?: {
+    app_id?: string;
+    is_valid?: boolean;
+    user_id?: string;
+  };
+}
+
+interface FacebookProfileResponse {
+  id?: string;
+  name?: string;
+  email?: string;
+  picture?: {
+    data?: {
+      url?: string;
+    };
+  };
+}
+
+interface AppleJwk {
+  [key: string]: string | undefined;
+  kty: string;
+  kid: string;
+  use?: string;
+  alg?: string;
+  n: string;
+  e: string;
+}
+
+interface AppleKeysResponse {
+  keys?: AppleJwk[];
 }
 
 const DUMMY_PASSWORD_HASH =
@@ -178,6 +216,13 @@ export class AuthService {
   static async loginWithGoogle(
     request: GoogleLoginRequest
   ): Promise<LoginResult> {
+    if (!env.googleOAuthEnabled) {
+      throw new ResponseError(
+        503,
+        "Fitur login dengan Google sedang dinonaktifkan"
+      );
+    }
+
     const requestData = validate(AuthValidation.GOOGLE_LOGIN, request);
 
     let payload: TokenPayload | undefined;
@@ -256,6 +301,212 @@ export class AuthService {
       }
 
       if (!user.emailVerifiedAt) {
+        updateData.emailVerifiedAt = new Date();
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+    }
+
+    ensureAccountIsActive(user);
+
+    user = await markUserLastLogin(user.id);
+    const { token, expires_at } = createSessionToken(user);
+
+    return {
+      token,
+      user: {
+        ...toSafeUser(user),
+        document_storage_stats:
+          await DocumentService.getStorageStats(user.id),
+      },
+      expires_at,
+    };
+  }
+
+  static async loginWithFacebook(
+    request: FacebookLoginRequest
+  ): Promise<LoginResult> {
+    if (!env.facebookOAuthEnabled) {
+      throw new ResponseError(
+        503,
+        "Fitur login dengan Facebook sedang dinonaktifkan"
+      );
+    }
+
+    if (!env.facebookClientId || !env.facebookClientSecret) {
+      throw new ResponseError(503, "Konfigurasi Facebook OAuth belum lengkap");
+    }
+
+    const requestData = validate(AuthValidation.FACEBOOK_LOGIN, request);
+    const profile = await AuthService.verifyFacebookAccessToken(
+      requestData.access_token
+    );
+    const facebookId = profile.id;
+    const email = profile.email;
+
+    if (!facebookId || !email) {
+      throw new ResponseError(401, "Token Facebook tidak valid");
+    }
+
+    const avatar = profile.picture?.data?.url ?? null;
+    const displayName =
+      profile.name?.trim() || email.split("@")[0] || "Facebook User";
+    const name = displayName.length >= 3 ? displayName : "Facebook User";
+
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [{ facebookId }, { email }],
+      },
+    });
+
+    if (!user) {
+      const [emailLocalPart] = email.split("@");
+      const username = await AuthService.generateUniqueUsername(
+        emailLocalPart || name
+      );
+      const randomPassword = randomBytes(32).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      const freePlan = buildUserSubscriptionState("free");
+
+      user = await prisma.user.create({
+        data: {
+          name,
+          username,
+          email,
+          password: hashedPassword,
+          facebookId,
+          avatar,
+          subscriptionPlan: freePlan.subscriptionPlan,
+          subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
+          emailVerifiedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      const updateData: {
+        facebookId?: string;
+        avatar?: string | null;
+        emailVerifiedAt?: Date;
+      } = {};
+
+      if (!user.facebookId) {
+        updateData.facebookId = facebookId;
+      }
+
+      if (!user.avatar && avatar) {
+        updateData.avatar = avatar;
+      }
+
+      if (!user.emailVerifiedAt) {
+        updateData.emailVerifiedAt = new Date();
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+    }
+
+    ensureAccountIsActive(user);
+
+    user = await markUserLastLogin(user.id);
+    const { token, expires_at } = createSessionToken(user);
+
+    return {
+      token,
+      user: {
+        ...toSafeUser(user),
+        document_storage_stats:
+          await DocumentService.getStorageStats(user.id),
+      },
+      expires_at,
+    };
+  }
+
+  static async loginWithApple(
+    request: AppleLoginRequest
+  ): Promise<LoginResult> {
+    if (!env.appleOAuthEnabled) {
+      throw new ResponseError(
+        503,
+        "Fitur login dengan Apple sedang dinonaktifkan"
+      );
+    }
+
+    if (!env.appleClientId) {
+      throw new ResponseError(503, "Konfigurasi Apple OAuth belum lengkap");
+    }
+
+    const requestData = validate(AuthValidation.APPLE_LOGIN, request);
+    const payload = await AuthService.verifyAppleIdToken(requestData.id_token);
+    const appleId = typeof payload.sub === "string" ? payload.sub : undefined;
+    const email = typeof payload.email === "string" ? payload.email : undefined;
+    const emailVerified =
+      payload.email_verified === true || payload.email_verified === "true";
+
+    if (!appleId) {
+      throw new ResponseError(401, "Token Apple tidak valid");
+    }
+
+    if (email && !emailVerified) {
+      throw new ResponseError(401, "Email Apple belum diverifikasi");
+    }
+
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: email ? [{ appleId }, { email }] : [{ appleId }],
+      },
+    });
+
+    if (!user) {
+      if (!email) {
+        throw new ResponseError(401, "Email Apple tidak tersedia");
+      }
+
+      const displayName =
+        requestData.name?.trim() || email.split("@")[0] || "Apple User";
+      const name = displayName.length >= 3 ? displayName : "Apple User";
+      const [emailLocalPart] = email.split("@");
+      const username = await AuthService.generateUniqueUsername(
+        emailLocalPart || name
+      );
+      const randomPassword = randomBytes(32).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      const freePlan = buildUserSubscriptionState("free");
+
+      user = await prisma.user.create({
+        data: {
+          name,
+          username,
+          email,
+          password: hashedPassword,
+          appleId,
+          subscriptionPlan: freePlan.subscriptionPlan,
+          subscriptionExpiresAt: freePlan.subscriptionExpiresAt,
+          emailVerifiedAt: emailVerified ? new Date() : undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      const updateData: {
+        appleId?: string;
+        emailVerifiedAt?: Date;
+      } = {};
+
+      if (!user.appleId) {
+        updateData.appleId = appleId;
+      }
+
+      if (!user.emailVerifiedAt && emailVerified) {
         updateData.emailVerifiedAt = new Date();
       }
 
@@ -377,6 +628,111 @@ export class AuthService {
         updatedAt: passwordUpdatedAt,
       },
     });
+  }
+
+  private static async verifyFacebookAccessToken(
+    accessToken: string
+  ): Promise<FacebookProfileResponse> {
+    const appAccessToken = `${env.facebookClientId}|${env.facebookClientSecret}`;
+    const debugUrl = new URL("https://graph.facebook.com/debug_token");
+    debugUrl.searchParams.set("input_token", accessToken);
+    debugUrl.searchParams.set("access_token", appAccessToken);
+
+    const debugResponse =
+      await AuthService.fetchJson<FacebookDebugTokenResponse>(
+        debugUrl,
+        "Token Facebook tidak valid"
+      );
+
+    if (
+      !debugResponse.data?.is_valid ||
+      debugResponse.data.app_id !== env.facebookClientId ||
+      !debugResponse.data.user_id
+    ) {
+      throw new ResponseError(401, "Token Facebook tidak valid");
+    }
+
+    const profileUrl = new URL("https://graph.facebook.com/me");
+    profileUrl.searchParams.set("fields", "id,name,email,picture.type(large)");
+    profileUrl.searchParams.set("access_token", accessToken);
+
+    const profile = await AuthService.fetchJson<FacebookProfileResponse>(
+      profileUrl,
+      "Token Facebook tidak valid"
+    );
+
+    if (profile.id !== debugResponse.data.user_id) {
+      throw new ResponseError(401, "Token Facebook tidak valid");
+    }
+
+    return profile;
+  }
+
+  private static async verifyAppleIdToken(idToken: string): Promise<JwtPayload> {
+    const decoded = jwt.decode(idToken, { complete: true });
+
+    if (
+      !decoded ||
+      typeof decoded === "string" ||
+      decoded.header.alg !== "RS256" ||
+      typeof decoded.header.kid !== "string"
+    ) {
+      throw new ResponseError(401, "Token Apple tidak valid");
+    }
+
+    const keysResponse = await AuthService.fetchJson<AppleKeysResponse>(
+      new URL(APPLE_KEYS_URL),
+      "Token Apple tidak valid"
+    );
+    const key = keysResponse.keys?.find(
+      (candidate) => candidate.kid === decoded.header.kid
+    );
+
+    if (!key) {
+      throw new ResponseError(401, "Token Apple tidak valid");
+    }
+
+    try {
+      const publicKey = createPublicKey({ key, format: "jwk" });
+      const payload = jwt.verify(idToken, publicKey, {
+        algorithms: ["RS256"],
+        audience: env.appleClientId,
+        issuer: APPLE_ISSUER,
+      });
+
+      if (!payload || typeof payload === "string") {
+        throw new ResponseError(401, "Token Apple tidak valid");
+      }
+
+      return payload;
+    } catch (error) {
+      if (error instanceof ResponseError) {
+        throw error;
+      }
+
+      throw new ResponseError(401, "Token Apple tidak valid");
+    }
+  }
+
+  private static async fetchJson<T>(
+    url: URL,
+    errorMessage: string
+  ): Promise<T> {
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new ResponseError(401, errorMessage);
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      if (error instanceof ResponseError) {
+        throw error;
+      }
+
+      throw new ResponseError(401, errorMessage);
+    }
   }
 
   private static buildPasswordResetUrl(token: string): string | null {

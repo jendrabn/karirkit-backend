@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import env from "../config/env.config";
 import { AuthService } from "../services/auth.service";
 import {
+  AppleLoginRequest,
+  FacebookLoginRequest,
   ForgotPasswordRequest,
   GoogleLoginRequest,
   LoginRequest,
@@ -69,6 +71,48 @@ export class AuthController {
     try {
       const { token, user, expires_at } = await AuthService.loginWithGoogle(
         req.body as GoogleLoginRequest
+      );
+      res.cookie(
+        env.sessionCookieName,
+        token,
+        buildSessionCookieOptions(expires_at)
+      );
+
+      sendSuccess(res, user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async loginWithFacebook(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { token, user, expires_at } = await AuthService.loginWithFacebook(
+        req.body as FacebookLoginRequest
+      );
+      res.cookie(
+        env.sessionCookieName,
+        token,
+        buildSessionCookieOptions(expires_at)
+      );
+
+      sendSuccess(res, user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async loginWithApple(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { token, user, expires_at } = await AuthService.loginWithApple(
+        req.body as AppleLoginRequest
       );
       res.cookie(
         env.sessionCookieName,

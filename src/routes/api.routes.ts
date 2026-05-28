@@ -84,6 +84,8 @@ router.post(
 router.post("/auth/register", AuthController.register);
 router.post("/auth/login", loginRateLimiter, AuthController.login);
 router.post("/auth/google", AuthController.loginWithGoogle);
+router.post("/auth/facebook", AuthController.loginWithFacebook);
+router.post("/auth/apple", AuthController.loginWithApple);
 router.post(
   "/auth/forgot-password",
   passwordResetRateLimiter,

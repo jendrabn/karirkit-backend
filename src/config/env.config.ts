@@ -140,8 +140,17 @@ const env = {
   jwtExpiresIn:
     (process.env.JWT_EXPIRES_IN as StringValue | undefined) ?? defaultJwtExpiry,
   sessionCookieName: process.env.SESSION_COOKIE_NAME ?? "karirkit_session",
+  googleOAuthEnabled: parseBoolean(process.env.GOOGLE_OAUTH_ENABLED, true),
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  facebookOAuthEnabled: parseBoolean(
+    process.env.FACEBOOK_OAUTH_ENABLED,
+    false
+  ),
+  facebookClientId: process.env.FACEBOOK_CLIENT_ID ?? "",
+  facebookClientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
+  appleOAuthEnabled: parseBoolean(process.env.APPLE_OAUTH_ENABLED, false),
+  appleClientId: process.env.APPLE_CLIENT_ID ?? "",
   passwordResetTokenExpiresIn:
     (process.env.PASSWORD_RESET_TOKEN_EXPIRES_IN as StringValue | undefined) ??
     defaultResetExpiry,

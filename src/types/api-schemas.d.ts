@@ -118,6 +118,15 @@ export interface GoogleLoginRequest {
   id_token: string;
 }
 
+export interface FacebookLoginRequest {
+  access_token: string;
+}
+
+export interface AppleLoginRequest {
+  id_token: string;
+  name?: string | null;
+}
+
 export interface UpdateMeRequest {
   name?: string;
   username?: string;

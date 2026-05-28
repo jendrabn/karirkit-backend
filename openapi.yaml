@@ -101,7 +101,7 @@ paths:
     post:
       tags: [Auth]
       summary: Login with Google
-      description: Login or register via Google OAuth using an ID token or authorization code. Sets auth cookie on success.
+      description: Login or register via Google OAuth using an ID token. Sets auth cookie on success when Google OAuth is enabled.
       requestBody:
         required: true
         content:
@@ -119,6 +119,68 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/ValidationError"
+        "503":
+          description: Google OAuth is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/facebook:
+    post:
+      tags: [Auth]
+      summary: Login with Facebook
+      description: Login or register via Facebook OAuth using a Facebook user access token. Sets auth cookie on success when Facebook OAuth is enabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FacebookLoginRequest"
+      responses:
+        "200":
+          description: Authenticated with Facebook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          description: Facebook OAuth is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/apple:
+    post:
+      tags: [Auth]
+      summary: Login with Apple
+      description: Login or register via Apple OAuth using an Apple identity token. Sets auth cookie on success when Apple OAuth is enabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppleLoginRequest"
+      responses:
+        "200":
+          description: Authenticated with Apple
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          description: Apple OAuth is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/logout:
     post:
       tags: [Auth]
@@ -4966,6 +5028,24 @@ components:
       properties:
         id_token:
           type: string
+      required: [id_token]
+    FacebookLoginRequest:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: Facebook user access token issued to this app.
+      required: [access_token]
+    AppleLoginRequest:
+      type: object
+      properties:
+        id_token:
+          type: string
+          description: Apple identity token.
+        name:
+          type: string
+          nullable: true
+          description: Optional display name from Apple, usually only available on first authorization.
       required: [id_token]
     UpdateMeRequest:
       type: object
