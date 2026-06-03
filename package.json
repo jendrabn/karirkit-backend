@@ -4,14 +4,16 @@
   "private": true,
   "scripts": {
     "prisma:generate": "prisma generate",
-    "prebuild": "npm run prisma:generate",
+    "prebuild": "prisma generate",
     "build": "tsc",
-    "predev": "npm run prisma:generate",
-    "pretest": "npm run prisma:generate",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "node dist/server.js",
-    "key:generate": "node ./scripts/key-generate.js",
-    "seed": "tsx prisma/seed.ts",
+    "predev": "prisma generate",
+    "pretest": "prisma generate",
+    "dev": "bun --watch src/server.ts",
+    "dev:node": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "bun dist/server.js",
+    "start:node": "node dist/server.js",
+    "key:generate": "bun ./scripts/key-generate.js",
+    "seed": "bun prisma/seed.ts",
     "k6:smoke": "cross-env PRESET=smoke k6 run scripts/k6/representative-stress.js",
     "k6:stress": "cross-env PRESET=stress k6 run scripts/k6/representative-stress.js",
     "k6:breakpoint": "cross-env PRESET=breakpoint k6 run scripts/k6/representative-stress.js",
@@ -24,7 +26,7 @@
     "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",
-    "bull": "^4.16.5",
+    "bullmq": "^5.78.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dayjs": "^1.11.21",
@@ -75,9 +77,6 @@
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "@hono/node-server": "1.19.13",
-    "bull": {
-      "uuid": "11.1.1"
-    }
+    "@hono/node-server": "1.19.13"
   }
 }

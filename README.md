@@ -186,23 +186,25 @@ npm test
 npm run test:coverage
 ```
 
-## Production Deployment dengan PM2
+## Production Deployment dengan Bun dan PM2
 
-### 1. Install PM2 globally
+### 1. Install Bun dan PM2
 
 ```bash
+curl -fsSL https://bun.sh/install | bash
 npm install -g pm2
 ```
 
 ### 2. Build Application
 
 ```bash
-npm run build
+bun install --frozen-lockfile
+bun run build
 ```
 
-### 3. Create PM2 Ecosystem File
+### 3. PM2 Ecosystem File
 
-Buat file `ecosystem.config.js`:
+File `ecosystem.config.js` menjalankan hasil build dengan interpreter Bun:
 
 ```javascript
 module.exports = {
@@ -210,49 +212,13 @@ module.exports = {
     {
       name: 'karirkit-backend',
       script: 'dist/server.js',
-      instances: 'max',
-      exec_mode: 'cluster',
+      interpreter: 'bun',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
-      },
-      env_production: {
-        NODE_ENV: 'production',
-        PORT: 3000
-      },
-      // Log configuration
-      log_file: 'logs/combined.log',
-      out_file: 'logs/out.log',
-      error_file: 'logs/error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      
-      // Restart configuration
-      max_restarts: 10,
-      min_uptime: '10s',
-      max_memory_restart: '1G',
-      
-      // Monitoring
-      watch: false,
-      ignore_watch: ['node_modules', 'logs'],
-      
-      // Other options
-      merge_logs: true,
-      kill_timeout: 5000
+      }
     }
-  ],
-  
-  deploy: {
-    production: {
-      user: 'deploy',
-      host: 'your-server-ip',
-      ref: 'origin/main',
-      repo: 'git@github.com:username/karirkit-backend.git',
-      path: '/var/www/karirkit-backend',
-      'pre-deploy-local': '',
-      'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
-      'pre-setup': ''
-    }
-  }
+  ]
 };
 ```
 
@@ -329,9 +295,9 @@ Untuk update aplikasi di server production yang sudah memiliki data, gunakan alu
 ```bash
 cd /path/ke/karirkit-backend
 git pull
-npm ci
-npx prisma migrate deploy
-npm run build
+bun install --frozen-lockfile
+bunx --bun prisma migrate deploy
+bun run build
 pm2 reload ecosystem.config.js --env production
 ```
 

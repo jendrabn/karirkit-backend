@@ -21,17 +21,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
+          bun-version: 1.3.4
 
       - name: Install dependencies
-        run: npm ci --include=dev
+        run: bun install --frozen-lockfile
 
       - name: Build application
-        run: npm run build
+        run: bun run build
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -50,9 +49,9 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            npm ci --include=dev
-            npx prisma migrate deploy
-            npm run build
+            bun install --frozen-lockfile
+            bunx --bun prisma migrate deploy
+            bun run build
 
             if pm2 describe karirkit-backend >/dev/null 2>&1; then
               pm2 restart karirkit-backend --update-env
