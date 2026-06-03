@@ -11,13 +11,12 @@ import provinces from "../src/data/provinces.json";
 import cities from "../src/data/cities.json";
 import jobRoles from "../src/data/job_roles.json";
 
-const adapter = new PrismaMariaDb({
-  host: process.env.DATABASE_HOST,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-  connectionLimit: 5,
-});
+const databaseUrl = process.env.DATABASE_URL?.trim();
+if (!databaseUrl) {
+  throw new Error("Missing required environment variable: DATABASE_URL");
+}
+
+const adapter = new PrismaMariaDb(databaseUrl);
 
 const prisma = new PrismaClient({ adapter });
 

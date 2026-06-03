@@ -82,11 +82,6 @@ Edit `.env` file dengan konfigurasi Anda:
 ```env
 # Database
 DATABASE_URL="mysql://username:password@localhost:3306/karirkit"
-DATABASE_HOST="localhost"
-DATABASE_PORT=3306
-DATABASE_NAME="karirkit"
-DATABASE_USER="username"
-DATABASE_PASSWORD="password"
 
 # JWT
 JWT_SECRET="your-super-secret-jwt-key"
@@ -144,8 +139,7 @@ npx prisma db seed
 Gunakan `npx prisma db seed` hanya untuk inisialisasi awal atau environment development yang memang boleh diisi ulang. Jangan jalankan perintah ini untuk update/redeploy production yang sudah berisi data.
 
 Catatan database:
-- `DATABASE_URL` dipakai oleh Prisma CLI.
-- Jika `DATABASE_URL` kosong, runtime dan Prisma CLI akan membangun koneksi dari `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, dan `DATABASE_PASSWORD`.
+- `DATABASE_URL` dipakai oleh runtime, Prisma CLI, migration, dan seed.
 
 ## Development
 
@@ -232,11 +226,6 @@ mkdir -p logs
 # Set production environment variables
 export NODE_ENV=production
 export DATABASE_URL="mysql://user:pass@prod-host:3306/karirkit_prod"
-export DATABASE_HOST="prod-host"
-export DATABASE_PORT=3306
-export DATABASE_NAME="karirkit_prod"
-export DATABASE_USER="user"
-export DATABASE_PASSWORD="pass"
 export JWT_SECRET="your-production-jwt-secret"
 # ... set other production variables
 ```
