@@ -42,6 +42,16 @@ jobs:
           script_stop: true
           script: |
             set -e
+            export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+            export PATH="$BUN_INSTALL/bin:$PATH"
+
+            if ! command -v bun >/dev/null 2>&1; then
+              curl -fsSL https://bun.sh/install | bash
+              export PATH="$BUN_INSTALL/bin:$PATH"
+            fi
+
+            bun --version
+            export BUN_BIN="$(command -v bun)"
             cd /var/www/karirkit-backend
 
             git fetch origin main
@@ -53,10 +63,5 @@ jobs:
             bunx --bun prisma migrate deploy
             bun run build
 
-            if pm2 describe karirkit-backend >/dev/null 2>&1; then
-              pm2 restart karirkit-backend --update-env
-            else
-              pm2 start ecosystem.config.js
-            fi
-
+            pm2 startOrReload ecosystem.config.js --update-env
             pm2 save
