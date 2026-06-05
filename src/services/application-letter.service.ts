@@ -8,7 +8,6 @@ import type {
 } from "../generated/prisma/models/ApplicationLetter";
 import crypto from "crypto";
 import path from "path";
-import fs from "fs/promises";
 import createReport from "docx-templates";
 import type {
   ApplicationLetter as ApplicationLetterResponse,
@@ -20,7 +19,6 @@ import {
   ApplicationLetterValidation,
   type ApplicationLetterListQuery,
   type ApplicationLetterPayloadInput,
-  type MassDeleteInput,
 } from "../validations/application-letter.validation";
 import { ResponseError } from "../utils/response-error.util";
 import { isHttpUrl } from "../utils/url.util";
@@ -34,7 +32,42 @@ type ApplicationLetterListResult = {
   pagination: Pagination;
 };
 
-type ApplicationLetterMutableFields = any;
+type TemplateSummary = {
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+};
+
+type ApplicationLetterWithTemplate = PrismaApplicationLetter & {
+  template?: TemplateSummary | null;
+};
+
+type ApplicationLetterMutableFields = Pick<
+  Prisma.ApplicationLetterUncheckedCreateInput,
+  | "name"
+  | "birthPlaceDate"
+  | "gender"
+  | "maritalStatus"
+  | "education"
+  | "phone"
+  | "email"
+  | "address"
+  | "subject"
+  | "applicantCity"
+  | "applicationDate"
+  | "receiverTitle"
+  | "companyName"
+  | "companyCity"
+  | "companyAddress"
+  | "openingParagraph"
+  | "bodyParagraph"
+  | "attachments"
+  | "closingParagraph"
+  | "signature"
+  | "templateId"
+  | "language"
+>;
 
 type GeneratedDocument = {
   buffer: Buffer;
@@ -66,15 +99,21 @@ const sortFieldMap = {
 >;
 
 const MAX_SIGNATURE_HEIGHT_CM = 2;
-const SIGNATURE_UPLOAD_DIR = path.join(
-  process.cwd(),
-  "public",
-  "uploads",
-  "signatures"
-);
-const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 const SIGNATURE_PUBLIC_PREFIX = "uploads/signatures";
 const TEMP_PUBLIC_PREFIX = "uploads/temp";
+
+const templateSelect = {
+  id: true,
+  name: true,
+  path: true,
+  type: true,
+} satisfies Prisma.TemplateSelect;
+
+const letterInclude = {
+  template: {
+    select: templateSelect,
+  },
+} satisfies Prisma.ApplicationLetterInclude;
 
 export class ApplicationLetterService {
   static async list(
@@ -85,77 +124,7 @@ export class ApplicationLetterService {
       ApplicationLetterValidation.LIST_QUERY,
       query
     );
-
-    const where: ApplicationLetterWhereInput = {
-      userId,
-    };
-
-    if (filters.q) {
-      const search = filters.q;
-      where.OR = [
-        { name: { contains: search } },
-        { email: { contains: search } },
-        { phone: { contains: search } },
-        { subject: { contains: search } },
-        { companyName: { contains: search } },
-        { companyCity: { contains: search } },
-        { applicantCity: { contains: search } },
-        { education: { contains: search } },
-      ];
-    }
-
-    if (filters.company_name) {
-      where.companyName = filters.company_name;
-    }
-
-    if (filters.gender?.length) {
-      where.gender = { in: filters.gender };
-    }
-
-    if (filters.marital_status?.length) {
-      where.maritalStatus = { in: filters.marital_status };
-    }
-
-    if (filters.language?.length) {
-      where.language = { in: filters.language };
-    }
-
-    if (filters.company_city?.length) {
-      where.companyCity = { in: filters.company_city };
-    }
-
-    if (filters.applicant_city?.length) {
-      where.applicantCity = { in: filters.applicant_city };
-    }
-
-    if (filters.template_id) {
-      where.templateId = filters.template_id;
-    }
-
-    if (filters.application_date_from || filters.application_date_to) {
-      where.applicationDate = {};
-      if (filters.application_date_from) {
-        where.applicationDate.gte = filters.application_date_from;
-      }
-      if (filters.application_date_to) {
-        where.applicationDate.lte = filters.application_date_to;
-      }
-    }
-
-    if (filters.created_at_from || filters.created_at_to) {
-      where.createdAt = {};
-      if (filters.created_at_from) {
-        where.createdAt.gte = new Date(
-          `${filters.created_at_from}T00:00:00.000Z`
-        );
-      }
-      if (filters.created_at_to) {
-        where.createdAt.lte = new Date(
-          `${filters.created_at_to}T23:59:59.999Z`
-        );
-      }
-    }
-
+    const where = ApplicationLetterService.buildListWhere(userId, filters);
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";
     const orderBy: ApplicationLetterOrderByWithRelationInput = {
       [orderByField]: filters.sort_order,
@@ -171,16 +140,7 @@ export class ApplicationLetterService {
         orderBy,
         skip: (page - 1) * perPage,
         take: perPage,
-        include: {
-          template: {
-            select: {
-              id: true,
-              name: true,
-              path: true,
-              type: true,
-            },
-          },
-        },
+        include: letterInclude,
       }),
     ]);
 
@@ -227,16 +187,7 @@ export class ApplicationLetterService {
           createdAt: now,
           updatedAt: now,
         },
-        include: {
-          template: {
-            select: {
-              id: true,
-              name: true,
-              path: true,
-              type: true,
-            },
-          },
-        },
+        include: letterInclude,
       });
 
       return ApplicationLetterService.toResponse(letter);
@@ -286,16 +237,7 @@ export class ApplicationLetterService {
           ...data,
           updatedAt: new Date(),
         },
-        include: {
-          template: {
-            select: {
-              id: true,
-              name: true,
-              path: true,
-              type: true,
-            },
-          },
-        },
+        include: letterInclude,
       });
 
       if (preparedSignature.path !== (existing.signature ?? "")) {
@@ -339,41 +281,12 @@ export class ApplicationLetterService {
       const duplicate = await prisma.applicationLetter.create({
         data: {
           userId,
-          name: source.name,
-          birthPlaceDate: source.birthPlaceDate,
-          gender: source.gender,
-          maritalStatus: source.maritalStatus,
-          education: source.education,
-          phone: source.phone,
-          email: source.email,
-          address: source.address,
-          subject: source.subject,
-          applicantCity: source.applicantCity,
-          applicationDate: source.applicationDate,
-          receiverTitle: source.receiverTitle,
-          companyName: source.companyName,
-          companyCity: source.companyCity,
-          companyAddress: source.companyAddress,
-          openingParagraph: source.openingParagraph,
-          bodyParagraph: source.bodyParagraph,
-          attachments: source.attachments,
-          closingParagraph: source.closingParagraph,
+          ...ApplicationLetterService.mapDuplicateData(source),
           signature: duplicatedSignature,
-          templateId: (source as any).templateId,
-          language: source.language,
           createdAt: now,
           updatedAt: now,
         },
-        include: {
-          template: {
-            select: {
-              id: true,
-              name: true,
-              path: true,
-              type: true,
-            },
-          },
-        },
+        include: letterInclude,
       });
 
       return ApplicationLetterService.toResponse(duplicate);
@@ -425,31 +338,13 @@ export class ApplicationLetterService {
   private static async findOwnedLetter(
     userId: string,
     id: string
-  ): Promise<
-    PrismaApplicationLetter & {
-      template?: {
-        id: string;
-        name: string;
-        path: string;
-        type: string;
-      } | null;
-    }
-  > {
+  ): Promise<ApplicationLetterWithTemplate> {
     const letter = await prisma.applicationLetter.findFirst({
       where: {
         id,
         userId,
       },
-      include: {
-        template: {
-          select: {
-            id: true,
-            name: true,
-            path: true,
-            type: true,
-          },
-        },
-      },
+      include: letterInclude,
     });
 
     if (!letter) {
@@ -457,6 +352,82 @@ export class ApplicationLetterService {
     }
 
     return letter;
+  }
+
+  private static buildListWhere(
+    userId: string,
+    filters: ApplicationLetterListQuery
+  ): ApplicationLetterWhereInput {
+    const where: ApplicationLetterWhereInput = { userId };
+
+    if (filters.q) {
+      const search = filters.q;
+      where.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { subject: { contains: search } },
+        { companyName: { contains: search } },
+        { companyCity: { contains: search } },
+        { applicantCity: { contains: search } },
+        { education: { contains: search } },
+      ];
+    }
+
+    if (filters.company_name) {
+      where.companyName = filters.company_name;
+    }
+
+    if (filters.gender?.length) {
+      where.gender = { in: filters.gender };
+    }
+
+    if (filters.marital_status?.length) {
+      where.maritalStatus = { in: filters.marital_status };
+    }
+
+    if (filters.language?.length) {
+      where.language = { in: filters.language };
+    }
+
+    if (filters.company_city?.length) {
+      where.companyCity = { in: filters.company_city };
+    }
+
+    if (filters.applicant_city?.length) {
+      where.applicantCity = { in: filters.applicant_city };
+    }
+
+    if (filters.template_id) {
+      where.templateId = filters.template_id;
+    }
+
+    if (filters.application_date_from || filters.application_date_to) {
+      where.applicationDate = {
+        ...(filters.application_date_from && {
+          gte: filters.application_date_from,
+        }),
+        ...(filters.application_date_to && {
+          lte: filters.application_date_to,
+        }),
+      };
+    }
+
+    if (filters.created_at_from || filters.created_at_to) {
+      where.createdAt = ApplicationLetterService.buildDateRange(
+        filters.created_at_from,
+        filters.created_at_to
+      );
+    }
+
+    return where;
+  }
+
+  private static buildDateRange(from?: string, to?: string) {
+    return {
+      ...(from && { gte: new Date(`${from}T00:00:00.000Z`) }),
+      ...(to && { lte: new Date(`${to}T23:59:59.999Z`) }),
+    };
   }
 
   private static mapPayloadToData(
@@ -486,6 +457,35 @@ export class ApplicationLetterService {
       signature: signaturePath,
       templateId: payload.template_id,
       language: payload.language,
+    };
+  }
+
+  private static mapDuplicateData(
+    source: PrismaApplicationLetter
+  ): ApplicationLetterMutableFields {
+    return {
+      name: source.name,
+      birthPlaceDate: source.birthPlaceDate,
+      gender: source.gender,
+      maritalStatus: source.maritalStatus,
+      education: source.education,
+      phone: source.phone,
+      email: source.email,
+      address: source.address,
+      subject: source.subject,
+      applicantCity: source.applicantCity,
+      applicationDate: source.applicationDate,
+      receiverTitle: source.receiverTitle,
+      companyName: source.companyName,
+      companyCity: source.companyCity,
+      companyAddress: source.companyAddress,
+      openingParagraph: source.openingParagraph,
+      bodyParagraph: source.bodyParagraph,
+      attachments: source.attachments,
+      closingParagraph: source.closingParagraph,
+      signature: source.signature,
+      templateId: source.templateId,
+      language: source.language,
     };
   }
 
@@ -609,51 +609,6 @@ export class ApplicationLetterService {
     ]);
   }
 
-  private static resolveUploadFile(
-    input: string | null | undefined,
-    prefix: string,
-    directory: string
-  ): { absolute: string; relative: string; publicPath: string } | null {
-    if (!input) {
-      return null;
-    }
-
-    const trimmed = input.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    const normalizedPrefix = prefix
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "")
-      .replace(/\/+$/, "");
-    const normalizedInput = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
-    const lowerInput = normalizedInput.toLowerCase();
-    const lowerPrefix = `${normalizedPrefix.toLowerCase()}/`;
-
-    if (!lowerInput.startsWith(lowerPrefix)) {
-      return null;
-    }
-
-    const relativeRaw = normalizedInput.slice(lowerPrefix.length);
-    if (!relativeRaw) {
-      return null;
-    }
-
-    const safeRelative = path.normalize(relativeRaw);
-    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) {
-      return null;
-    }
-
-    const posixRelative = safeRelative.replace(/\\/g, "/");
-
-    return {
-      absolute: path.join(directory, safeRelative),
-      relative: posixRelative,
-      publicPath: path.posix.join("/", normalizedPrefix, posixRelative),
-    };
-  }
-
   private static buildSignatureFileName(
     userId: string,
     extension: string
@@ -668,13 +623,12 @@ export class ApplicationLetterService {
   private static async renderDocx(
     letter: PrismaApplicationLetter
   ): Promise<Buffer> {
-    // Template is now required, no fallback to default template
-    if (!(letter as any).templateId) {
+    if (!letter.templateId) {
       throw new ResponseError(400, "Template diperlukan");
     }
 
-    const template = await (prisma as any).template.findUnique({
-      where: { id: (letter as any).templateId },
+    const template = await prisma.template.findUnique({
+      where: { id: letter.templateId },
     });
 
     if (!template) {
@@ -919,7 +873,7 @@ export class ApplicationLetterService {
   }
 
   private static toResponse(
-    letter: PrismaApplicationLetter & { template?: any }
+    letter: ApplicationLetterWithTemplate
   ): ApplicationLetterResponse {
     return {
       id: letter.id,
@@ -944,7 +898,7 @@ export class ApplicationLetterService {
       attachments: letter.attachments,
       closing_paragraph: letter.closingParagraph,
       signature: letter.signature,
-      template_id: (letter as any).templateId ?? null,
+      template_id: letter.templateId ?? null,
       language: letter.language,
       template: letter.template
         ? {

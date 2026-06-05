@@ -28,7 +28,6 @@ import type { CvAwardCreateWithoutCvInput } from "../generated/prisma/models/CvA
 import type { CvSocialLinkCreateWithoutCvInput } from "../generated/prisma/models/CvSocialLink";
 import type { CvOrganizationCreateWithoutCvInput } from "../generated/prisma/models/CvOrganization";
 import type { CvProjectCreateWithoutCvInput } from "../generated/prisma/models/CvProject";
-import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import createReport from "docx-templates";
@@ -72,13 +71,15 @@ type CvListResult = {
   pagination: Pagination;
 };
 
+type TemplateSummary = {
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+};
+
 type CvWithRelations = PrismaCv & {
-  template?: {
-    id: string;
-    name: string;
-    path: string;
-    type: string;
-  } | null;
+  template?: TemplateSummary | null;
   educations: PrismaCvEducation[];
   certificates: PrismaCvCertificate[];
   experiences: PrismaCvExperience[];
@@ -95,9 +96,21 @@ type PhotoChange = {
   obsolete: string[];
 };
 
-const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
+type CvMutableFields = Pick<
+  Prisma.CvUncheckedCreateInput,
+  | "name"
+  | "headline"
+  | "email"
+  | "phone"
+  | "address"
+  | "about"
+  | "photo"
+  | "templateId"
+  | "language"
+  | "visibility"
+>;
+
 const TEMP_PUBLIC_PREFIX = "uploads/temp";
-const CV_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "cvs");
 const CV_PUBLIC_PREFIX = "uploads/cvs";
 
 const PHOTO_TARGET_WIDTH_CM = 3;
@@ -110,7 +123,17 @@ const sortFieldMap = {
   headline: "headline",
 } as const satisfies Record<string, keyof CvOrderByWithRelationInput>;
 
+const templateSelect = {
+  id: true,
+  name: true,
+  path: true,
+  type: true,
+} satisfies Prisma.TemplateSelect;
+
 const relationInclude = {
+  template: {
+    select: templateSelect,
+  },
   educations: {
     orderBy: [{ startYear: "desc" as const }, { createdAt: "desc" as const }],
   },
@@ -326,86 +349,46 @@ export class CvService {
           slug,
           createdAt: now,
           updatedAt: now,
-          educations:
-            payload.educations && payload.educations.length
-              ? {
-                  create: payload.educations.map((record) => ({
-                    ...CvService.mapEducationCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          certificates:
-            payload.certificates && payload.certificates.length
-              ? {
-                  create: payload.certificates.map((record) => ({
-                    ...CvService.mapCertificateCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          experiences:
-            payload.experiences && payload.experiences.length
-              ? {
-                  create: payload.experiences.map((record) => ({
-                    ...CvService.mapExperienceCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          skills:
-            payload.skills && payload.skills.length
-              ? {
-                  create: payload.skills.map((record) => ({
-                    ...CvService.mapSkillCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          awards:
-            payload.awards && payload.awards.length
-              ? {
-                  create: payload.awards.map((record) => ({
-                    ...CvService.mapAwardCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          socialLinks:
-            payload.social_links && payload.social_links.length
-              ? {
-                  create: payload.social_links.map((record) => ({
-                    ...CvService.mapSocialLinkCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          organizations:
-            payload.organizations && payload.organizations.length
-              ? {
-                  create: payload.organizations.map((record) => ({
-                    ...CvService.mapOrganizationCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
-          projects:
-            payload.projects && payload.projects.length
-              ? {
-                  create: payload.projects.map((record) => ({
-                    ...CvService.mapProjectCreate(record),
-                    createdAt: now,
-                    updatedAt: now,
-                  })),
-                }
-              : undefined,
+          educations: CvService.createNestedRelation(
+            payload.educations,
+            CvService.mapEducationCreate,
+            now
+          ),
+          certificates: CvService.createNestedRelation(
+            payload.certificates,
+            CvService.mapCertificateCreate,
+            now
+          ),
+          experiences: CvService.createNestedRelation(
+            payload.experiences,
+            CvService.mapExperienceCreate,
+            now
+          ),
+          skills: CvService.createNestedRelation(
+            payload.skills,
+            CvService.mapSkillCreate,
+            now
+          ),
+          awards: CvService.createNestedRelation(
+            payload.awards,
+            CvService.mapAwardCreate,
+            now
+          ),
+          socialLinks: CvService.createNestedRelation(
+            payload.social_links,
+            CvService.mapSocialLinkCreate,
+            now
+          ),
+          organizations: CvService.createNestedRelation(
+            payload.organizations,
+            CvService.mapOrganizationCreate,
+            now
+          ),
+          projects: CvService.createNestedRelation(
+            payload.projects,
+            CvService.mapProjectCreate,
+            now
+          ),
         },
         include: relationInclude,
       });
@@ -455,21 +438,7 @@ export class CvService {
     const payload: CvPayloadInput = validate(CvValidation.PAYLOAD, request);
     let slug: string | undefined;
     if (payload.slug !== undefined) {
-      const sanitized = CvService.sanitizeSlug(payload.slug);
-      if (!sanitized) {
-        throw new ResponseError(400, "Slug tidak valid");
-      }
-      const slugExists = await prisma.cv.findFirst({
-        where: {
-          slug: sanitized,
-          NOT: { id },
-        },
-        select: { id: true },
-      });
-      if (slugExists) {
-        throw new ResponseError(400, "Slug sudah digunakan");
-      }
-      slug = sanitized;
+      slug = await CvService.validateUniqueSlug(payload.slug, id);
     }
     const photoChange = await CvService.preparePhoto(
       userId,
@@ -480,101 +449,7 @@ export class CvService {
 
     try {
       const cv = await prisma.$transaction(async (tx) => {
-        await tx.cvEducation.deleteMany({ where: { cvId: id } });
-        if (payload.educations?.length) {
-          await tx.cvEducation.createMany({
-            data: payload.educations.map((record) => ({
-              ...CvService.mapEducationCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvCertificate.deleteMany({ where: { cvId: id } });
-        if (payload.certificates?.length) {
-          await tx.cvCertificate.createMany({
-            data: payload.certificates.map((record) => ({
-              ...CvService.mapCertificateCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvExperience.deleteMany({ where: { cvId: id } });
-        if (payload.experiences?.length) {
-          await tx.cvExperience.createMany({
-            data: payload.experiences.map((record) => ({
-              ...CvService.mapExperienceCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvSkill.deleteMany({ where: { cvId: id } });
-        if (payload.skills?.length) {
-          await tx.cvSkill.createMany({
-            data: payload.skills.map((record) => ({
-              ...CvService.mapSkillCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvAward.deleteMany({ where: { cvId: id } });
-        if (payload.awards?.length) {
-          await tx.cvAward.createMany({
-            data: payload.awards.map((record) => ({
-              ...CvService.mapAwardCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvSocialLink.deleteMany({ where: { cvId: id } });
-        if (payload.social_links?.length) {
-          await tx.cvSocialLink.createMany({
-            data: payload.social_links.map((record) => ({
-              ...CvService.mapSocialLinkCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvOrganization.deleteMany({ where: { cvId: id } });
-        if (payload.organizations?.length) {
-          await tx.cvOrganization.createMany({
-            data: payload.organizations.map((record) => ({
-              ...CvService.mapOrganizationCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
-
-        await tx.cvProject.deleteMany({ where: { cvId: id } });
-        if (payload.projects?.length) {
-          await tx.cvProject.createMany({
-            data: payload.projects.map((record) => ({
-              ...CvService.mapProjectCreate(record),
-              cvId: id,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          });
-        }
+        await CvService.replaceNestedRelations(tx, id, payload, now);
 
         return tx.cv.update({
           where: { id },
@@ -607,21 +482,7 @@ export class CvService {
     };
 
     if (payload.slug !== undefined) {
-      const sanitized = CvService.sanitizeSlug(payload.slug);
-      if (!sanitized) {
-        throw new ResponseError(400, "Slug tidak valid");
-      }
-      const slugExists = await prisma.cv.findFirst({
-        where: {
-          slug: sanitized,
-          NOT: { id },
-        },
-        select: { id: true },
-      });
-      if (slugExists) {
-        throw new ResponseError(400, "Slug sudah digunakan");
-      }
-      updateData.slug = sanitized;
+      updateData.slug = await CvService.validateUniqueSlug(payload.slug, id);
     }
 
     if (payload.visibility !== undefined) {
@@ -715,91 +576,28 @@ export class CvService {
         createdAt: now,
         updatedAt: now,
         educations: {
-          create: source.educations.map((record) => ({
-            degree: record.degree,
-            schoolName: record.schoolName,
-            schoolLocation: record.schoolLocation,
-            major: record.major,
-            startMonth: record.startMonth,
-            startYear: record.startYear,
-            endMonth: record.endMonth,
-            endYear: record.endYear,
-            isCurrent: record.isCurrent,
-            gpa: record.gpa,
-            description: record.description,
-          })),
+          create: source.educations.map(CvService.stripRelationMetadata),
         },
         certificates: {
-          create: source.certificates.map((record) => ({
-            title: record.title,
-            issuer: record.issuer,
-            issueMonth: record.issueMonth,
-            issueYear: record.issueYear,
-            expiryMonth: record.expiryMonth,
-            expiryYear: record.expiryYear,
-            noExpiry: record.noExpiry,
-            credentialId: record.credentialId,
-            credentialUrl: record.credentialUrl,
-            description: record.description,
-          })),
+          create: source.certificates.map(CvService.stripRelationMetadata),
         },
         experiences: {
-          create: source.experiences.map((record) => ({
-            jobTitle: record.jobTitle,
-            companyName: record.companyName,
-            companyLocation: record.companyLocation,
-            jobType: record.jobType,
-            startMonth: record.startMonth,
-            startYear: record.startYear,
-            endMonth: record.endMonth,
-            endYear: record.endYear,
-            isCurrent: record.isCurrent,
-            description: record.description,
-          })),
+          create: source.experiences.map(CvService.stripRelationMetadata),
         },
         skills: {
-          create: source.skills.map((record) => ({
-            name: record.name,
-            level: record.level,
-            skillCategory: record.skillCategory,
-          })),
+          create: source.skills.map(CvService.stripRelationMetadata),
         },
         awards: {
-          create: source.awards.map((record) => ({
-            title: record.title,
-            issuer: record.issuer,
-            description: record.description,
-            year: record.year,
-          })),
+          create: source.awards.map(CvService.stripRelationMetadata),
         },
         socialLinks: {
-          create: source.socialLinks.map((record) => ({
-            platform: record.platform,
-            url: record.url,
-          })),
+          create: source.socialLinks.map(CvService.stripRelationMetadata),
         },
         organizations: {
-          create: source.organizations.map((record) => ({
-            organizationName: record.organizationName,
-            roleTitle: record.roleTitle,
-            organizationType: record.organizationType,
-            location: record.location,
-            startMonth: record.startMonth,
-            startYear: record.startYear,
-            endMonth: record.endMonth,
-            endYear: record.endYear,
-            isCurrent: record.isCurrent,
-            description: record.description,
-          })),
+          create: source.organizations.map(CvService.stripRelationMetadata),
         },
         projects: {
-          create: source.projects.map((record) => ({
-            name: record.name,
-            description: record.description,
-            year: record.year,
-            repoUrl: record.repoUrl,
-            liveUrl: record.liveUrl,
-          })),
+          create: source.projects.map(CvService.stripRelationMetadata),
         },
       },
       include: relationInclude,
@@ -847,7 +645,7 @@ export class CvService {
   private static mapPayloadToData(
     payload: CvPayloadInput,
     photo: string | null
-  ): any {
+  ): CvMutableFields {
     return {
       name: payload.name,
       headline: payload.headline,
@@ -860,6 +658,152 @@ export class CvService {
       language: payload.language,
       visibility: payload.visibility,
     };
+  }
+
+  private static createNestedRelation<TInput, TData extends object>(
+    records: TInput[] | undefined,
+    mapper: (record: TInput) => TData,
+    now: Date
+  ): { create: Array<TData & { createdAt: Date; updatedAt: Date }> } | undefined {
+    if (!records?.length) {
+      return undefined;
+    }
+
+    return {
+      create: records.map((record) => ({
+        ...mapper(record),
+        createdAt: now,
+        updatedAt: now,
+      })),
+    };
+  }
+
+  private static async replaceNestedRelations(
+    tx: Prisma.TransactionClient,
+    cvId: string,
+    payload: CvPayloadInput,
+    now: Date
+  ): Promise<void> {
+    await tx.cvEducation.deleteMany({ where: { cvId } });
+    if (payload.educations?.length) {
+      await tx.cvEducation.createMany({
+        data: CvService.createManyRelationData(
+          payload.educations,
+          CvService.mapEducationCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvCertificate.deleteMany({ where: { cvId } });
+    if (payload.certificates?.length) {
+      await tx.cvCertificate.createMany({
+        data: CvService.createManyRelationData(
+          payload.certificates,
+          CvService.mapCertificateCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvExperience.deleteMany({ where: { cvId } });
+    if (payload.experiences?.length) {
+      await tx.cvExperience.createMany({
+        data: CvService.createManyRelationData(
+          payload.experiences,
+          CvService.mapExperienceCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvSkill.deleteMany({ where: { cvId } });
+    if (payload.skills?.length) {
+      await tx.cvSkill.createMany({
+        data: CvService.createManyRelationData(
+          payload.skills,
+          CvService.mapSkillCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvAward.deleteMany({ where: { cvId } });
+    if (payload.awards?.length) {
+      await tx.cvAward.createMany({
+        data: CvService.createManyRelationData(
+          payload.awards,
+          CvService.mapAwardCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvSocialLink.deleteMany({ where: { cvId } });
+    if (payload.social_links?.length) {
+      await tx.cvSocialLink.createMany({
+        data: CvService.createManyRelationData(
+          payload.social_links,
+          CvService.mapSocialLinkCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvOrganization.deleteMany({ where: { cvId } });
+    if (payload.organizations?.length) {
+      await tx.cvOrganization.createMany({
+        data: CvService.createManyRelationData(
+          payload.organizations,
+          CvService.mapOrganizationCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+
+    await tx.cvProject.deleteMany({ where: { cvId } });
+    if (payload.projects?.length) {
+      await tx.cvProject.createMany({
+        data: CvService.createManyRelationData(
+          payload.projects,
+          CvService.mapProjectCreate,
+          cvId,
+          now
+        ),
+      });
+    }
+  }
+
+  private static createManyRelationData<TInput, TData extends object>(
+    records: TInput[],
+    mapper: (record: TInput) => TData,
+    cvId: string,
+    now: Date
+  ): Array<TData & { cvId: string; createdAt: Date; updatedAt: Date }> {
+    return records.map((record) => ({
+      ...mapper(record),
+      cvId,
+      createdAt: now,
+      updatedAt: now,
+    }));
+  }
+
+  private static stripRelationMetadata<
+    T extends { id: string; cvId: string; createdAt: Date; updatedAt: Date }
+  >(record: T): Omit<T, "id" | "cvId" | "createdAt" | "updatedAt"> {
+    const { id, cvId, createdAt, updatedAt, ...data } = record;
+    void id;
+    void cvId;
+    void createdAt;
+    void updatedAt;
+    return data;
   }
 
   private static async buildUniqueCvSlug(userId: string): Promise<string> {
@@ -897,6 +841,30 @@ export class CvService {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .replace(/-{2,}/g, "-");
+  }
+
+  private static async validateUniqueSlug(
+    value: string,
+    exceptId: string
+  ): Promise<string> {
+    const sanitized = CvService.sanitizeSlug(value);
+    if (!sanitized) {
+      throw new ResponseError(400, "Slug tidak valid");
+    }
+
+    const slugExists = await prisma.cv.findFirst({
+      where: {
+        slug: sanitized,
+        NOT: { id: exceptId },
+      },
+      select: { id: true },
+    });
+
+    if (slugExists) {
+      throw new ResponseError(400, "Slug sudah digunakan");
+    }
+
+    return sanitized;
   }
 
   private static mapEducationCreate(
@@ -1144,51 +1112,6 @@ export class CvService {
     return UploadService.normalizeManagedUploadPath(value, [CV_PUBLIC_PREFIX]);
   }
 
-  private static resolveUploadFile(
-    input: string | null | undefined,
-    prefix: string,
-    directory: string
-  ): { absolute: string; relative: string; publicPath: string } | null {
-    if (!input) {
-      return null;
-    }
-
-    const trimmed = input.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    const normalizedPrefix = prefix
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "")
-      .replace(/\/+$/, "");
-    const normalizedInput = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
-    const lowerInput = normalizedInput.toLowerCase();
-    const lowerPrefix = `${normalizedPrefix.toLowerCase()}/`;
-
-    if (!lowerInput.startsWith(lowerPrefix)) {
-      return null;
-    }
-
-    const relativeRaw = normalizedInput.slice(lowerPrefix.length);
-    if (!relativeRaw) {
-      return null;
-    }
-
-    const safeRelative = path.normalize(relativeRaw);
-    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) {
-      return null;
-    }
-
-    const posixRelative = safeRelative.replace(/\\/g, "/");
-
-    return {
-      absolute: path.join(directory, safeRelative),
-      relative: posixRelative,
-      publicPath: path.posix.join("/", normalizedPrefix, posixRelative),
-    };
-  }
-
   private static async deleteFiles(paths: (string | null | undefined)[]) {
     const unique = Array.from(
       new Set(
@@ -1223,7 +1146,7 @@ export class CvService {
       throw new ResponseError(400, "Template diperlukan");
     }
 
-    const template = await (prisma as any).template.findUnique({
+    const template = await prisma.template.findUnique({
       where: { id: cv.templateId },
     });
 
@@ -1683,19 +1606,7 @@ export class CvService {
   }
 
   private static async toResponse(cv: CvWithRelations): Promise<CvResponse> {
-    // Fetch template data if templateId exists
-    let template = null;
-    if (cv.templateId) {
-      template = await (prisma as any).template.findUnique({
-        where: { id: cv.templateId },
-        select: {
-          id: true,
-          name: true,
-          path: true,
-          type: true,
-        },
-      });
-    }
+    const template = cv.template ?? null;
 
     return {
       id: cv.id,
