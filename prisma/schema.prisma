@@ -983,23 +983,26 @@ enum DocumentType {
 }
 
 model Subscription {
-  id                  String             @id @default(uuid()) @db.VarChar(255)
-  userId              String             @map("user_id") @db.VarChar(255)
-  plan                PlanId
-  status              SubscriptionStatus @default(pending)
-  midtransOrderId     String             @unique @map("midtrans_order_id") @db.VarChar(255)
-  midtransToken       String?            @map("midtrans_token") @db.VarChar(500)
-  midtransPaymentType String?            @map("midtrans_payment_type") @db.VarChar(100)
-  amount              Int                @db.Int
-  paidAt              DateTime?          @map("paid_at") @db.Timestamp(0)
-  expiresAt           DateTime?          @map("expires_at") @db.Timestamp(0)
-  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamp(0)
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String             @id @default(uuid()) @db.VarChar(255)
+  userId        String             @map("user_id") @db.VarChar(255)
+  plan          PlanId
+  status        SubscriptionStatus @default(pending)
+  gateway       PaymentGateway     @default(midtrans)
+  orderId       String             @unique @map("midtrans_order_id") @db.VarChar(255)
+  providerToken String?            @map("midtrans_token") @db.VarChar(500)
+  paymentType   String?            @map("midtrans_payment_type") @db.VarChar(100)
+  pendingKey    String?            @unique @map("pending_key") @db.VarChar(255)
+  amount        Int                @db.Int
+  paidAt        DateTime?          @map("paid_at") @db.Timestamp(0)
+  expiresAt     DateTime?          @map("expires_at") @db.Timestamp(0)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamp(0)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
-  @@index([midtransOrderId])
+  @@index([gateway])
+  @@index([orderId])
   @@map("subscriptions")
 }
 
@@ -1015,4 +1018,9 @@ enum SubscriptionStatus {
   expired
   failed
   cancelled
+}
+
+enum PaymentGateway {
+  manual
+  midtrans
 }

@@ -5,9 +5,6 @@ import {
 } from "../query.util";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-const dateTimeSchema = z.string().datetime("Format tanggal tidak valid");
-const manualPlanSchema = z.enum(["pro", "max"]);
-const manualStatusSchema = z.enum(["pending", "paid"]);
 
 const dateOnlySchema = z
   .string()
@@ -50,6 +47,10 @@ export class SubscriptionAdminValidation {
         parseCommaSeparated,
         z.array(z.enum(["free", "pro", "max"]))
       ).optional(),
+      gateway: z.preprocess(
+        parseCommaSeparated,
+        z.array(z.enum(["manual", "midtrans"]))
+      ).optional(),
       user_id: z.string().uuid("ID user tidak valid").optional(),
       created_at_from: optionalDateSchema(dateOnlySchema),
       created_at_to: optionalDateSchema(dateOnlySchema),
@@ -82,18 +83,8 @@ export class SubscriptionAdminValidation {
       }
     });
 
-  static readonly CREATE_MANUAL = z.object({
-    user_id: z.string().uuid("ID user tidak valid"),
-    plan: manualPlanSchema,
-    status: manualStatusSchema.default("paid"),
-    amount: optionalNumberSchema(z.number().int().nonnegative()),
-    paid_at: optionalDateSchema(dateTimeSchema),
-  });
 }
 
 export type AdminSubscriptionListQuery = z.infer<
   typeof SubscriptionAdminValidation.LIST_QUERY
->;
-export type AdminCreateSubscriptionInput = z.infer<
-  typeof SubscriptionAdminValidation.CREATE_MANUAL
 >;

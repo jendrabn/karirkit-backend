@@ -31,6 +31,7 @@ describe("POST /subscriptions/order", () => {
     createOrderMock.mockResolvedValue({
       subscriptionId: "sub-1",
       orderId: "SUB-user-1-123",
+      gateway: "midtrans",
       snapToken: "snap-token",
       snapUrl: "https://app.sandbox.midtrans.com/snap/v2/vtweb/token",
       amount: 25000,
@@ -46,6 +47,7 @@ describe("POST /subscriptions/order", () => {
     expect(response.body.data).toMatchObject({
       subscription_id: "sub-1",
       order_id: "SUB-user-1-123",
+      gateway: "midtrans",
       snap_token: "snap-token",
       snap_url: "https://app.sandbox.midtrans.com/snap/v2/vtweb/token",
       amount: 25000,
@@ -58,8 +60,9 @@ describe("POST /subscriptions/order", () => {
     createOrderMock.mockResolvedValue({
       subscriptionId: "sub-pending-1",
       orderId: "SUB-PRO-ABC123",
+      gateway: "midtrans",
       snapToken: "snap-token-pending",
-      snapUrl: "",
+      snapUrl: null,
       amount: 25000,
       plan: "pro",
     } as never);
@@ -73,10 +76,42 @@ describe("POST /subscriptions/order", () => {
     expect(response.body.data).toMatchObject({
       subscription_id: "sub-pending-1",
       order_id: "SUB-PRO-ABC123",
+      gateway: "midtrans",
       snap_token: "snap-token-pending",
       snap_url: null,
       amount: 25000,
       plan: "pro",
+    });
+  });
+
+  it("returns a manual order without Snap data", async () => {
+    const createOrderMock = jest.mocked(
+      SubscriptionService.createSubscriptionOrder
+    );
+    createOrderMock.mockResolvedValue({
+      subscriptionId: "sub-manual-1",
+      orderId: "MANUAL-MAX-ABC123",
+      gateway: "manual",
+      snapToken: null,
+      snapUrl: null,
+      amount: 50000,
+      plan: "max",
+    } as never);
+
+    const response = await request(app)
+      .post("/subscriptions/order")
+      .set("Authorization", "Bearer user-token")
+      .send({ planId: "max" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data).toMatchObject({
+      subscription_id: "sub-manual-1",
+      order_id: "MANUAL-MAX-ABC123",
+      gateway: "manual",
+      snap_token: null,
+      snap_url: null,
+      amount: 50000,
+      plan: "max",
     });
   });
 

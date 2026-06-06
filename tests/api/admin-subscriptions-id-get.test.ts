@@ -40,9 +40,10 @@ describe("GET /admin/subscriptions/:id", () => {
       plan: "max",
       status: "pending",
       amount: 50000,
-      midtransOrderId: "SUB-user-1-123",
-      midtransToken: "token",
-      midtransPaymentType: null,
+      gateway: "midtrans",
+      orderId: "SUB-user-1-123",
+      providerToken: "token",
+      paymentType: null,
       paidAt: null,
       expiresAt: null,
       createdAt: "2026-03-01T00:00:00.000Z",
@@ -59,6 +60,8 @@ describe("GET /admin/subscriptions/:id", () => {
       user_id: "user-1",
       plan: "max",
       status: "pending",
+      gateway: "midtrans",
+      order_id: "SUB-user-1-123",
       midtrans_order_id: "SUB-user-1-123",
     });
   });

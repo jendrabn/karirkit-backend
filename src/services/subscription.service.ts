@@ -5,6 +5,7 @@ import type {
   SubscriptionWhereInput,
 } from "../generated/prisma/models/Subscription";
 import {
+  PaymentGateway as DbPaymentGateway,
   PlanId as DbPlanId,
   SubscriptionStatus,
 } from "../generated/prisma/client";
@@ -26,7 +27,6 @@ import {
 } from "../validations/subscription.validation";
 import {
   SubscriptionAdminValidation,
-  type AdminCreateSubscriptionInput,
   type AdminSubscriptionListQuery,
 } from "../validations/admin/subscription.validation";
 
@@ -38,6 +38,27 @@ type MidtransTransactionResponse = {
   redirect_url: string;
 };
 
+type PaymentGateway = "manual" | "midtrans";
+
+type SubscriptionOrderResult = {
+  subscriptionId: string;
+  orderId: string;
+  gateway: PaymentGateway;
+  snapToken: string | null;
+  snapUrl: string | null;
+  amount: number;
+  plan: ConfigPlanId;
+};
+
+type PendingOrderRecord = {
+  id: string;
+  amount: number;
+  plan: DbPlanId;
+  gateway: DbPaymentGateway;
+  orderId: string;
+  providerToken: string | null;
+};
+
 type CurrentSubscriptionResult = {
   id: string | null;
   plan: ConfigPlanId;
@@ -46,11 +67,12 @@ type CurrentSubscriptionResult = {
   amount: number;
   paidAt: string | null;
   expiresAt: string | null;
-  midtransOrderId: string | null;
-  midtransToken: string | null;
+  gateway: PaymentGateway | null;
+  orderId: string | null;
+  providerToken: string | null;
   snapUrl: string | null;
   canResumePayment: boolean;
-  midtransPaymentType: string | null;
+  paymentType: string | null;
   currentLimits: {
     maxCvs: number;
     maxApplications: number;
@@ -92,9 +114,10 @@ type AdminSubscriptionResult = {
   plan: ConfigPlanId;
   status: string;
   amount: number;
-  midtransOrderId: string;
-  midtransToken: string | null;
-  midtransPaymentType: string | null;
+  gateway: PaymentGateway;
+  orderId: string;
+  providerToken: string | null;
+  paymentType: string | null;
   paidAt: string | null;
   expiresAt: string | null;
   createdAt: string;
@@ -121,114 +144,38 @@ const buildMidtransOrderId = (planId: ConfigPlanId): string => {
     .toString("hex")}`.toUpperCase();
 };
 
+const buildManualOrderId = (planId: ConfigPlanId): string => {
+  return `MANUAL-${planId}-${Date.now().toString(36)}-${crypto
+    .randomBytes(6)
+    .toString("hex")}`.toUpperCase();
+};
+
+const toPaymentGateway = (
+  gateway: DbPaymentGateway | string
+): PaymentGateway =>
+  gateway === DbPaymentGateway.manual ? "manual" : "midtrans";
+
+const toOrderResult = (
+  subscription: PendingOrderRecord
+): SubscriptionOrderResult => ({
+  subscriptionId: subscription.id,
+  orderId: subscription.orderId,
+  gateway: toPaymentGateway(subscription.gateway),
+  snapToken: subscription.providerToken,
+  snapUrl: null,
+  amount: subscription.amount,
+  plan: toConfigPlanId(subscription.plan),
+});
+
+const isUniqueConstraintError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "P2002";
+
 export class SubscriptionService {
   static getPlans() {
     return getAllPlans();
-  }
-
-  static async createManualSubscription(
-    request: unknown
-  ): Promise<AdminSubscriptionResult> {
-    const payload: AdminCreateSubscriptionInput = validate(
-      SubscriptionAdminValidation.CREATE_MANUAL,
-      request
-    );
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.user_id },
-      select: { id: true },
-    });
-
-    if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const plan = getPlan(payload.plan);
-    const amount = payload.amount ?? plan.price;
-    const now = new Date();
-
-    if (payload.status === "pending") {
-      const existingPending = await prisma.subscription.findFirst({
-        where: {
-          userId: payload.user_id,
-          plan: toDbPlanId(payload.plan),
-          status: SubscriptionStatus.pending,
-        },
-        select: { id: true },
-      });
-
-      if (existingPending) {
-        throw new ResponseError(
-          400,
-          "Masih ada subscription pending untuk plan ini"
-        );
-      }
-    }
-
-    const orderId = `MANUAL-${payload.user_id}-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
-    let createdId = "";
-
-    await prisma.$transaction(async (tx) => {
-      const paidAt =
-        payload.status === "paid"
-          ? payload.paid_at
-            ? new Date(payload.paid_at)
-            : now
-          : null;
-      const expiresAt =
-        payload.status === "paid" && paidAt
-          ? SubscriptionService.calculateExpirationDate(payload.plan, paidAt)
-          : null;
-
-      const created = await tx.subscription.create({
-        data: {
-          userId: payload.user_id,
-          plan: toDbPlanId(payload.plan),
-          status:
-            payload.status === "paid"
-              ? SubscriptionStatus.paid
-              : SubscriptionStatus.pending,
-          midtransOrderId: orderId,
-          midtransToken: null,
-          midtransPaymentType: null,
-          amount,
-          paidAt,
-          expiresAt,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      createdId = created.id;
-
-      if (payload.status === "paid") {
-        await tx.subscription.updateMany({
-          where: {
-            userId: payload.user_id,
-            id: { not: created.id },
-            status: SubscriptionStatus.paid,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-          },
-          data: {
-            status: SubscriptionStatus.expired,
-            expiresAt: now,
-            updatedAt: now,
-          },
-        });
-
-        await SubscriptionService.syncUserLimitsTx(
-          tx,
-          payload.user_id,
-          payload.plan,
-          expiresAt
-        );
-      }
-    });
-
-    return SubscriptionService.getAdminSubscription(createdId);
   }
 
   static async getCurrentSubscription(
@@ -256,17 +203,17 @@ export class SubscriptionService {
       orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
     });
 
-    const pending = activePaid
-      ? null
-      : await prisma.subscription.findFirst({
-          where: {
-            userId,
-            status: SubscriptionStatus.pending,
-          },
-          orderBy: [{ createdAt: "desc" }],
-        });
+    const pending = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: SubscriptionStatus.pending,
+      },
+      orderBy: [{ createdAt: "desc" }],
+    });
 
-    const subscription = activePaid ?? pending;
+    // Pending order data takes precedence so an upgrade remains resumable while
+    // the user's currently paid plan stays effective.
+    const subscription = pending ?? activePaid;
     const effectivePlanId = toConfigPlanId(user.subscriptionPlan);
     const pendingPlanId =
       subscription?.status === SubscriptionStatus.pending
@@ -285,16 +232,18 @@ export class SubscriptionService {
         subscription?.expiresAt?.toISOString() ??
         user.subscriptionExpiresAt?.toISOString() ??
         null,
-      midtransOrderId: subscription?.midtransOrderId ?? null,
-      midtransToken:
+      gateway: subscription ? toPaymentGateway(subscription.gateway) : null,
+      orderId: subscription?.orderId ?? null,
+      providerToken:
         subscription?.status === SubscriptionStatus.pending
-          ? subscription.midtransToken ?? null
+          ? subscription.providerToken ?? null
           : null,
       snapUrl: null,
       canResumePayment:
         subscription?.status === SubscriptionStatus.pending &&
-        Boolean(subscription.midtransToken),
-      midtransPaymentType: subscription?.midtransPaymentType ?? null,
+        subscription.gateway === DbPaymentGateway.midtrans &&
+        Boolean(subscription.providerToken),
+      paymentType: subscription?.paymentType ?? null,
       currentLimits: {
         maxCvs: plan.maxCvs,
         maxApplications: plan.maxApplications,
@@ -331,14 +280,7 @@ export class SubscriptionService {
   static async createSubscriptionOrder(
     userId: string,
     request: unknown
-  ): Promise<{
-    subscriptionId: string;
-    orderId: string;
-    snapToken: string;
-    snapUrl: string;
-    amount: number;
-    plan: ConfigPlanId;
-  }> {
+  ): Promise<SubscriptionOrderResult> {
     const payload: CreateSubscriptionOrderInput = validate(
       SubscriptionValidation.CREATE_ORDER,
       request
@@ -348,9 +290,9 @@ export class SubscriptionService {
       throw new ResponseError(400, "Plan Free tidak memerlukan pembayaran");
     }
 
-    if (!env.midtrans.serverKey || !env.midtrans.clientKey) {
-      throw new ResponseError(503, "Konfigurasi Midtrans belum lengkap");
-    }
+    const gateway = env.paymentGatewayEnabled
+      ? DbPaymentGateway.midtrans
+      : DbPaymentGateway.manual;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -380,54 +322,68 @@ export class SubscriptionService {
       );
     }
 
-    const existing = await prisma.subscription.findFirst({
+    const existingPending = await prisma.subscription.findFirst({
       where: {
         userId,
-        plan: toDbPlanId(payload.planId),
-        OR: [
-          { status: SubscriptionStatus.pending },
-          {
-            status: SubscriptionStatus.paid,
-            OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
-          },
-        ],
+        status: SubscriptionStatus.pending,
       },
       select: {
         id: true,
-        status: true,
         amount: true,
         plan: true,
-        midtransOrderId: true,
-        midtransToken: true,
+        gateway: true,
+        orderId: true,
+        providerToken: true,
       },
     });
 
-    if (existing) {
-      if (existing.status === SubscriptionStatus.pending) {
-        if (!existing.midtransOrderId || !existing.midtransToken) {
-          throw new ResponseError(
-            409,
-            "Subscription pending sebelumnya tidak memiliki token pembayaran yang valid"
-          );
-        }
-
-        return {
-          subscriptionId: existing.id,
-          orderId: existing.midtransOrderId,
-          snapToken: existing.midtransToken,
-          snapUrl: "",
-          amount: existing.amount,
-          plan: toConfigPlanId(existing.plan),
-        };
+    if (existingPending) {
+      if (toConfigPlanId(existingPending.plan) === payload.planId) {
+        return toOrderResult(existingPending);
       }
 
-      throw new ResponseError(
-        400,
-        "Masih ada transaksi subscription untuk plan ini yang belum selesai"
-      );
+      SubscriptionService.throwPendingOrderConflict();
+    }
+
+    if (
+      gateway === DbPaymentGateway.midtrans &&
+      (!env.midtrans.serverKey || !env.midtrans.clientKey)
+    ) {
+      throw new ResponseError(503, "Konfigurasi Midtrans belum lengkap");
     }
 
     const plan = getPlan(payload.planId);
+    if (gateway === DbPaymentGateway.manual) {
+      const orderId = buildManualOrderId(payload.planId);
+      let subscription: PendingOrderRecord;
+      try {
+        subscription = await prisma.subscription.create({
+          data: {
+            userId,
+            plan: toDbPlanId(payload.planId),
+            status: SubscriptionStatus.pending,
+            gateway,
+            orderId,
+            providerToken: null,
+            pendingKey: userId,
+            amount: plan.price,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          return SubscriptionService.resolveConcurrentPendingOrder(
+            userId,
+            payload.planId
+          );
+        }
+        throw error;
+      }
+
+      return toOrderResult(subscription);
+    }
+
     const orderId = buildMidtransOrderId(payload.planId);
     const snap = new midtransClient.Snap({
       isProduction: env.midtrans.isProduction,
@@ -471,22 +427,47 @@ export class SubscriptionService {
       );
     }
 
-    const subscription = await prisma.subscription.create({
-      data: {
-        userId,
-        plan: toDbPlanId(payload.planId),
-        status: SubscriptionStatus.pending,
-        midtransOrderId: orderId,
-        midtransToken: transaction.token,
-        amount: plan.price,
-        createdAt: now,
-        updatedAt: now,
-      },
-    });
+    let subscription: PendingOrderRecord;
+    try {
+      subscription = await prisma.subscription.create({
+        data: {
+          userId,
+          plan: toDbPlanId(payload.planId),
+          status: SubscriptionStatus.pending,
+          gateway,
+          orderId,
+          providerToken: transaction.token,
+          pendingKey: userId,
+          amount: plan.price,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    } catch (error) {
+      try {
+        await SubscriptionService.cancelMidtransTransaction(orderId);
+      } catch (cancelError) {
+        throw new ResponseError(
+          502,
+          "Transaksi Midtrans dibuat tetapi gagal disimpan dan dibatalkan",
+          cancelError instanceof Error ? cancelError.message : undefined,
+          { order_id: orderId }
+        );
+      }
+
+      if (isUniqueConstraintError(error)) {
+        return SubscriptionService.resolveConcurrentPendingOrder(
+          userId,
+          payload.planId
+        );
+      }
+      throw error;
+    }
 
     return {
       subscriptionId: subscription.id,
       orderId,
+      gateway: "midtrans",
       snapToken: transaction.token,
       snapUrl: transaction.redirect_url,
       amount: plan.price,
@@ -503,14 +484,46 @@ export class SubscriptionService {
     SubscriptionService.verifyMidtransSignature(payload);
 
     const subscription = await prisma.subscription.findUnique({
-      where: { midtransOrderId: payload.order_id },
+      where: { orderId: payload.order_id },
     });
 
     if (!subscription) {
       throw new ResponseError(404, "Subscription tidak ditemukan");
     }
 
+    if (subscription.gateway !== DbPaymentGateway.midtrans) {
+      throw new ResponseError(
+        400,
+        "Order ini bukan transaksi Midtrans"
+      );
+    }
+
+    if (
+      subscription.status === SubscriptionStatus.paid ||
+      subscription.status === SubscriptionStatus.cancelled
+    ) {
+      return;
+    }
+
+    const grossAmount = Number(payload.gross_amount);
+    if (
+      !Number.isFinite(grossAmount) ||
+      grossAmount !== subscription.amount
+    ) {
+      throw new ResponseError(
+        400,
+        "Nominal notifikasi Midtrans tidak sesuai dengan order"
+      );
+    }
+
     const normalizedStatus = SubscriptionService.mapTransactionStatus(payload);
+    if (
+      normalizedStatus === SubscriptionStatus.pending &&
+      subscription.status !== SubscriptionStatus.pending
+    ) {
+      return;
+    }
+
     const now = new Date();
 
     await prisma.$transaction(async (tx) => {
@@ -522,16 +535,24 @@ export class SubscriptionService {
           paidAt
         );
 
-        await tx.subscription.update({
-          where: { id: subscription.id },
+        const transitioned = await tx.subscription.updateMany({
+          where: {
+            id: subscription.id,
+            status: SubscriptionStatus.pending,
+          },
           data: {
             status: SubscriptionStatus.paid,
             paidAt,
             expiresAt,
-            midtransPaymentType: payload.payment_type ?? null,
+            paymentType: payload.payment_type ?? null,
+            pendingKey: null,
             updatedAt: now,
           },
         });
+
+        if (transitioned.count === 0) {
+          return;
+        }
 
         await tx.subscription.updateMany({
           where: {
@@ -556,11 +577,18 @@ export class SubscriptionService {
         return;
       }
 
-      await tx.subscription.update({
-        where: { id: subscription.id },
+      await tx.subscription.updateMany({
+        where: {
+          id: subscription.id,
+          status: SubscriptionStatus.pending,
+        },
         data: {
           status: normalizedStatus,
-          midtransPaymentType: payload.payment_type ?? null,
+          paymentType: payload.payment_type ?? null,
+          pendingKey:
+            normalizedStatus === SubscriptionStatus.pending
+              ? subscription.userId
+              : null,
           updatedAt: now,
         },
       });
@@ -589,13 +617,42 @@ export class SubscriptionService {
       );
     }
 
-    await prisma.subscription.update({
-      where: { id: subscriptionId },
+    if (subscription.gateway === DbPaymentGateway.midtrans) {
+      await SubscriptionService.cancelMidtransTransaction(
+        subscription.orderId
+      );
+    }
+
+    const transitioned = await prisma.subscription.updateMany({
+      where: {
+        id: subscriptionId,
+        userId,
+        status: SubscriptionStatus.pending,
+      },
       data: {
         status: SubscriptionStatus.cancelled,
+        pendingKey: null,
         updatedAt: new Date(),
       },
     });
+
+    if (transitioned.count === 0) {
+      const current = await prisma.subscription.findUnique({
+        where: { id: subscriptionId },
+        select: { status: true },
+      });
+
+      if (current?.status === SubscriptionStatus.cancelled) {
+        return;
+      }
+      if (current?.status === SubscriptionStatus.paid) {
+        throw new ResponseError(
+          409,
+          "Subscription sudah dibayar dan tidak dapat dibatalkan"
+        );
+      }
+      throw new ResponseError(409, "Status subscription telah berubah");
+    }
   }
 
   static async syncUserLimits(
@@ -693,6 +750,16 @@ export class SubscriptionService {
 
     if (filters.plan?.length) {
       where.plan = { in: filters.plan.map((plan) => toDbPlanId(plan)) };
+    }
+
+    if (filters.gateway?.length) {
+      where.gateway = {
+        in: filters.gateway.map((gateway) =>
+          gateway === "manual"
+            ? DbPaymentGateway.manual
+            : DbPaymentGateway.midtrans
+        ),
+      };
     }
 
     if (filters.user_id) {
@@ -822,15 +889,23 @@ export class SubscriptionService {
     const expiresAt = SubscriptionService.calculateExpirationDate(planId, now);
 
     await prisma.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: subscription.id },
+      const transitioned = await tx.subscription.updateMany({
+        where: {
+          id: subscription.id,
+          status: SubscriptionStatus.pending,
+        },
         data: {
           status: SubscriptionStatus.paid,
           paidAt: now,
           expiresAt,
+          pendingKey: null,
           updatedAt: now,
         },
       });
+
+      if (transitioned.count === 0) {
+        throw new ResponseError(409, "Status subscription telah berubah");
+      }
 
       await tx.subscription.updateMany({
         where: {
@@ -880,16 +955,33 @@ export class SubscriptionService {
 
     const now = new Date();
 
+    if (
+      subscription.status === SubscriptionStatus.pending &&
+      subscription.gateway === DbPaymentGateway.midtrans
+    ) {
+      await SubscriptionService.cancelMidtransTransaction(
+        subscription.orderId
+      );
+    }
+
     await prisma.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: subscription.id },
+      const transitioned = await tx.subscription.updateMany({
+        where: {
+          id: subscription.id,
+          status: subscription.status,
+        },
         data: {
           status: SubscriptionStatus.cancelled,
+          pendingKey: null,
           expiresAt:
             subscription.status === SubscriptionStatus.paid ? now : undefined,
           updatedAt: now,
         },
       });
+
+      if (transitioned.count === 0) {
+        throw new ResponseError(409, "Status subscription telah berubah");
+      }
 
       if (subscription.status === SubscriptionStatus.paid) {
         await SubscriptionService.syncUserToBestAvailablePlanTx(
@@ -921,13 +1013,27 @@ export class SubscriptionService {
       );
     }
 
-    await prisma.subscription.update({
-      where: { id: subscription.id },
+    if (subscription.gateway === DbPaymentGateway.midtrans) {
+      await SubscriptionService.cancelMidtransTransaction(
+        subscription.orderId
+      );
+    }
+
+    const transitioned = await prisma.subscription.updateMany({
+      where: {
+        id: subscription.id,
+        status: SubscriptionStatus.pending,
+      },
       data: {
         status: SubscriptionStatus.failed,
+        pendingKey: null,
         updatedAt: new Date(),
       },
     });
+
+    if (transitioned.count === 0) {
+      throw new ResponseError(409, "Status subscription telah berubah");
+    }
   }
 
   static async forceDowngradeToFree(userId: string): Promise<void> {
@@ -940,6 +1046,26 @@ export class SubscriptionService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
+    const pendingSubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId,
+        status: SubscriptionStatus.pending,
+      },
+      select: {
+        id: true,
+        gateway: true,
+        orderId: true,
+      },
+    });
+
+    for (const subscription of pendingSubscriptions) {
+      if (subscription.gateway === DbPaymentGateway.midtrans) {
+        await SubscriptionService.cancelMidtransTransaction(
+          subscription.orderId
+        );
+      }
+    }
+
     const now = new Date();
 
     await prisma.$transaction(async (tx) => {
@@ -947,7 +1073,14 @@ export class SubscriptionService {
         where: {
           userId,
           OR: [
-            { status: SubscriptionStatus.pending },
+            {
+              id: {
+                in: pendingSubscriptions.map(
+                  (subscription) => subscription.id
+                ),
+              },
+              status: SubscriptionStatus.pending,
+            },
             {
               status: SubscriptionStatus.paid,
               OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -956,6 +1089,7 @@ export class SubscriptionService {
         },
         data: {
           status: SubscriptionStatus.cancelled,
+          pendingKey: null,
           expiresAt: now,
           updatedAt: now,
         },
@@ -978,9 +1112,10 @@ export class SubscriptionService {
       plan: DbPlanId;
       status: SubscriptionStatus;
       amount: number;
-      midtransOrderId: string;
-      midtransToken: string | null;
-      midtransPaymentType: string | null;
+      gateway: DbPaymentGateway;
+      orderId: string;
+      providerToken: string | null;
+      paymentType: string | null;
       paidAt: Date | null;
       expiresAt: Date | null;
       createdAt: Date;
@@ -999,14 +1134,105 @@ export class SubscriptionService {
       plan: toConfigPlanId(subscription.plan),
       status: subscription.status,
       amount: subscription.amount,
-      midtransOrderId: subscription.midtransOrderId,
-      midtransToken: subscription.midtransToken ?? null,
-      midtransPaymentType: subscription.midtransPaymentType ?? null,
+      gateway: toPaymentGateway(subscription.gateway),
+      orderId: subscription.orderId,
+      providerToken: subscription.providerToken ?? null,
+      paymentType: subscription.paymentType ?? null,
       paidAt: subscription.paidAt?.toISOString() ?? null,
       expiresAt: subscription.expiresAt?.toISOString() ?? null,
       createdAt: subscription.createdAt.toISOString(),
       updatedAt: subscription.updatedAt.toISOString(),
     };
+  }
+
+  private static async cancelMidtransTransaction(
+    orderId: string
+  ): Promise<void> {
+    if (!env.midtrans.serverKey) {
+      throw new ResponseError(503, "Konfigurasi Midtrans belum lengkap");
+    }
+
+    const snap = new midtransClient.Snap({
+      isProduction: env.midtrans.isProduction,
+      serverKey: env.midtrans.serverKey,
+      clientKey: env.midtrans.clientKey,
+    }) as any;
+
+    try {
+      await snap.transaction.cancel(orderId);
+      return;
+    } catch (cancelError) {
+      try {
+        const status = await snap.transaction.status(orderId);
+        const transactionStatus = String(
+          status?.transaction_status ?? ""
+        ).toLowerCase();
+
+        if (
+          ["cancel", "expire", "deny", "failure"].includes(transactionStatus)
+        ) {
+          return;
+        }
+
+        if (
+          transactionStatus === "settlement" ||
+          transactionStatus === "capture"
+        ) {
+          throw new ResponseError(
+            409,
+            "Transaksi Midtrans sudah dibayar dan tidak dapat dibatalkan"
+          );
+        }
+      } catch (statusError) {
+        if (statusError instanceof ResponseError) {
+          throw statusError;
+        }
+      }
+
+      throw new ResponseError(
+        502,
+        "Gagal membatalkan transaksi Midtrans",
+        typeof (cancelError as Error).message === "string"
+          ? (cancelError as Error).message
+          : undefined
+      );
+    }
+  }
+
+  private static async resolveConcurrentPendingOrder(
+    userId: string,
+    planId: ConfigPlanId
+  ): Promise<SubscriptionOrderResult> {
+    const existingPending = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: SubscriptionStatus.pending,
+      },
+      select: {
+        id: true,
+        amount: true,
+        plan: true,
+        gateway: true,
+        orderId: true,
+        providerToken: true,
+      },
+    });
+
+    if (
+      existingPending &&
+      toConfigPlanId(existingPending.plan) === planId
+    ) {
+      return toOrderResult(existingPending);
+    }
+
+    SubscriptionService.throwPendingOrderConflict();
+  }
+
+  private static throwPendingOrderConflict(): never {
+    throw new ResponseError(
+      409,
+      "Masih ada order subscription pending. Batalkan order tersebut sebelum membuat order baru"
+    );
   }
 
   private static verifyMidtransSignature(
@@ -1037,7 +1263,12 @@ export class SubscriptionService {
       )
       .digest("hex");
 
-    if (signature !== expected) {
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expected);
+    if (
+      signatureBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)
+    ) {
       throw new ResponseError(401, "Signature Midtrans tidak valid");
     }
   }

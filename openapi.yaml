@@ -405,7 +405,7 @@ paths:
     get:
       tags: [Subscriptions]
       summary: List subscription plans
-      description: Public endpoint that returns all available plans and their flat capabilities.
+      description: Public endpoint that returns the backend payment gateway flag and all available plans.
       responses:
         "200":
           description: Available plans
@@ -434,7 +434,7 @@ paths:
     post:
       tags: [Subscriptions]
       summary: Create subscription payment order
-      description: Create a Midtrans Snap transaction for a paid subscription plan (`pro` or `max`).
+      description: Create a paid subscription order. The backend selects Midtrans or manual payment from `PAYMENT_GATEWAY_ENABLED`.
       security:
         - sessionCookie: []
       requestBody:
@@ -456,6 +456,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Another subscription order is still pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "502":
           description: Failed to create Midtrans transaction
           content:
@@ -517,6 +523,24 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Subscription status changed or the Midtrans transaction is already paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Failed to cancel the Midtrans transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Midtrans configuration incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -2431,6 +2455,11 @@ paths:
           schema:
             type: string
           description: Comma-separated values of free, pro, max
+        - name: gateway
+          in: query
+          schema:
+            type: string
+          description: Comma-separated values of manual, midtrans
         - name: user_id
           in: query
           schema:
@@ -2465,32 +2494,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
-    post:
-      tags: [Admin]
-      summary: Create manual subscription
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminCreateSubscriptionRequest"
-      responses:
-        "201":
-          description: Manual subscription created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminSubscriptionResponse"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
   /admin/subscriptions/{id}:
     get:
       tags: [Admin]
@@ -2515,7 +2518,7 @@ paths:
   /admin/subscriptions/{id}/approve:
     patch:
       tags: [Admin]
-      summary: Manually approve subscription
+      summary: Approve a pending manual or Midtrans subscription
       security:
         - sessionCookie: []
       parameters:
@@ -2535,6 +2538,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Subscription status changed before approval completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/subscriptions/{id}/cancel:
     patch:
       tags: [Admin]
@@ -2558,6 +2567,24 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Subscription status changed or the Midtrans transaction is already paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Failed to cancel the Midtrans transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Midtrans configuration incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/subscriptions/{id}/fail:
     patch:
       tags: [Admin]
@@ -2581,6 +2608,24 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Subscription status changed or the Midtrans transaction is already paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Failed to cancel the Midtrans transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Midtrans server configuration incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/subscriptions/users/{userId}/downgrade:
     patch:
       tags: [Admin]
@@ -2607,6 +2652,24 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: A pending Midtrans transaction has already been paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Failed to cancel a pending Midtrans transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Midtrans server configuration incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/users/mass-delete:
     delete:
       tags: [Admin]
@@ -7900,9 +7963,23 @@ components:
           type: string
           format: date-time
           nullable: true
+        gateway:
+          type: string
+          enum: [manual, midtrans]
+          nullable: true
+        order_id:
+          type: string
+          nullable: true
+        provider_token:
+          type: string
+          nullable: true
+        payment_type:
+          type: string
+          nullable: true
         midtrans_order_id:
           type: string
           nullable: true
+          deprecated: true
         snap_token:
           type: string
           nullable: true
@@ -7917,6 +7994,7 @@ components:
         midtrans_payment_type:
           type: string
           nullable: true
+          deprecated: true
         current_limits:
           $ref: "#/components/schemas/AccountUserLimits"
         current_features:
@@ -7939,8 +8017,12 @@ components:
           type: string
         order_id:
           type: string
+        gateway:
+          type: string
+          enum: [manual, midtrans]
         snap_token:
           type: string
+          nullable: true
         snap_url:
           type: string
           nullable: true
@@ -7955,7 +8037,8 @@ components:
           $ref: "#/components/schemas/CreateSubscriptionOrderResult"
     MidtransNotificationRequest:
       type: object
-      required: [order_id, transaction_status, gross_amount]
+      required:
+        [order_id, status_code, transaction_status, gross_amount, signature_key]
       properties:
         order_id:
           type: string
@@ -7977,15 +8060,21 @@ components:
             - type: number
         signature_key:
           type: string
-          nullable: true
       additionalProperties: true
     SubscriptionPlanListResponse:
       type: object
       properties:
         data:
-          type: array
-          items:
-            $ref: "#/components/schemas/SubscriptionPlan"
+          type: object
+          required: [payment_gateway_enabled, plans]
+          properties:
+            payment_gateway_enabled:
+              type: boolean
+              description: When true orders use Midtrans; when false orders use manual payment.
+            plans:
+              type: array
+              items:
+                $ref: "#/components/schemas/SubscriptionPlan"
     AdminSubscriptionUser:
       type: object
       properties:
@@ -8018,14 +8107,28 @@ components:
           type: string
         amount:
           type: integer
+        gateway:
+          type: string
+          enum: [manual, midtrans]
+        order_id:
+          type: string
+        provider_token:
+          type: string
+          nullable: true
+        payment_type:
+          type: string
+          nullable: true
         midtrans_order_id:
           type: string
+          deprecated: true
         midtrans_token:
           type: string
           nullable: true
+          deprecated: true
         midtrans_payment_type:
           type: string
           nullable: true
+          deprecated: true
         paid_at:
           type: string
           format: date-time
@@ -8057,25 +8160,6 @@ components:
                 $ref: "#/components/schemas/AdminSubscription"
             pagination:
               $ref: "#/components/schemas/Pagination"
-    AdminCreateSubscriptionRequest:
-      type: object
-      properties:
-        user_id:
-          type: string
-          format: uuid
-        plan:
-          type: string
-          enum: [pro, max]
-        status:
-          type: string
-          enum: [pending, paid]
-          default: paid
-        amount:
-          type: integer
-        paid_at:
-          type: string
-          format: date-time
-      required: [user_id, plan]
     DocumentStorageStats:
       type: object
       properties:

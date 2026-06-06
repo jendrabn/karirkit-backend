@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import env from "../config/env.config";
 import { SubscriptionService } from "../services/subscription.service";
 import { sendSuccess } from "../utils/response-builder.util";
 
@@ -42,11 +43,15 @@ const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
   amount: result.amount,
   paid_at: result.paidAt,
   expires_at: result.expiresAt,
-  midtrans_order_id: result.midtransOrderId,
-  snap_token: result.midtransToken,
+  gateway: result.gateway,
+  order_id: result.orderId,
+  provider_token: result.providerToken,
+  payment_type: result.paymentType,
+  midtrans_order_id: result.orderId,
+  snap_token: result.providerToken,
   snap_url: result.snapUrl,
   can_resume_payment: result.canResumePayment,
-  midtrans_payment_type: result.midtransPaymentType,
+  midtrans_payment_type: result.paymentType,
   current_limits: {
     max_cvs: result.currentLimits.maxCvs,
     max_applications: result.currentLimits.maxApplications,
@@ -87,6 +92,7 @@ const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
 const toOrderResponse = (result: Record<string, any>) => ({
   subscription_id: result.subscriptionId,
   order_id: result.orderId,
+  gateway: result.gateway,
   snap_token: result.snapToken,
   snap_url: result.snapUrl || null,
   amount: result.amount,
@@ -97,10 +103,12 @@ export class SubscriptionController {
   static async getPlans(_req: Request, res: Response, next: NextFunction) {
     try {
       const plans = SubscriptionService.getPlans();
-      sendSuccess(
-        res,
-        plans.map((plan) => toPlanResponse(plan as Record<string, any>))
-      );
+      sendSuccess(res, {
+        payment_gateway_enabled: env.paymentGatewayEnabled,
+        plans: plans.map((plan) =>
+          toPlanResponse(plan as Record<string, any>)
+        ),
+      });
     } catch (error) {
       next(error);
     }

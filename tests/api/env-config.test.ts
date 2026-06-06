@@ -3,6 +3,12 @@ describe("env.config OTP duration parsing", () => {
 
   const loadEnvConfig = async () => {
     jest.resetModules();
+    jest.doMock("dotenv", () => ({
+      __esModule: true,
+      default: {
+        config: jest.fn(),
+      },
+    }));
     return (await import("../../src/config/env.config")).default;
   };
 
@@ -46,5 +52,21 @@ describe("env.config OTP duration parsing", () => {
 
     expect(env.otp.expiresInSeconds).toBe(300);
     expect(env.otp.resendCooldownInSeconds).toBe(60);
+  });
+
+  it("enables the payment gateway by default", async () => {
+    delete process.env.PAYMENT_GATEWAY_ENABLED;
+
+    const env = await loadEnvConfig();
+
+    expect(env.paymentGatewayEnabled).toBe(true);
+  });
+
+  it("supports disabling the payment gateway", async () => {
+    process.env.PAYMENT_GATEWAY_ENABLED = "false";
+
+    const env = await loadEnvConfig();
+
+    expect(env.paymentGatewayEnabled).toBe(false);
   });
 });

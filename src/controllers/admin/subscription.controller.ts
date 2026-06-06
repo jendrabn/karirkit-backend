@@ -9,9 +9,13 @@ const toAdminSubscriptionResponse = (result: Record<string, any>) => ({
   plan: result.plan,
   status: result.status,
   amount: result.amount,
-  midtrans_order_id: result.midtransOrderId,
-  midtrans_token: result.midtransToken,
-  midtrans_payment_type: result.midtransPaymentType,
+  gateway: result.gateway,
+  order_id: result.orderId,
+  provider_token: result.providerToken,
+  payment_type: result.paymentType,
+  midtrans_order_id: result.orderId,
+  midtrans_token: result.providerToken,
+  midtrans_payment_type: result.paymentType,
   paid_at: result.paidAt,
   expires_at: result.expiresAt,
   created_at: result.createdAt,
@@ -19,17 +23,6 @@ const toAdminSubscriptionResponse = (result: Record<string, any>) => ({
 });
 
 export class SubscriptionController {
-  static async create(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await SubscriptionService.createManualSubscription(
-        req.body
-      );
-      sendSuccess(res, toAdminSubscriptionResponse(result), 201);
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await SubscriptionService.listAdminSubscriptions(req.query);

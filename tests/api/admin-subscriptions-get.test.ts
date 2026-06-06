@@ -32,6 +32,8 @@ describe("GET /admin/subscriptions", () => {
           plan: "pro",
           status: "paid",
           amount: 25000,
+          gateway: "manual",
+          orderId: "MANUAL-PRO-123",
         },
       ],
       pagination: { page: 1, per_page: 20, total_items: 1, total_pages: 1 },
@@ -47,6 +49,8 @@ describe("GET /admin/subscriptions", () => {
       user_id: "user-1",
       plan: "pro",
       status: "paid",
+      gateway: "manual",
+      order_id: "MANUAL-PRO-123",
     });
     expect(response.body.data.pagination.total_items).toBe(1);
   });

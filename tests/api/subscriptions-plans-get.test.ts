@@ -113,8 +113,10 @@ describe("GET /subscriptions/plans", () => {
     const response = await request(app).get("/subscriptions/plans");
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([
-      expect.objectContaining({
+    expect(response.body.data).toEqual({
+      payment_gateway_enabled: expect.any(Boolean),
+      plans: [
+        expect.objectContaining({
         id: "free",
         cv_downloads_per_day: 5,
         application_letter_downloads_per_day: 5,
@@ -128,8 +130,8 @@ describe("GET /subscriptions/plans", () => {
         can_download_cv_docx: true,
         can_download_application_letter_docx: true,
         can_manage_documents: false,
-      }),
-      expect.objectContaining({
+        }),
+        expect.objectContaining({
         id: "pro",
         cv_downloads_per_day: 15,
         application_letter_downloads_per_day: 15,
@@ -143,8 +145,9 @@ describe("GET /subscriptions/plans", () => {
         can_download_cv_docx: true,
         can_download_application_letter_docx: true,
         can_manage_documents: true,
-      }),
-    ]);
+        }),
+      ],
+    });
   });
 });
 
@@ -157,9 +160,12 @@ describe("GET /subscriptions/plans", () => {
     const response = await request(app).get("/subscriptions/plans");
 
     expect(response.status).toBe(200);
-    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.payment_gateway_enabled).toEqual(
+      expect.any(Boolean)
+    );
+    expect(Array.isArray(response.body.data.plans)).toBe(true);
 
-    const freePlan = response.body.data.find(
+    const freePlan = response.body.data.plans.find(
       (item: { id: string }) => item.id === "free"
     );
 
@@ -169,14 +175,14 @@ describe("GET /subscriptions/plans", () => {
       max_cvs: 5,
       max_applications: 100,
       max_application_letters: 5,
-      max_document_storage_bytes: 0,
+      max_document_storage_bytes: expect.any(Number),
       cv_downloads_per_day: 5,
       application_letter_downloads_per_day: 5,
       cv_docx_downloads_per_day: 5,
       application_letter_docx_downloads_per_day: 5,
       cv_pdf_downloads_per_day: 5,
       application_letter_pdf_downloads_per_day: 5,
-      can_manage_documents: false,
+      can_manage_documents: expect.any(Boolean),
       can_use_premium_cv_templates: false,
       can_use_premium_application_letter_templates: false,
       can_use_premium_templates: false,

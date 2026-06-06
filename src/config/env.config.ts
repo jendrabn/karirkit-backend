@@ -195,6 +195,10 @@ const env = {
   ),
   libreOfficeCommand: process.env.LIBREOFFICE_COMMAND ?? "soffice",
   pdfDownloadEnabled: parseBoolean(process.env.PDF_DOWNLOAD_ENABLED, true),
+  paymentGatewayEnabled: parseBoolean(
+    process.env.PAYMENT_GATEWAY_ENABLED,
+    true
+  ),
   midtrans: {
     serverKey: resolveOptional(process.env.MIDTRANS_SERVER_KEY) ?? "",
     clientKey: resolveOptional(process.env.MIDTRANS_CLIENT_KEY) ?? "",

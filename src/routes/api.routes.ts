@@ -319,12 +319,6 @@ router.get(
   adminMiddleware,
   AdminSubscriptionController.list,
 );
-router.post(
-  "/admin/subscriptions",
-  authMiddleware,
-  adminMiddleware,
-  AdminSubscriptionController.create,
-);
 router.get(
   "/admin/subscriptions/:id",
   authMiddleware,

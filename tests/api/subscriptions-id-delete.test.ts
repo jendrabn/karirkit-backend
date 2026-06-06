@@ -76,8 +76,9 @@ describe("DELETE /subscriptions/:id", () => {
         userId: user.id,
         plan: "pro",
         status: "pending",
-        midtransOrderId: `SUB-${user.id}-${Date.now()}`,
-        midtransToken: "snap-token",
+        gateway: "manual",
+        orderId: `MANUAL-${user.id}-${Date.now()}`,
+        pendingKey: user.id,
         amount: 25000,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -96,5 +97,6 @@ describe("DELETE /subscriptions/:id", () => {
       where: { id: subscription.id },
     });
     expect(stored?.status).toBe("cancelled");
+    expect(stored?.pendingKey).toBeNull();
   });
 });
