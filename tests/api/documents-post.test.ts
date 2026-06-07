@@ -133,6 +133,38 @@ describe("POST /documents", () => {
     expect(createMergedMock.mock.calls[0][3]).toBe("strong");
   });
 
+  it("accepts bracketed files fields for merged uploads", async () => {
+    const createMergedMock = jest.mocked(DocumentService.createMerged);
+    createMergedMock.mockResolvedValue({
+      id: "document-merged",
+      file_name: "merged.pdf",
+    } as never);
+    const pngBuffer = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    const response = await request(app)
+      .post("/documents?compression=strong&merge=true")
+      .set("Authorization", "Bearer pro-token")
+      .attach("files[]", pngBuffer, {
+        filename: "photo-1.png",
+        contentType: "image/png",
+      })
+      .attach("files[]", pngBuffer, {
+        filename: "photo-2.png",
+        contentType: "image/png",
+      })
+      .attach("files[]", pngBuffer, {
+        filename: "photo-3.png",
+        contentType: "image/png",
+      });
+
+    expect(response.status).toBe(201);
+    expect(createMergedMock).toHaveBeenCalledTimes(1);
+    expect(createMergedMock.mock.calls[0][2]).toHaveLength(3);
+    expect(createMergedMock.mock.calls[0][3]).toBe("strong");
+  });
+
   it("allows free users to upload documents", async () => {
     const createMock = jest.mocked(DocumentService.create);
     createMock.mockResolvedValue({

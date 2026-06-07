@@ -29,12 +29,20 @@ export class DocumentController {
         ? req.files
         : groupedFiles?.files ?? [];
       const filesFromFileField = groupedFiles?.file ?? [];
+      const filesFromBracketedFileField = groupedFiles?.["file[]"] ?? [];
+      const filesFromBracketedFilesField = groupedFiles?.["files[]"] ?? [];
       const files: Express.Multer.File[] = [];
       if (Array.isArray(filesFromMulter)) {
         files.push(...filesFromMulter);
       }
       if (Array.isArray(filesFromFileField)) {
         files.push(...filesFromFileField);
+      }
+      if (Array.isArray(filesFromBracketedFileField)) {
+        files.push(...filesFromBracketedFileField);
+      }
+      if (Array.isArray(filesFromBracketedFilesField)) {
+        files.push(...filesFromBracketedFilesField);
       }
       if (req.file) {
         files.push(req.file as Express.Multer.File);

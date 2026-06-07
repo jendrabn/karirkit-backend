@@ -111,7 +111,9 @@ const createAnyUpload = (
     fileFilter,
   }).fields([
     { name: "file", maxCount: maxFileCount },
+    { name: "file[]", maxCount: maxFileCount },
     { name: "files", maxCount: maxFileCount },
+    { name: "files[]", maxCount: maxFileCount },
   ]);
 
 export const handleTempUpload = async (
@@ -218,7 +220,9 @@ export const handleDocumentUpload = async (
       if (!err) {
         const files = [
           ...(((req.files as Record<string, Express.Multer.File[]>)?.file ?? []) as Express.Multer.File[]),
+          ...(((req.files as Record<string, Express.Multer.File[]>)?.["file[]"] ?? []) as Express.Multer.File[]),
           ...(((req.files as Record<string, Express.Multer.File[]>)?.files ?? []) as Express.Multer.File[]),
+          ...(((req.files as Record<string, Express.Multer.File[]>)?.["files[]"] ?? []) as Express.Multer.File[]),
         ];
 
         try {
