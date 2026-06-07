@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { ApplicationLetterService } from "../services/application-letter.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { DownloadLogService } from "../services/download-log.service";
+import { ResponseError } from "../utils/response-error.util";
 
 export class ApplicationLetterController {
   static async list(req: Request, res: Response, next: NextFunction) {
@@ -79,12 +80,14 @@ export class ApplicationLetterController {
       const rawFormat = Array.isArray(req.query.format)
         ? req.query.format[0]
         : req.query.format;
-      const format = typeof rawFormat === "string" ? rawFormat : undefined;
+      const format = ApplicationLetterController.normalizeDownloadFormat(
+        typeof rawFormat === "string" ? rawFormat : undefined
+      );
 
       await DownloadLogService.checkDownloadLimit(
         req.user!.id,
         "application_letter",
-        format === "pdf" ? "pdf" : "docx"
+        format
       );
       const document = await ApplicationLetterService.download(
         req.user!.id,
@@ -97,7 +100,7 @@ export class ApplicationLetterController {
         "application_letter",
         req.params.id,
         document.fileName,
-        format === "pdf" ? "pdf" : "docx"
+        format
       );
 
       res.setHeader("Content-Type", document.mimeType);
@@ -124,6 +127,15 @@ export class ApplicationLetterController {
     const encoded = encodeURIComponent(fileName);
 
     return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
+  }
+
+  private static normalizeDownloadFormat(format?: string): "docx" | "pdf" {
+    const normalized = (format ?? "docx").trim().toLowerCase();
+    if (normalized === "docx" || normalized === "pdf") {
+      return normalized;
+    }
+
+    throw new ResponseError(400, "Format unduhan tidak didukung");
   }
 
   static async massDelete(req: Request, res: Response, next: NextFunction) {

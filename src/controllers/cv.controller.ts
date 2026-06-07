@@ -103,12 +103,14 @@ export class CvController {
       const rawFormat = Array.isArray(req.query.format)
         ? req.query.format[0]
         : req.query.format;
-      const format = typeof rawFormat === "string" ? rawFormat : undefined;
+      const format = CvController.normalizeDownloadFormat(
+        typeof rawFormat === "string" ? rawFormat : undefined
+      );
 
       await DownloadLogService.checkDownloadLimit(
         req.user!.id,
         "cv",
-        format === "pdf" ? "pdf" : "docx"
+        format
       );
       const document = await CvService.download(
         req.user!.id,
@@ -121,7 +123,7 @@ export class CvController {
         "cv",
         req.params.id,
         document.fileName,
-        format === "pdf" ? "pdf" : "docx"
+        format
       );
 
       res.setHeader("Content-Type", document.mimeType);
@@ -148,5 +150,14 @@ export class CvController {
     const encoded = encodeURIComponent(fileName);
 
     return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
+  }
+
+  private static normalizeDownloadFormat(format?: string): "docx" | "pdf" {
+    const normalized = (format ?? "docx").trim().toLowerCase();
+    if (normalized === "docx" || normalized === "pdf") {
+      return normalized;
+    }
+
+    throw new ResponseError(400, "Format unduhan tidak didukung");
   }
 }

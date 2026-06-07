@@ -65,6 +65,7 @@ import {
   type CvSocialLinkPayloadInput,
 } from "../validations/cv.validation";
 import { ResponseError } from "../utils/response-error.util";
+import { readCachedStorageFile } from "../utils/storage-read-cache.util";
 
 type CvListResult = {
   items: CvResponse[];
@@ -611,25 +612,25 @@ export class CvService {
     id: string,
     format?: string
   ): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
-    const normalized = (format ?? "docx").toLowerCase();
+    const normalized = CvService.normalizeDownloadFormat(format);
+    if (normalized === "pdf" && !env.pdfDownloadEnabled) {
+      throw new ResponseError(
+        503,
+        "Fitur unduh PDF untuk CV sedang dinonaktifkan."
+      );
+    }
+
     const cv = await CvService.findOwnedCv(userId, id);
     const docxBuffer = await CvService.renderDocx(cv);
     const baseName = CvService.buildFileName(cv);
 
     if (normalized === "pdf") {
-      if (!env.pdfDownloadEnabled) {
-        throw new ResponseError(503, "Fitur unduh PDF untuk CV sedang dinonaktifkan.");
-      }
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
         fileName: `${baseName}.pdf`,
         mimeType: "application/pdf",
       };
-    }
-
-    if (normalized !== "docx") {
-      throw new ResponseError(400, "Format unduhan tidak didukung");
     }
 
     const fileName = `${baseName}.docx`;
@@ -658,6 +659,15 @@ export class CvService {
       language: payload.language,
       visibility: payload.visibility,
     };
+  }
+
+  private static normalizeDownloadFormat(format?: string): "docx" | "pdf" {
+    const normalized = (format ?? "docx").trim().toLowerCase();
+    if (normalized === "docx" || normalized === "pdf") {
+      return normalized;
+    }
+
+    throw new ResponseError(400, "Format unduhan tidak didukung");
   }
 
   private static createNestedRelation<TInput, TData extends object>(
@@ -1142,21 +1152,11 @@ export class CvService {
   }
   private static async renderDocx(cv: CvWithRelations): Promise<Buffer> {
     // Template is now required, no fallback to default templates
-    if (!cv.templateId) {
+    if (!cv.templateId || !cv.template) {
       throw new ResponseError(400, "Template diperlukan");
     }
 
-    const template = await prisma.template.findUnique({
-      where: { id: cv.templateId },
-    });
-
-    if (!template) {
-      throw new ResponseError(404, "Template tidak ditemukan");
-    }
-
-    const templateBinary = (
-      await StorageService.read(template.path)
-    ).buffer;
+    const templateBinary = (await readCachedStorageFile(cv.template.path)).buffer;
     const context = CvService.buildTemplateContext(cv);
     
     const additionalJsContext = cv.photo
@@ -1479,7 +1479,7 @@ export class CvService {
     }
 
     try {
-      const buffer = (await StorageService.read(normalized)).buffer;
+      const buffer = (await readCachedStorageFile(normalized)).buffer;
       const dimensions = CvService.extractImageDimensions(buffer, extension);
       const aspectRatio =
         dimensions && dimensions.width > 0

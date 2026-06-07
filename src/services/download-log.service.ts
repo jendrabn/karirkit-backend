@@ -76,45 +76,49 @@ export class DownloadLogService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (!isUnlimitedLimit(dailyDownloadLimit)) {
-      const downloadCount = await prisma.downloadLog.count({
-        where: {
-          userId,
-          type,
-          downloadedAt: {
-            gte: today,
-          },
-        },
-      });
-
-      if (downloadCount >= dailyDownloadLimit) {
-        throw new ResponseError(
-          429,
-          `Batas unduhan harian ${getDownloadLabel(type)} tercapai. Anda sudah mengunduh ${downloadCount} dari ${dailyDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
-        );
-      }
-    }
-
     const formatDownloadLimit =
       format === "pdf"
         ? getPdfDownloadLimit(planId, type)
         : getDocxDownloadLimit(planId, type);
-    if (isUnlimitedLimit(formatDownloadLimit)) {
+    const shouldCheckDailyLimit = !isUnlimitedLimit(dailyDownloadLimit);
+    const shouldCheckFormatLimit = !isUnlimitedLimit(formatDownloadLimit);
+
+    if (!shouldCheckDailyLimit && !shouldCheckFormatLimit) {
       return;
     }
 
-    const formatDownloadCount = await prisma.downloadLog.count({
+    const downloadCounts = await prisma.downloadLog.groupBy({
+      by: ["format"],
       where: {
         userId,
         type,
-        format,
         downloadedAt: {
           gte: today,
         },
       },
+      _count: {
+        _all: true,
+      },
     });
 
-    if (formatDownloadCount >= formatDownloadLimit) {
+    let dailyDownloadCount = 0;
+    let formatDownloadCount = 0;
+
+    for (const count of downloadCounts) {
+      dailyDownloadCount += count._count._all;
+      if (count.format === format) {
+        formatDownloadCount = count._count._all;
+      }
+    }
+
+    if (shouldCheckDailyLimit && dailyDownloadCount >= dailyDownloadLimit) {
+      throw new ResponseError(
+        429,
+        `Batas unduhan harian ${getDownloadLabel(type)} tercapai. Anda sudah mengunduh ${dailyDownloadCount} dari ${dailyDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
+      );
+    }
+
+    if (shouldCheckFormatLimit && formatDownloadCount >= formatDownloadLimit) {
       const label =
         format === "pdf" ? getPdfDownloadLabel(type) : getDocxDownloadLabel(type);
       throw new ResponseError(

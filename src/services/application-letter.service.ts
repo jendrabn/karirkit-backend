@@ -26,6 +26,7 @@ import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
 import env from "../config/env.config";
 import { UploadService } from "./upload.service";
 import { StorageService } from "./storage.service";
+import { readCachedStorageFile } from "../utils/storage-read-cache.util";
 
 type ApplicationLetterListResult = {
   items: ApplicationLetterResponse[];
@@ -303,18 +304,19 @@ export class ApplicationLetterService {
     id: string,
     format?: string
   ): Promise<GeneratedDocument> {
-    const normalized = (format ?? "docx").toLowerCase();
+    const normalized = ApplicationLetterService.normalizeDownloadFormat(format);
+    if (normalized === "pdf" && !env.pdfDownloadEnabled) {
+      throw new ResponseError(
+        503,
+        "Fitur unduh PDF untuk surat lamaran sedang dinonaktifkan."
+      );
+    }
+
     const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
     const docxBuffer = await ApplicationLetterService.renderDocx(letter);
     const baseName = ApplicationLetterService.buildFileName(letter);
 
     if (normalized === "pdf") {
-      if (!env.pdfDownloadEnabled) {
-        throw new ResponseError(
-          503,
-          "Fitur unduh PDF untuk surat lamaran sedang dinonaktifkan."
-        );
-      }
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
       return {
         buffer: pdfBuffer,
@@ -323,16 +325,21 @@ export class ApplicationLetterService {
       };
     }
 
-    if (normalized !== "docx") {
-      throw new ResponseError(400, "Format unduhan tidak didukung");
-    }
-
     return {
       buffer: docxBuffer,
       mimeType:
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       fileName: `${baseName}.docx`,
     };
+  }
+
+  private static normalizeDownloadFormat(format?: string): "docx" | "pdf" {
+    const normalized = (format ?? "docx").trim().toLowerCase();
+    if (normalized === "docx" || normalized === "pdf") {
+      return normalized;
+    }
+
+    throw new ResponseError(400, "Format unduhan tidak didukung");
   }
 
   private static async findOwnedLetter(
@@ -621,21 +628,15 @@ export class ApplicationLetterService {
   }
 
   private static async renderDocx(
-    letter: PrismaApplicationLetter
+    letter: ApplicationLetterWithTemplate
   ): Promise<Buffer> {
-    if (!letter.templateId) {
+    if (!letter.templateId || !letter.template) {
       throw new ResponseError(400, "Template diperlukan");
     }
 
-    const template = await prisma.template.findUnique({
-      where: { id: letter.templateId },
-    });
-
-    if (!template) {
-      throw new ResponseError(404, "Template tidak ditemukan");
-    }
-
-    const templateBinary = (await StorageService.read(template.path)).buffer;
+    const templateBinary = (
+      await readCachedStorageFile(letter.template.path)
+    ).buffer;
     const additionalJsContext =
       ApplicationLetterService.buildAdditionalJsContext();
 
@@ -742,7 +743,7 @@ export class ApplicationLetterService {
     }
 
     try {
-      const buffer = (await StorageService.read(resolvedPath)).buffer;
+      const buffer = (await readCachedStorageFile(resolvedPath)).buffer;
       const dimensions = ApplicationLetterService.extractImageDimensions(
         buffer,
         extension
