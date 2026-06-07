@@ -133,6 +133,12 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
   },
 };
 
+const PLAN_RANK: Record<PlanId, number> = {
+  free: 0,
+  pro: 1,
+  max: 2,
+};
+
 /**
  * Get a plan by its ID.
  */
@@ -150,6 +156,10 @@ export function resolvePlanId(
     return "max";
   }
   return "free";
+}
+
+export function getPlanRank(planId: PlanId): number {
+  return PLAN_RANK[planId];
 }
 
 /**

@@ -154,6 +154,32 @@ describe("SubscriptionService payment gateway fallback", () => {
     });
   });
 
+  it("rejects downgrade checkout while the current subscription is active", async () => {
+    const SubscriptionService = await loadService(false);
+    userFindUnique.mockResolvedValue({
+      id: "user-1",
+      name: "User",
+      email: "user@example.com",
+      phone: null,
+      subscriptionPlan: "max",
+      subscriptionExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+    });
+
+    await expect(
+      SubscriptionService.createSubscriptionOrder("user-1", {
+        planId: "pro",
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message:
+        "Tidak dapat downgrade ke plan yang lebih rendah saat langganan aktif",
+    });
+
+    expect(subscriptionFindFirst).not.toHaveBeenCalled();
+    expect(subscriptionCreate).not.toHaveBeenCalled();
+    expect(midtransSnap).not.toHaveBeenCalled();
+  });
+
   it("returns a pending upgrade even while the current plan is still active", async () => {
     const SubscriptionService = await loadService(false);
     userFindUnique.mockResolvedValue({

@@ -14,6 +14,7 @@ import env from "../config/env.config";
 import {
   getAllPlans,
   getPlan,
+  getPlanRank,
   type PlanId as ConfigPlanId,
   resolvePlanId,
 } from "../config/subscription-plans.config";
@@ -312,13 +313,23 @@ export class SubscriptionService {
 
     const now = new Date();
     const currentPlan = toConfigPlanId(user.subscriptionPlan);
-    if (
-      currentPlan === payload.planId &&
-      (!user.subscriptionExpiresAt || user.subscriptionExpiresAt >= now)
-    ) {
+    const hasActiveCurrentPlan =
+      !user.subscriptionExpiresAt || user.subscriptionExpiresAt >= now;
+
+    if (currentPlan === payload.planId && hasActiveCurrentPlan) {
       throw new ResponseError(
         400,
         "Anda sudah memiliki langganan aktif untuk plan ini"
+      );
+    }
+
+    if (
+      hasActiveCurrentPlan &&
+      getPlanRank(payload.planId) < getPlanRank(currentPlan)
+    ) {
+      throw new ResponseError(
+        400,
+        "Tidak dapat downgrade ke plan yang lebih rendah saat langganan aktif"
       );
     }
 
