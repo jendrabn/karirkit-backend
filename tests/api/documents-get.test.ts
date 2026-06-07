@@ -83,32 +83,34 @@ describe("GET /documents", () => {
     expect(response.body.data.meta.total).toBe(0);
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to list documents", async () => {
     const listMock = jest.mocked(DocumentService.list);
+    listMock.mockResolvedValue({
+      items: [],
+      meta: { page: 1, per_page: 20, total: 0 },
+    } as never);
 
     const response = await request(app)
       .get("/documents")
       .set("Authorization", "Bearer user-token");
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(listMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(listMock).toHaveBeenCalledTimes(1);
   });
 
-  it("also returns 403 for admins on free plan", async () => {
+  it("also allows admins on free plan to list documents", async () => {
     const listMock = jest.mocked(DocumentService.list);
+    listMock.mockResolvedValue({
+      items: [],
+      meta: { page: 1, per_page: 20, total: 0 },
+    } as never);
 
     const response = await request(app)
       .get("/documents")
       .set("Authorization", "Bearer admin-free-token");
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(listMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(listMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -187,7 +189,7 @@ describe("GET /documents", () => {
     expect(response.body.data.pagination.total_items).toBe(0);
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to list documents", async () => {
     const { user } = await createRealUser("documents-list-free");
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
@@ -197,9 +199,7 @@ describe("GET /documents", () => {
       .get("/documents")
       .set("Authorization", `Bearer ${token}`);
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("data.items");
   });
 });

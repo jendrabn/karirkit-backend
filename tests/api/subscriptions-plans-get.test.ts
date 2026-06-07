@@ -70,7 +70,7 @@ describe("GET /subscriptions/plans", () => {
         applicationLetterDocxDownloadsPerDay: 5,
         cvPdfDownloadsPerDay: 5,
         applicationLetterPdfDownloadsPerDay: 5,
-        canManageDocuments: false,
+        canManageDocuments: true,
         canUsePremiumCvTemplates: false,
         canUsePremiumApplicationLetterTemplates: false,
         canUsePremiumTemplates: false,
@@ -129,7 +129,7 @@ describe("GET /subscriptions/plans", () => {
         can_duplicate_application_letters: true,
         can_download_cv_docx: true,
         can_download_application_letter_docx: true,
-        can_manage_documents: false,
+        can_manage_documents: true,
         }),
         expect.objectContaining({
         id: "pro",

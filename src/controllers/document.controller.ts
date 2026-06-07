@@ -28,15 +28,16 @@ export class DocumentController {
       const filesFromMulter = Array.isArray(req.files)
         ? req.files
         : groupedFiles?.files ?? [];
-      const singleFile =
-        (req.file as Express.Multer.File | undefined) ??
-        groupedFiles?.file?.[0];
+      const filesFromFileField = groupedFiles?.file ?? [];
       const files: Express.Multer.File[] = [];
       if (Array.isArray(filesFromMulter)) {
         files.push(...filesFromMulter);
       }
-      if (singleFile) {
-        files.push(singleFile);
+      if (Array.isArray(filesFromFileField)) {
+        files.push(...filesFromFileField);
+      }
+      if (req.file) {
+        files.push(req.file as Express.Multer.File);
       }
       if (files.length === 0) {
         throw new ResponseError(400, "File diperlukan");

@@ -110,7 +110,7 @@ const createAnyUpload = (
     },
     fileFilter,
   }).fields([
-    { name: "file", maxCount: 1 },
+    { name: "file", maxCount: maxFileCount },
     { name: "files", maxCount: maxFileCount },
   ]);
 

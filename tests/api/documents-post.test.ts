@@ -101,8 +101,44 @@ describe("POST /documents", () => {
     expect(createManyMock).not.toHaveBeenCalled();
   });
 
-  it("returns 403 for free users", async () => {
+  it("accepts repeated file fields for merged uploads", async () => {
+    const createMergedMock = jest.mocked(DocumentService.createMerged);
+    createMergedMock.mockResolvedValue({
+      id: "document-merged",
+      file_name: "merged.pdf",
+    } as never);
+    const pngBuffer = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    const response = await request(app)
+      .post("/documents?compression=strong&merge=true")
+      .set("Authorization", "Bearer pro-token")
+      .attach("file", pngBuffer, {
+        filename: "photo-1.png",
+        contentType: "image/png",
+      })
+      .attach("file", pngBuffer, {
+        filename: "photo-2.png",
+        contentType: "image/png",
+      })
+      .attach("file", pngBuffer, {
+        filename: "photo-3.png",
+        contentType: "image/png",
+      });
+
+    expect(response.status).toBe(201);
+    expect(createMergedMock).toHaveBeenCalledTimes(1);
+    expect(createMergedMock.mock.calls[0][2]).toHaveLength(3);
+    expect(createMergedMock.mock.calls[0][3]).toBe("strong");
+  });
+
+  it("allows free users to upload documents", async () => {
     const createMock = jest.mocked(DocumentService.create);
+    createMock.mockResolvedValue({
+      id: "document-free",
+      file_name: "resume.pdf",
+    } as never);
 
     const response = await request(app)
       .post("/documents")
@@ -112,11 +148,8 @@ describe("POST /documents", () => {
         contentType: "application/pdf",
       });
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(createMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(201);
+    expect(createMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -198,7 +231,7 @@ describe("POST /documents", () => {
     expect(response.body.errors.general[0]).toBe("Opsi merge tidak dikenal");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to upload documents", async () => {
     const { user } = await createRealUser("documents-upload-free");
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
@@ -213,9 +246,12 @@ describe("POST /documents", () => {
         contentType: "text/plain",
       });
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
+    expect(response.status).toBe(201);
+    expect(response.body.data).toMatchObject({
+      user_id: user.id,
+      type: "cv",
+      mime_type: "text/plain",
+    });
+    trackedDocumentIds.add(response.body.data.id);
   });
 });

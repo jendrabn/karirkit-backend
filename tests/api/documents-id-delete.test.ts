@@ -80,18 +80,16 @@ describe("DELETE /documents/:id", () => {
     expect(response.body.errors.general[0]).toBe("Document tidak ditemukan");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to delete documents", async () => {
     const deleteMock = jest.mocked(DocumentService.delete);
+    deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
       .delete(`/documents/${validId}`)
       .set("Authorization", "Bearer user-token");
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(deleteMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(204);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -159,19 +157,21 @@ describe("DELETE /documents/:id", () => {
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to delete documents", async () => {
     const { user } = await createRealUser("documents-delete-free");
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
+    const fixture = await createStoredDocumentFixture(user.id, {
+      originalName: "free-delete.txt",
+    });
+    trackedDocumentIds.add(fixture.document.id);
 
     const response = await request(app)
-      .delete(`/documents/${validId}`)
+      .delete(`/documents/${fixture.document.id}`)
       .set("Authorization", `Bearer ${token}`);
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
+    expect(response.status).toBe(204);
+    trackedDocumentIds.delete(fixture.document.id);
   });
 });

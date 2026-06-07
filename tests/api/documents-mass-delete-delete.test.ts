@@ -85,19 +85,17 @@ describe("DELETE /documents/mass-delete", () => {
     expect(response.body.errors.general[0]).toBe("Minimal satu data harus dipilih");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to mass delete documents", async () => {
     const massDeleteMock = jest.mocked(DocumentService.massDelete);
+    massDeleteMock.mockResolvedValue({ deleted_count: 1, ids: [validId] } as never);
 
     const response = await request(app)
       .delete("/documents/mass-delete")
       .set("Authorization", "Bearer user-token")
       .send({ ids: [validId] });
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(massDeleteMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(massDeleteMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -179,20 +177,23 @@ describe("DELETE /documents/mass-delete", () => {
     expect(Array.isArray(response.body.errors.ids)).toBe(true);
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to mass delete documents", async () => {
     const { user } = await createRealUser("documents-mass-delete-free");
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
+    const fixture = await createStoredDocumentFixture(user.id, {
+      originalName: "free-mass-delete.txt",
+    });
+    trackedDocumentIds.add(fixture.document.id);
 
     const response = await request(app)
       .delete("/documents/mass-delete")
       .set("Authorization", `Bearer ${token}`)
-      .send({ ids: [validId] });
+      .send({ ids: [fixture.document.id] });
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
+    expect(response.status).toBe(200);
+    expect(response.body.data.deleted_count).toBe(1);
+    trackedDocumentIds.delete(fixture.document.id);
   });
 });

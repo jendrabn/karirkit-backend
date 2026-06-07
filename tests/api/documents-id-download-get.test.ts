@@ -85,18 +85,20 @@ describe("GET /documents/:id/download", () => {
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to download documents", async () => {
     const downloadMock = jest.mocked(DocumentService.download);
+    downloadMock.mockResolvedValue({
+      fileName: "resume.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("pdf-content"),
+    } as never);
 
     const response = await request(app)
       .get(`/documents/${validId}/download`)
       .set("Authorization", "Bearer user-token");
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
-    expect(downloadMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(downloadMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -177,19 +179,23 @@ describe("GET /documents/:id/download", () => {
     expect(response.body.errors.general[0]).toBe("Dokumen tidak ditemukan");
   });
 
-  it("returns 403 for free users", async () => {
+  it("allows free users to download documents", async () => {
     const { user } = await createRealUser("documents-download-free");
     trackedEmails.add(user.email);
     trackedUserIds.add(user.id);
     const token = await createSessionToken(user);
+    const fixture = await createStoredDocumentFixture(user.id, {
+      originalName: "free-download.txt",
+      mimeType: "text/plain",
+      content: Buffer.from("free download"),
+    });
+    trackedDocumentIds.add(fixture.document.id);
 
     const response = await request(app)
-      .get(`/documents/${validId}/download`)
+      .get(`/documents/${fixture.document.id}/download`)
       .set("Authorization", `Bearer ${token}`);
 
-    expect(response.status).toBe(403);
-    expect(response.body.errors.general[0]).toBe(
-      "Fitur dokumen khusus untuk pengguna Pro atau Max"
-    );
+    expect(response.status).toBe(200);
+    expect(response.text).toBe("free download");
   });
 });

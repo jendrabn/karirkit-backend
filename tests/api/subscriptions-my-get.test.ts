@@ -160,7 +160,7 @@ describe("GET /subscriptions/my", () => {
         },
       },
       currentFeatures: {
-        canManageDocuments: false,
+        canManageDocuments: true,
         canUsePremiumCvTemplates: false,
         canUsePremiumApplicationLetterTemplates: false,
         canUsePremiumTemplates: false,
