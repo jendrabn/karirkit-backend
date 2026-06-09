@@ -12,6 +12,7 @@ import { prisma } from "../../config/prisma.config";
 import { slugify } from "../../utils/slugify.util";
 import { isHttpUrl } from "../../utils/url.util";
 import { JobValidation } from "../../validations/admin/job.validation";
+import { formatDateOnly, parseDateOnly } from "../../utils/date.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -308,7 +309,7 @@ export class AdminJobService {
           contactPhone: request.contact_phone || null,
           status: request.status,
           expirationDate: request.expiration_date
-            ? new Date(request.expiration_date)
+            ? parseDateOnly(request.expiration_date)
             : null,
           createdAt: now,
           updatedAt: now,
@@ -505,7 +506,7 @@ export class AdminJobService {
 
     if (request.expiration_date !== undefined) {
       updateData.expirationDate = request.expiration_date
-        ? new Date(request.expiration_date)
+        ? parseDateOnly(request.expiration_date)
         : null;
     }
 
@@ -678,7 +679,7 @@ export class AdminJobService {
       contact_email: job.contactEmail,
       contact_phone: job.contactPhone,
       status: job.status,
-      expiration_date: job.expirationDate?.toISOString() || null,
+      expiration_date: formatDateOnly(job.expirationDate),
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
       medias: job.medias

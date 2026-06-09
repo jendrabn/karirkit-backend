@@ -11,6 +11,7 @@ import { prisma } from "../config/prisma.config";
 import { JobValidation } from "../validations/job.validation";
 import { JobStatus, Prisma } from "../generated/prisma/client";
 import type { SavedJobWhereInput } from "../generated/prisma/models/SavedJob";
+import { formatDateOnly } from "../utils/date.util";
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -455,7 +456,7 @@ export class JobService {
       contact_email: job.contactEmail,
       contact_phone: job.contactPhone,
       status: job.status,
-      expiration_date: job.expirationDate?.toISOString() || null,
+      expiration_date: formatDateOnly(job.expirationDate),
       created_at: job.createdAt?.toISOString(),
       updated_at: job.updatedAt?.toISOString(),
       medias: job.medias

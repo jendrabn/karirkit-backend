@@ -510,7 +510,7 @@ model Job {
   contactEmail         String?    @map("contact_email") @db.VarChar(255)
   contactPhone         String?    @map("contact_phone") @db.VarChar(255)
   status               JobStatus  @default(draft)
-  expirationDate       DateTime?  @map("expiration_date") @db.Timestamp(0)
+  expirationDate       DateTime?  @map("expiration_date") @db.Date
   createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
   medias               JobMedia[]

@@ -5,14 +5,24 @@ import {
   optionalDateSchema,
   optionalNumberSchema,
 } from "../query.util";
-
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+import { isValidDateOnly } from "../../utils/date.util";
 
 const dateOnlySchema = z
   .string()
   .trim()
-  .regex(dateRegex, "Format tanggal: YYYY-MM-DD")
-  .refine((value) => !Number.isNaN(Date.parse(value)), "Tanggal tidak valid");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal: YYYY-MM-DD")
+  .refine(isValidDateOnly, "Tanggal tidak valid");
+
+const optionalDateOnlyFieldSchema = z.preprocess(
+  (value) => {
+    if (typeof value === "string" && value.trim() === "") {
+      return null;
+    }
+
+    return value;
+  },
+  dateOnlySchema.nullable().optional()
+);
 
 const uuidListSchema = commaSeparatedStringSchema.refine(
   (values) => values.every((value) => z.string().uuid().safeParse(value).success),
@@ -242,11 +252,7 @@ export class JobValidation {
           "Status tidak valid"
         )
         .default("draft"),
-      expiration_date: z
-        .string()
-        .datetime("Format tanggal tidak valid")
-        .nullable()
-        .optional(),
+      expiration_date: optionalDateOnlyFieldSchema,
     })
     .refine(
       (data) => {
@@ -380,11 +386,7 @@ export class JobValidation {
           "Status tidak valid"
         )
         .optional(),
-      expiration_date: z
-        .string()
-        .datetime("Format tanggal tidak valid")
-        .nullable()
-        .optional(),
+      expiration_date: optionalDateOnlyFieldSchema,
     })
     .refine(
       (data) => {
