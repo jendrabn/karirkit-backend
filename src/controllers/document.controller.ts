@@ -4,7 +4,6 @@ import { sendSuccess } from "../utils/response-builder.util";
 import { ResponseError } from "../utils/response-error.util";
 
 const COMPRESSION_OPTIONS: DocumentCompressionLevel[] = [
-  "auto",
   "light",
   "medium",
   "strong",
@@ -25,24 +24,14 @@ export class DocumentController {
       const groupedFiles = Array.isArray(req.files)
         ? undefined
         : (req.files as Record<string, Express.Multer.File[]> | undefined);
-      const filesFromMulter = Array.isArray(req.files)
-        ? req.files
-        : groupedFiles?.files ?? [];
       const filesFromFileField = groupedFiles?.file ?? [];
       const filesFromBracketedFileField = groupedFiles?.["file[]"] ?? [];
-      const filesFromBracketedFilesField = groupedFiles?.["files[]"] ?? [];
       const files: Express.Multer.File[] = [];
-      if (Array.isArray(filesFromMulter)) {
-        files.push(...filesFromMulter);
-      }
       if (Array.isArray(filesFromFileField)) {
         files.push(...filesFromFileField);
       }
       if (Array.isArray(filesFromBracketedFileField)) {
         files.push(...filesFromBracketedFileField);
-      }
-      if (Array.isArray(filesFromBracketedFilesField)) {
-        files.push(...filesFromBracketedFilesField);
       }
       if (req.file) {
         files.push(req.file as Express.Multer.File);
@@ -54,16 +43,8 @@ export class DocumentController {
       const compression = DocumentController.parseCompression(
         req.query.compression
       );
-      const merge = DocumentController.parseMergeFlag(req.query.merge);
 
-      const document = await (merge && files.length > 1
-        ? DocumentService.createMerged(
-            req.user!.id,
-            req.body,
-            files,
-            compression
-          )
-        : files.length > 1
+      const document = await (files.length > 1
         ? DocumentService.createMany(
             req.user!.id,
             req.body,
@@ -148,31 +129,6 @@ export class DocumentController {
     }
 
     return normalized as DocumentCompressionLevel;
-  }
-
-  private static parseMergeFlag(value: unknown): boolean {
-    if (value === undefined || value === null) {
-      return false;
-    }
-
-    const raw = Array.isArray(value) ? value[0] : value;
-    if (typeof raw === "boolean") {
-      return raw;
-    }
-
-    if (typeof raw !== "string") {
-      throw new ResponseError(400, "Opsi merge tidak valid");
-    }
-
-    const normalized = raw.trim().toLowerCase();
-    if (["1", "true", "yes"].includes(normalized)) {
-      return true;
-    }
-    if (["0", "false", "no", ""].includes(normalized)) {
-      return false;
-    }
-
-    throw new ResponseError(400, "Opsi merge tidak dikenal");
   }
 
   private static buildContentDisposition(fileName: string): string {

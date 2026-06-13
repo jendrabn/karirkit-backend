@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction, Express } from "express";
 import multer, { MulterError } from "multer";
+import env from "../config/env.config";
 import { ResponseError } from "../utils/response-error.util";
 import {
   ALL_VERIFIED_UPLOAD_MIME_TYPES,
@@ -9,20 +10,19 @@ import {
 
 const TEMP_UPLOAD_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const BLOG_UPLOAD_MAX_SIZE_BYTES = 5 * 1024 * 1024;
-const DOCUMENT_UPLOAD_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 const DOCUMENT_UPLOAD_MAX_FILE_COUNT = 20;
 
 const documentMimeTypes = new Set<string>(VERIFIED_UPLOAD_MIME_TYPES.document);
+const imageMimeTypes = new Set<string>(VERIFIED_UPLOAD_MIME_TYPES.image);
+const videoMimeTypes = new Set<string>(VERIFIED_UPLOAD_MIME_TYPES.video);
+const audioMimeTypes = new Set<string>(VERIFIED_UPLOAD_MIME_TYPES.audio);
+const DOCUMENT_UPLOAD_MAX_SIZE_BYTES = env.documentUploadMaxSizeBytes;
 
 const isAllowedTempMime = (mime: string): boolean => {
   const normalized = mime.toLowerCase();
   return (
-    VERIFIED_UPLOAD_MIME_TYPES.image.includes(
-      normalized as (typeof VERIFIED_UPLOAD_MIME_TYPES.image)[number]
-    ) ||
-    VERIFIED_UPLOAD_MIME_TYPES.video.includes(
-      normalized as (typeof VERIFIED_UPLOAD_MIME_TYPES.video)[number]
-    ) ||
+    (imageMimeTypes.has(normalized) && normalized !== "image/svg+xml") ||
+    videoMimeTypes.has(normalized) ||
     documentMimeTypes.has(normalized)
   );
 };
@@ -30,9 +30,10 @@ const isAllowedTempMime = (mime: string): boolean => {
 const isAllowedDocumentMime = (mime: string): boolean => {
   const normalized = mime.toLowerCase();
   return (
-    VERIFIED_UPLOAD_MIME_TYPES.image.includes(
-      normalized as (typeof VERIFIED_UPLOAD_MIME_TYPES.image)[number]
-    ) || documentMimeTypes.has(normalized)
+    imageMimeTypes.has(normalized) ||
+    documentMimeTypes.has(normalized) ||
+    videoMimeTypes.has(normalized) ||
+    audioMimeTypes.has(normalized)
   );
 };
 
@@ -74,7 +75,12 @@ const handleUploadError = (
       return;
     }
     if (err.code === "LIMIT_UNEXPECTED_FILE") {
-      next(new ResponseError(400, "Field file tidak valid"));
+      next(
+        new ResponseError(
+          400,
+          "Field file tidak valid. Gunakan file atau file[]"
+        )
+      );
       return;
     }
 
@@ -110,10 +116,8 @@ const createAnyUpload = (
     },
     fileFilter,
   }).fields([
-    { name: "file", maxCount: maxFileCount },
+    { name: "file", maxCount: 1 },
     { name: "file[]", maxCount: maxFileCount },
-    { name: "files", maxCount: maxFileCount },
-    { name: "files[]", maxCount: maxFileCount },
   ]);
 
 export const handleTempUpload = async (
@@ -212,24 +216,44 @@ export const handleDocumentUpload = async (
           cb(null, true);
           return;
         }
-        cb(new ResponseError(400, "File must be an image or document"));
+        cb(
+          new ResponseError(
+            400,
+            "File harus berupa gambar, PDF, Microsoft Office, video, atau suara"
+          )
+        );
       }
     );
 
     upload(req, res, (err?: unknown) => {
       if (!err) {
+        const groupedFiles = req.files as
+          | Record<string, Express.Multer.File[]>
+          | undefined;
+        const singleFiles = (groupedFiles?.file ?? []) as Express.Multer.File[];
+        const multipleFiles = (groupedFiles?.["file[]"] ??
+          []) as Express.Multer.File[];
+
+        if (singleFiles.length > 0 && multipleFiles.length > 0) {
+          next(
+            new ResponseError(
+              400,
+              "Gunakan salah satu field file atau file[], tidak keduanya"
+            )
+          );
+          return;
+        }
+
         const files = [
-          ...(((req.files as Record<string, Express.Multer.File[]>)?.file ?? []) as Express.Multer.File[]),
-          ...(((req.files as Record<string, Express.Multer.File[]>)?.["file[]"] ?? []) as Express.Multer.File[]),
-          ...(((req.files as Record<string, Express.Multer.File[]>)?.files ?? []) as Express.Multer.File[]),
-          ...(((req.files as Record<string, Express.Multer.File[]>)?.["files[]"] ?? []) as Express.Multer.File[]),
+          ...singleFiles,
+          ...multipleFiles,
         ];
 
         try {
           validateUploadedFiles(
             files,
             isAllowedDocumentMime,
-            "File harus berupa gambar atau dokumen yang valid"
+            "File harus berupa gambar, PDF, Microsoft Office, video, atau suara yang valid"
           );
         } catch (validationError) {
           handleUploadError(validationError, next, "");
@@ -250,9 +274,9 @@ export const handleDocumentUpload = async (
       handleUploadError(
         err,
         next,
-        `File size must be less than or equal to ${Math.floor(
+        `Ukuran file tidak boleh lebih dari ${Math.floor(
           DOCUMENT_UPLOAD_MAX_SIZE_BYTES / (1024 * 1024)
-        )} MB`
+        )}MB`
       );
     });
   } catch (error) {

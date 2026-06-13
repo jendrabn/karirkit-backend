@@ -177,12 +177,11 @@ const env = {
     expiresInSeconds: parseDurationSeconds(process.env.OTP_EXPIRES_IN, 300), // 5 minutes default
     resendCooldownInSeconds: parseDurationSeconds(process.env.OTP_RESEND_COOLDOWN, 60), // 1 minute default
   },
-  documentStorageLimitMaxBytes: parseNumber(
-    process.env.DOCUMENT_STORAGE_LIMIT_MAX_BYTES,
-    1024 * 1024 * 1024
+  documentUploadMaxSizeBytes: parseNumber(
+    process.env.DOCUMENT_UPLOAD_MAX_SIZE_BYTES,
+    100 * 1024 * 1024
   ),
   ghostscriptCommand: process.env.GHOSTSCRIPT_COMMAND ?? "gs",
-  pdfCompressionEnabled: process.env.PDF_COMPRESSION_ENABLED === "true",
   ghostscriptPdfSettings:
     process.env.GHOSTSCRIPT_PDFSETTINGS ?? "/screen",
   ghostscriptColorResolution: parseNumber(
@@ -194,6 +193,7 @@ const env = {
     60
   ),
   libreOfficeCommand: process.env.LIBREOFFICE_COMMAND ?? "soffice",
+  ffmpegCommand: process.env.FFMPEG_COMMAND ?? "ffmpeg",
   pdfDownloadEnabled: parseBoolean(process.env.PDF_DOWNLOAD_ENABLED, true),
   paymentGatewayEnabled: parseBoolean(
     process.env.PAYMENT_GATEWAY_ENABLED,

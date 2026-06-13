@@ -18,7 +18,6 @@ beforeAll(async () => {
       DocumentService: {
         create: jest.fn(),
         createMany: jest.fn(),
-        createMerged: jest.fn(),
       },
     }));
   }
@@ -72,97 +71,76 @@ describe("POST /documents", () => {
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("merges multiple uploaded documents when merge is enabled", async () => {
+  it("uploads multiple documents from file[] fields", async () => {
     const createManyMock = jest.mocked(DocumentService.createMany);
-    const createMergedMock = jest.mocked(DocumentService.createMerged);
-    createMergedMock.mockResolvedValue({
-      id: "document-merged",
-      file_name: "merged.pdf",
-    } as never);
+    createManyMock.mockResolvedValue([
+      {
+        id: "document-1",
+        file_name: "resume-1.pdf",
+      },
+      {
+        id: "document-2",
+        file_name: "resume-2.pdf",
+      },
+    ] as never);
 
     const response = await request(app)
-      .post("/documents?merge=true")
+      .post("/documents")
       .set("Authorization", "Bearer pro-token")
-      .attach("files", Buffer.from("fake-pdf-1"), {
+      .attach("file[]", Buffer.from("fake-pdf-1"), {
         filename: "resume-1.pdf",
         contentType: "application/pdf",
       })
-      .attach("files", Buffer.from("fake-pdf-2"), {
+      .attach("file[]", Buffer.from("fake-pdf-2"), {
         filename: "resume-2.pdf",
         contentType: "application/pdf",
       });
 
     expect(response.status).toBe(201);
-    expect(response.body.data).toMatchObject({
-      id: "document-merged",
-      file_name: "merged.pdf",
-    });
-    expect(createMergedMock).toHaveBeenCalledTimes(1);
-    expect(createManyMock).not.toHaveBeenCalled();
+    expect(response.body.data).toHaveLength(2);
+    expect(createManyMock).toHaveBeenCalledTimes(1);
   });
 
-  it("accepts repeated file fields for merged uploads", async () => {
-    const createMergedMock = jest.mocked(DocumentService.createMerged);
-    createMergedMock.mockResolvedValue({
-      id: "document-merged",
-      file_name: "merged.pdf",
-    } as never);
+  it("rejects legacy files fields", async () => {
     const pngBuffer = Buffer.from([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
 
     const response = await request(app)
-      .post("/documents?compression=strong&merge=true")
+      .post("/documents")
       .set("Authorization", "Bearer pro-token")
-      .attach("file", pngBuffer, {
+      .attach("files", pngBuffer, {
         filename: "photo-1.png",
-        contentType: "image/png",
-      })
-      .attach("file", pngBuffer, {
-        filename: "photo-2.png",
-        contentType: "image/png",
-      })
-      .attach("file", pngBuffer, {
-        filename: "photo-3.png",
         contentType: "image/png",
       });
 
-    expect(response.status).toBe(201);
-    expect(createMergedMock).toHaveBeenCalledTimes(1);
-    expect(createMergedMock.mock.calls[0][2]).toHaveLength(3);
-    expect(createMergedMock.mock.calls[0][3]).toBe("strong");
+    expect(response.status).toBe(400);
+    expect(response.body.errors.general[0]).toBe(
+      "Field file tidak valid. Gunakan file atau file[]"
+    );
   });
 
-  it("accepts bracketed files fields for merged uploads", async () => {
-    const createMergedMock = jest.mocked(DocumentService.createMerged);
-    createMergedMock.mockResolvedValue({
-      id: "document-merged",
-      file_name: "merged.pdf",
-    } as never);
+  it("rejects requests mixing file and file[] fields", async () => {
     const pngBuffer = Buffer.from([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
 
     const response = await request(app)
-      .post("/documents?compression=strong&merge=true")
+      .post("/documents?compression=strong")
       .set("Authorization", "Bearer pro-token")
-      .attach("files[]", pngBuffer, {
+      .attach("file", pngBuffer, {
         filename: "photo-1.png",
         contentType: "image/png",
       })
-      .attach("files[]", pngBuffer, {
+      .attach("file[]", pngBuffer, {
         filename: "photo-2.png",
-        contentType: "image/png",
-      })
-      .attach("files[]", pngBuffer, {
-        filename: "photo-3.png",
         contentType: "image/png",
       });
 
-    expect(response.status).toBe(201);
-    expect(createMergedMock).toHaveBeenCalledTimes(1);
-    expect(createMergedMock.mock.calls[0][2]).toHaveLength(3);
-    expect(createMergedMock.mock.calls[0][3]).toBe("strong");
+    expect(response.status).toBe(400);
+    expect(response.body.errors.general[0]).toBe(
+      "Gunakan salah satu field file atau file[], tidak keduanya"
+    );
   });
 
   it("allows free users to upload documents", async () => {
@@ -241,8 +219,8 @@ describe("POST /documents", () => {
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("returns 400 for invalid merge options", async () => {
-    const { user } = await createRealUser("documents-upload-invalid-merge", {
+  it("returns 400 for removed auto compression option", async () => {
+    const { user } = await createRealUser("documents-upload-invalid-compression", {
       planId: "pro",
     });
     trackedEmails.add(user.email);
@@ -250,7 +228,7 @@ describe("POST /documents", () => {
     const token = await createSessionToken(user);
 
     const response = await request(app)
-      .post("/documents?merge=maybe")
+      .post("/documents?compression=auto")
       .set("Authorization", `Bearer ${token}`)
       .field("type", "cv")
       .attach("file", Buffer.from("hello document"), {
@@ -260,7 +238,9 @@ describe("POST /documents", () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("errors.general");
-    expect(response.body.errors.general[0]).toBe("Opsi merge tidak dikenal");
+    expect(response.body.errors.general[0]).toBe(
+      "Opsi kompresi tidak dikenal. Pilihan: light, medium, strong"
+    );
   });
 
   it("allows free users to upload documents", async () => {

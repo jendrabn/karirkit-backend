@@ -4,7 +4,6 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import { promisify } from "util";
-import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import type {
   Document as PrismaDocument,
@@ -35,42 +34,93 @@ import {
 } from "../config/subscription-plans.config";
 import { StorageService } from "./storage.service";
 
-type PdfDoc = InstanceType<typeof PDFDocument>;
-
 const DOCUMENT_DIRECTORY = "uploads/documents";
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 const COMPRESSION_QUALITY_MAP = {
-  auto: 70,
   light: 85,
-  medium: 60,
-  strong: 40,
+  medium: 70,
+  strong: 55,
 } as const;
 
 const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
+  "audio/aac": ".aac",
+  "audio/flac": ".flac",
+  "audio/m4a": ".m4a",
+  "audio/mp4": ".m4a",
+  "audio/mpeg": ".mp3",
+  "audio/ogg": ".ogg",
+  "audio/opus": ".opus",
+  "audio/wav": ".wav",
+  "audio/webm": ".webm",
+  "audio/x-m4a": ".m4a",
+  "audio/x-wav": ".wav",
+  "audio/amr": ".amr",
+  "image/avif": ".avif",
+  "image/bmp": ".bmp",
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/gif": ".gif",
+  "image/heic": ".heic",
+  "image/heif": ".heif",
+  "image/svg+xml": ".svg",
+  "image/tiff": ".tiff",
+  "image/x-icon": ".ico",
+  "image/vnd.microsoft.icon": ".ico",
   "image/webp": ".webp",
+  "video/3gpp": ".3gp",
+  "video/mp4": ".mp4",
+  "video/mpeg": ".mpeg",
+  "video/quicktime": ".mov",
+  "video/webm": ".webm",
+  "video/x-msvideo": ".avi",
+  "video/x-matroska": ".mkv",
   "application/pdf": ".pdf",
   "application/msword": ".doc",
+  "application/vnd.ms-word.document.macroenabled.12": ".docm",
+  "application/vnd.ms-word.template.macroenabled.12": ".dotm",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
     ".docx",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.template":
+    ".dotx",
   "application/vnd.ms-excel": ".xls",
+  "application/vnd.ms-excel.sheet.binary.macroenabled.12": ".xlsb",
+  "application/vnd.ms-excel.sheet.macroenabled.12": ".xlsm",
+  "application/vnd.ms-excel.template.macroenabled.12": ".xltm",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.template":
+    ".xltx",
   "application/vnd.ms-powerpoint": ".ppt",
+  "application/vnd.ms-powerpoint.addin.macroenabled.12": ".ppam",
+  "application/vnd.ms-powerpoint.presentation.macroenabled.12": ".pptm",
+  "application/vnd.ms-powerpoint.slideshow.macroenabled.12": ".ppsm",
+  "application/vnd.ms-powerpoint.template.macroenabled.12": ".potm",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation":
     ".pptx",
+  "application/vnd.openxmlformats-officedocument.presentationml.slideshow":
+    ".ppsx",
+  "application/vnd.openxmlformats-officedocument.presentationml.template":
+    ".potx",
+  "application/vnd.ms-access": ".accdb",
+  "application/vnd.ms-publisher": ".pub",
+  "application/vnd.ms-visio.drawing": ".vsd",
+  "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml":
+    ".vsdx",
+  "application/onenote": ".one",
+  "text/csv": ".csv",
   "text/plain": ".txt",
   "application/rtf": ".rtf",
 };
 
 const IMAGE_MIME_TYPES = new Set([
+  "image/avif",
   "image/jpeg",
   "image/png",
-  "image/gif",
+  "image/tiff",
   "image/webp",
 ]);
+
+const VIDEO_MIME_TYPES = new Set(VERIFIED_UPLOAD_MIME_TYPES.video);
+const AUDIO_MIME_TYPES = new Set(VERIFIED_UPLOAD_MIME_TYPES.audio);
 
 const DOCUMENT_TYPES = new Set([
   "ktp",
@@ -129,11 +179,6 @@ const PDF_COMPRESSION_PRESETS: Record<
   DocumentCompressionLevel,
   { settings: string; resolution: number; jpegQuality: number }
 > = {
-  auto: {
-    settings: env.ghostscriptPdfSettings,
-    resolution: env.ghostscriptColorResolution,
-    jpegQuality: env.ghostscriptJpegQuality,
-  },
   light: { settings: "/printer", resolution: 150, jpegQuality: 80 },
   medium: { settings: "/ebook", resolution: 120, jpegQuality: 60 },
   strong: { settings: "/screen", resolution: 72, jpegQuality: 40 },
@@ -141,11 +186,30 @@ const PDF_COMPRESSION_PRESETS: Record<
 
 export type DocumentCompressionLevel = keyof typeof COMPRESSION_QUALITY_MAP;
 
+const VIDEO_COMPRESSION_PRESETS: Record<
+  DocumentCompressionLevel,
+  { crf: number; maxHeight: number; audioBitrate: string }
+> = {
+  light: { crf: 26, maxHeight: 1080, audioBitrate: "160k" },
+  medium: { crf: 30, maxHeight: 720, audioBitrate: "128k" },
+  strong: { crf: 34, maxHeight: 480, audioBitrate: "96k" },
+};
+
+const AUDIO_COMPRESSION_PRESETS: Record<
+  DocumentCompressionLevel,
+  { audioBitrate: string }
+> = {
+  light: { audioBitrate: "160k" },
+  medium: { audioBitrate: "128k" },
+  strong: { audioBitrate: "96k" },
+};
+
 type UploadOptions = {
   quality?: number;
   maxSize?: number;
   compressImage?: boolean;
   compressPdf?: boolean;
+  compression?: DocumentCompressionLevel;
   ghostscriptSettings?: string;
   ghostscriptColorResolution?: number;
   ghostscriptJpegQuality?: number;
@@ -398,56 +462,6 @@ export class DocumentService {
     }
   }
 
-  static async createMerged(
-    userId: string,
-    request: unknown,
-    files: Express.Multer.File[],
-    compression?: DocumentCompressionLevel
-  ): Promise<DocumentSchema> {
-    if (!files || files.length === 0) {
-      throw new ResponseError(400, "Minimal satu file diperlukan");
-    }
-
-    const payload = DocumentService.validateUploadPayload(request);
-    const uploadOptions = DocumentService.buildUploadOptions(
-      "application/pdf",
-      compression
-    );
-    if (compression) {
-      uploadOptions.quality = COMPRESSION_QUALITY_MAP[compression];
-    }
-
-    const mergedBuffer = await DocumentService.mergeFilesIntoPdf(
-      files,
-      uploadOptions
-    );
-    const mergedName = DocumentService.resolveMergedName(payload.name);
-
-    await DocumentService.assertStorageLimit(userId, mergedBuffer.length);
-
-    const stored = await DocumentService.writeBufferToDisk(
-      mergedBuffer,
-      ".pdf"
-    );
-
-    try {
-      return await DocumentService.persistDocument(
-        userId,
-        payload,
-        {
-          path: stored.path,
-          size: stored.size,
-          mime_type: "application/pdf",
-          original_name: mergedName,
-        },
-        mergedName
-      );
-    } catch (error) {
-      await DocumentService.removeFile(stored.path);
-      throw error;
-    }
-  }
-
   static async delete(userId: string, id: string): Promise<void> {
     const document = await DocumentService.findOwnedDocument(userId, id);
     await prisma.document.delete({ where: { id } });
@@ -571,9 +585,10 @@ export class DocumentService {
     const pdfPreset = DocumentService.resolvePdfPreset(compression);
 
     const options: UploadOptions = {
-      maxSize: MAX_UPLOAD_BYTES,
+      maxSize: env.documentUploadMaxSizeBytes,
+      compression,
       compressImage: compression !== undefined,
-      compressPdf: env.pdfCompressionEnabled,
+      compressPdf: compression !== undefined,
       ghostscriptSettings: pdfPreset.settings,
       ghostscriptColorResolution: pdfPreset.resolution,
       ghostscriptJpegQuality: pdfPreset.jpegQuality,
@@ -594,7 +609,7 @@ export class DocumentService {
     if (!compression) {
       return DEFAULT_PDF_PRESET;
     }
-    return PDF_COMPRESSION_PRESETS[compression] ?? DEFAULT_PDF_PRESET;
+    return PDF_COMPRESSION_PRESETS[compression];
   }
 
   private static async handleSingleFile(
@@ -614,9 +629,14 @@ export class DocumentService {
     file: Express.Multer.File,
     options: UploadOptions
   ): Promise<UploadResult> {
-    const maxSize = options.maxSize ?? MAX_UPLOAD_BYTES;
+    const maxSize = options.maxSize ?? env.documentUploadMaxSizeBytes;
     if (file.size > maxSize) {
-      throw new ResponseError(400, "Ukuran file tidak boleh lebih dari 25MB");
+      throw new ResponseError(
+        400,
+        `Ukuran file tidak boleh lebih dari ${Math.floor(
+          maxSize / (1024 * 1024)
+        )}MB`
+      );
     }
 
     const detectedMimeType = applyVerifiedMimeType(file);
@@ -625,6 +645,8 @@ export class DocumentService {
       ![
         ...VERIFIED_UPLOAD_MIME_TYPES.image,
         ...VERIFIED_UPLOAD_MIME_TYPES.document,
+        ...VERIFIED_UPLOAD_MIME_TYPES.video,
+        ...VERIFIED_UPLOAD_MIME_TYPES.audio,
       ].includes(detectedMimeType as any)
     ) {
       throw new ResponseError(400, "Jenis file dokumen tidak valid");
@@ -657,6 +679,30 @@ export class DocumentService {
       extension = ".pdf";
     }
 
+    if (options.compression && VIDEO_MIME_TYPES.has(normalizedMime as any)) {
+      const compressedVideo = await DocumentService.maybeCompressVideo(
+        processedBuffer,
+        options.compression
+      );
+      if (compressedVideo.compressed) {
+        processedBuffer = compressedVideo.buffer;
+        finalMimeType = "video/mp4";
+        extension = ".mp4";
+      }
+    }
+
+    if (options.compression && AUDIO_MIME_TYPES.has(normalizedMime as any)) {
+      const compressedAudio = await DocumentService.maybeCompressAudio(
+        processedBuffer,
+        options.compression
+      );
+      if (compressedAudio.compressed) {
+        processedBuffer = compressedAudio.buffer;
+        finalMimeType = "audio/mp4";
+        extension = ".m4a";
+      }
+    }
+
     await DocumentService.assertStorageLimit(userId, processedBuffer.length);
 
     const filename = DocumentService.buildFilename(extension);
@@ -685,6 +731,15 @@ export class DocumentService {
         const pngQuality = Math.min(100, Math.max(1, clamped));
         return sharp(buffer).png({ quality: pngQuality }).toBuffer();
       }
+      if (mimetype === "image/webp") {
+        return sharp(buffer).webp({ quality: clamped }).toBuffer();
+      }
+      if (mimetype === "image/avif") {
+        return sharp(buffer).avif({ quality: clamped }).toBuffer();
+      }
+      if (mimetype === "image/tiff") {
+        return sharp(buffer).tiff({ quality: clamped }).toBuffer();
+      }
     } catch (error) {
       console.error("Error processing image:", error);
     }
@@ -708,174 +763,90 @@ export class DocumentService {
     }
   }
 
-  private static async mergeFilesIntoPdf(
-    files: Express.Multer.File[],
-    options: UploadOptions
-  ): Promise<Buffer> {
-    const maxSize = options.maxSize ?? MAX_UPLOAD_BYTES;
-    const tempFiles: string[] = [];
+  private static async maybeCompressVideo(
+    buffer: Buffer,
+    compression: DocumentCompressionLevel
+  ): Promise<{ buffer: Buffer; compressed: boolean }> {
+    const uuid = crypto.randomUUID();
+    const inputPath = path.join(os.tmpdir(), `video-input-${uuid}`);
+    const outputPath = path.join(os.tmpdir(), `video-output-${uuid}.mp4`);
+    const preset = VIDEO_COMPRESSION_PRESETS[compression];
 
+    await fs.writeFile(inputPath, buffer);
     try {
-      const pdfPaths: string[] = [];
-
-      for (const file of files) {
-        if (file.size > maxSize) {
-          throw new ResponseError(
-            400,
-            "Ukuran file tidak boleh lebih dari 25MB"
-          );
-        }
-
-        const mime = file.mimetype.toLowerCase();
-        if (IMAGE_MIME_TYPES.has(mime)) {
-          const pdfBuffer = await DocumentService.convertImageToPdf(
-            file.buffer,
-            options.quality
-          );
-          const pdfPath = await DocumentService.writeTempFile(
-            "img-to-pdf",
-            ".pdf",
-            pdfBuffer
-          );
-          pdfPaths.push(pdfPath);
-          tempFiles.push(pdfPath);
-        } else if (mime === "application/pdf") {
-          let pdfBuffer = file.buffer;
-          if (options.compressPdf) {
-            pdfBuffer = await DocumentService.maybeCompressPdf(
-              pdfBuffer,
-              options
-            );
-          }
-          const pdfPath = await DocumentService.writeTempFile(
-            "pdf-source",
-            ".pdf",
-            pdfBuffer
-          );
-          pdfPaths.push(pdfPath);
-          tempFiles.push(pdfPath);
-        } else {
-          throw new ResponseError(
-            400,
-            "Merge hanya mendukung file gambar atau PDF"
-          );
-        }
-      }
-
-      const outputPath = path.join(
-        os.tmpdir(),
-        `merged-${crypto.randomUUID()}.pdf`
-      );
-      tempFiles.push(outputPath);
-
       const args = [
-        "-dNOPAUSE",
-        "-dBATCH",
-        "-sDEVICE=pdfwrite",
-        `-sOutputFile=${outputPath}`,
-        ...(options.ghostscriptSettings
-          ? [`-dPDFSETTINGS=${options.ghostscriptSettings}`]
-          : []),
-        ...(options.ghostscriptJpegQuality
-          ? [`-dJPEGQ=${options.ghostscriptJpegQuality}`]
-          : []),
-        `-dColorImageResolution=${
-          options.ghostscriptColorResolution ?? env.ghostscriptColorResolution
-        }`,
-        `-dGrayImageResolution=${
-          options.ghostscriptColorResolution ?? env.ghostscriptColorResolution
-        }`,
-        `-dMonoImageResolution=${
-          options.ghostscriptColorResolution ?? env.ghostscriptColorResolution
-        }`,
-        ...pdfPaths,
+        "-y",
+        "-i",
+        inputPath,
+        "-vf",
+        `scale='min(iw,${Math.round((preset.maxHeight * 16) / 9)})':` +
+          `'min(ih,${preset.maxHeight})':force_original_aspect_ratio=decrease`,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        String(preset.crf),
+        "-c:a",
+        "aac",
+        "-b:a",
+        preset.audioBitrate,
+        "-movflags",
+        "+faststart",
+        outputPath,
       ];
-
-      await execFileAsync(env.ghostscriptCommand, args, { timeout: 120_000 });
-      return await fs.readFile(outputPath);
-    } finally {
-      await DocumentService.cleanupTempFiles(tempFiles);
-    }
-  }
-
-  private static async convertImageToPdf(
-    buffer: Buffer,
-    quality?: number
-  ): Promise<Buffer> {
-    try {
-      const clampedQuality =
-        quality !== undefined ? Math.min(100, Math.max(1, quality)) : 80;
-      const image = sharp(buffer);
-      const { width, height } = await image.metadata();
-      const processedImage = await image
-        .jpeg({ quality: clampedQuality })
-        .toBuffer();
-
-      const doc = new PDFDocument({ autoFirstPage: false });
-      const pageWidth = width ?? 612; // default 8.5in
-      const pageHeight = height ?? 792; // default 11in
-      doc.addPage({ size: [pageWidth, pageHeight], margin: 0 });
-      doc.image(processedImage, 0, 0, { width: pageWidth, height: pageHeight });
-      doc.end();
-
-      return await DocumentService.bufferFromPdf(doc);
+      await execFileAsync(env.ffmpegCommand, args, { timeout: 180_000 });
+      return {
+        buffer: await fs.readFile(outputPath),
+        compressed: true,
+      };
     } catch (error) {
-      console.error("Error converting image to PDF:", error);
-      throw new ResponseError(400, "Gagal mengubah gambar menjadi PDF");
+      console.error("Error compressing video:", error);
+      return { buffer, compressed: false };
+    } finally {
+      await DocumentService.cleanupTempFiles([inputPath, outputPath]);
     }
   }
 
-  private static bufferFromPdf(doc: PdfDoc): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", reject);
-    });
-  }
-
-  private static async writeTempFile(
-    prefix: string,
-    extension: string,
-    buffer: Buffer
-  ): Promise<string> {
-    const filePath = path.join(
-      os.tmpdir(),
-      `${prefix}-${crypto.randomUUID()}${extension}`
-    );
-    await fs.writeFile(filePath, buffer);
-    return filePath;
-  }
-
-  private static async writeBufferToDisk(
+  private static async maybeCompressAudio(
     buffer: Buffer,
-    extension: string
-  ): Promise<{ path: string; size: number }> {
-    const filename = DocumentService.buildFilename(extension);
-    const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
-    await StorageService.write(publicPath, buffer, undefined);
+    compression: DocumentCompressionLevel
+  ): Promise<{ buffer: Buffer; compressed: boolean }> {
+    const uuid = crypto.randomUUID();
+    const inputPath = path.join(os.tmpdir(), `audio-input-${uuid}`);
+    const outputPath = path.join(os.tmpdir(), `audio-output-${uuid}.m4a`);
+    const preset = AUDIO_COMPRESSION_PRESETS[compression];
 
-    return {
-      path: publicPath,
-      size: buffer.length,
-    };
+    await fs.writeFile(inputPath, buffer);
+    try {
+      const args = [
+        "-y",
+        "-i",
+        inputPath,
+        "-vn",
+        "-c:a",
+        "aac",
+        "-b:a",
+        preset.audioBitrate,
+        outputPath,
+      ];
+      await execFileAsync(env.ffmpegCommand, args, { timeout: 120_000 });
+      return {
+        buffer: await fs.readFile(outputPath),
+        compressed: true,
+      };
+    } catch (error) {
+      console.error("Error compressing audio:", error);
+      return { buffer, compressed: false };
+    } finally {
+      await DocumentService.cleanupTempFiles([inputPath, outputPath]);
+    }
   }
 
   private static buildFilename(extension: string): string {
     const timestamp = Date.now();
     const uuid = crypto.randomUUID();
     return `${timestamp}-${uuid}${extension}`;
-  }
-
-  private static resolveMergedName(name?: string | null): string {
-    if (!name) {
-      return "merged.pdf";
-    }
-    const trimmed = name.trim();
-    if (!trimmed) {
-      return "merged.pdf";
-    }
-    return trimmed.toLowerCase().endsWith(".pdf") ? trimmed : `${trimmed}.pdf`;
   }
 
   private static async compressPdfBufferWithGhostscript(
