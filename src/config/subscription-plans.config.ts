@@ -3,6 +3,7 @@ export type PlanId = 'free' | 'pro' | 'max';
 export type DownloadKind = "cv" | "application_letter";
 export type DownloadFormat = "pdf" | "docx";
 export type DuplicateKind = "cv" | "application" | "application_letter";
+export type AiImprovementKind = "cv" | "application_letter";
 
 export interface SubscriptionPlan {
   id: PlanId;
@@ -31,6 +32,8 @@ export interface SubscriptionPlan {
   cvPdfDownloadsPerDay: number;
   /** Maximum application letter PDF downloads per day. Currently mirrors applicationLetterDownloadsPerDay. -1 = unlimited */
   applicationLetterPdfDownloadsPerDay: number;
+  /** Maximum AI improvements per day (combined CV + letter). -1 = unlimited */
+  aiImprovementsPerDay: number;
   canManageDocuments: boolean;
   canUsePremiumCvTemplates: boolean;
   canUsePremiumApplicationLetterTemplates: boolean;
@@ -65,6 +68,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     applicationLetterDocxDownloadsPerDay: 5,
     cvPdfDownloadsPerDay: 5,
     applicationLetterPdfDownloadsPerDay: 5,
+    aiImprovementsPerDay: 5,
     canManageDocuments: true,
     canUsePremiumCvTemplates: false,
     canUsePremiumApplicationLetterTemplates: false,
@@ -92,6 +96,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     applicationLetterDocxDownloadsPerDay: 15,
     cvPdfDownloadsPerDay: 15,
     applicationLetterPdfDownloadsPerDay: 15,
+    aiImprovementsPerDay: 15,
     canManageDocuments: true,
     canUsePremiumCvTemplates: true,
     canUsePremiumApplicationLetterTemplates: true,
@@ -119,6 +124,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     applicationLetterDocxDownloadsPerDay: -1,
     cvPdfDownloadsPerDay: -1,
     applicationLetterPdfDownloadsPerDay: -1,
+    aiImprovementsPerDay: 50,
     canManageDocuments: true,
     canUsePremiumCvTemplates: true,
     canUsePremiumApplicationLetterTemplates: true,
@@ -201,6 +207,10 @@ export function getDocxDownloadLimit(
   return kind === "cv"
     ? plan.cvDocxDownloadsPerDay
     : plan.applicationLetterDocxDownloadsPerDay;
+}
+
+export function getAiImprovementLimit(planId: PlanId): number {
+  return getPlan(planId).aiImprovementsPerDay;
 }
 
 export function canDownloadByFormat(

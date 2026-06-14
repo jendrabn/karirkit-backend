@@ -79,6 +79,7 @@ type CurrentSubscriptionResult = {
     maxApplications: number;
     maxApplicationLetters: number;
     maxDocumentStorageBytes: number;
+    aiImprovementsPerDay: number;
     downloads: {
       cvPerDay: number;
       applicationLetterPerDay: number;
@@ -250,6 +251,7 @@ export class SubscriptionService {
         maxApplications: plan.maxApplications,
         maxApplicationLetters: plan.maxApplicationLetters,
         maxDocumentStorageBytes: plan.maxDocumentStorageBytes,
+        aiImprovementsPerDay: plan.aiImprovementsPerDay,
         downloads: {
           cvPerDay: plan.cvDownloadsPerDay,
           applicationLetterPerDay: plan.applicationLetterDownloadsPerDay,

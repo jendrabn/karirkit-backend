@@ -20,6 +20,7 @@ const toPlanResponse = (plan: Record<string, any>) => ({
   cv_pdf_downloads_per_day: plan.cvPdfDownloadsPerDay,
   application_letter_pdf_downloads_per_day:
     plan.applicationLetterPdfDownloadsPerDay,
+  ai_improvements_per_day: plan.aiImprovementsPerDay,
   can_manage_documents: plan.canManageDocuments,
   can_use_premium_cv_templates: plan.canUsePremiumCvTemplates,
   can_use_premium_application_letter_templates:
@@ -57,6 +58,7 @@ const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
     max_applications: result.currentLimits.maxApplications,
     max_application_letters: result.currentLimits.maxApplicationLetters,
     max_document_storage_bytes: result.currentLimits.maxDocumentStorageBytes,
+    ai_improvements_per_day: result.currentLimits.aiImprovementsPerDay,
     downloads: {
       cv_per_day: result.currentLimits.downloads.cvPerDay,
       application_letter_per_day:

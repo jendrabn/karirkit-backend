@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import env from "../config/env.config";
 import { prisma } from "../config/prisma.config";
 import {
   canDuplicateByKind,
@@ -215,6 +216,29 @@ export const checkDocumentAccess = (
         "Fitur dokumen khusus untuk pengguna Pro atau Max",
         undefined,
         { code: "DOCUMENT_ACCESS_DENIED" }
+      );
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkAiImprovementAccess = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  try {
+    getAuthenticatedUser(req);
+
+    if (!env.ai.enabled) {
+      throw new ResponseError(
+        503,
+        "Fitur perbaikan AI sedang dinonaktifkan",
+        undefined,
+        { code: "AI_DISABLED" }
       );
     }
 

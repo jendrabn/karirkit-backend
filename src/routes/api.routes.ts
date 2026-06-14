@@ -11,6 +11,7 @@ import {
 } from "../middleware/rate-limit.middleware";
 import { ApplicationController } from "../controllers/application.controller";
 import { ApplicationLetterController } from "../controllers/application-letter.controller";
+import { AiImprovementController } from "../controllers/ai-improvement.controller";
 import { UploadController } from "../controllers/upload.controller";
 import {
   handleTempUpload,
@@ -28,6 +29,7 @@ import {
   checkApplicationDuplicateAccess,
   checkApplicationLetterLimit,
   checkApplicationLetterDuplicateAccess,
+  checkAiImprovementAccess,
   checkApplicationTrackerLimit,
   checkCvLimit,
   checkCvDuplicateAccess,
@@ -176,6 +178,12 @@ router.post(
   checkPremiumTemplate,
   ApplicationLetterController.create,
 );
+router.post(
+  "/application-letters/ai-improve",
+  authMiddleware,
+  checkAiImprovementAccess,
+  AiImprovementController.improveApplicationLetter,
+);
 router.delete(
   "/application-letters/mass-delete",
   authMiddleware,
@@ -230,6 +238,12 @@ router.post(
   checkCvLimit,
   checkPremiumTemplate,
   CvController.create,
+);
+router.post(
+  "/cvs/ai-improve",
+  authMiddleware,
+  checkAiImprovementAccess,
+  AiImprovementController.improveCv,
 );
 router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
 router.get("/cvs/:id", authMiddleware, CvController.get);

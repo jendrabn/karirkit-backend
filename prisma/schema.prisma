@@ -39,6 +39,7 @@ model User {
   cvs                   Cv[]
   documents             Document[]
   downloadLogs          DownloadLog[]
+  aiImprovementLogs     AiImprovementLog[]
   otps                  Otp[]
   portfolios            Portfolio[]
   savedJobs             SavedJob[]
@@ -574,6 +575,19 @@ model DownloadLog {
   @@map("download_logs")
 }
 
+model AiImprovementLog {
+  id     String            @id @default(uuid()) @db.VarChar(255)
+  userId String            @map("user_id") @db.VarChar(255)
+  type   AiImprovementType
+  usedAt DateTime          @default(now()) @map("used_at") @db.Timestamp(0)
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([usedAt])
+  @@index([userId, type, usedAt])
+  @@map("ai_improvement_logs")
+}
+
 model Document {
   id           String       @id @default(uuid()) @db.VarChar(255)
   userId       String       @map("user_id") @db.VarChar(255)
@@ -933,6 +947,11 @@ enum DownloadType {
 enum DownloadFormat {
   pdf
   docx
+}
+
+enum AiImprovementType {
+  cv
+  application_letter
 }
 
 enum DocumentType {

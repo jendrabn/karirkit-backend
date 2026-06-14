@@ -1,5 +1,6 @@
 import type { StringValue } from "ms";
 import dotenv from "dotenv";
+import type { AiProvider } from "../services/ai-provider";
 
 // Load environment variables once and expose strongly typed config.
 dotenv.config();
@@ -28,6 +29,18 @@ const parseNumber = (value: string | undefined, fallback: number): number => {
   }
 
   const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const parseFloatValue = (
+  value: string | undefined,
+  fallback: number
+): number => {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
@@ -206,6 +219,15 @@ const env = {
     notificationUrl: resolveOptional(
       process.env.MIDTRANS_NOTIFICATION_URL ?? undefined
     ),
+  },
+  ai: {
+    enabled: parseBoolean(process.env.AI_ENABLED, false),
+    provider: (process.env.AI_PROVIDER ?? "gemini") as AiProvider,
+    apiKey: resolveOptional(process.env.AI_API_KEY) ?? "",
+    model: process.env.AI_MODEL ?? "gemini-2.0-flash",
+    baseUrl: resolveOptional(process.env.AI_BASE_URL ?? undefined),
+    maxOutputTokens: parseNumber(process.env.AI_MAX_OUTPUT_TOKENS, 8192),
+    temperature: parseFloatValue(process.env.AI_TEMPERATURE, 0.7),
   },
   storage: {
     driver:
