@@ -43,8 +43,14 @@ describe("POST /cvs/ai-improve", () => {
 
   it("improves a cv payload", async () => {
     const payload = buildCvPayload("template-basic");
+    const {
+      photo: _photo,
+      template_id: _templateId,
+      visibility: _visibility,
+      ...aiPayload
+    } = payload;
     const improved = {
-      ...payload,
+      ...aiPayload,
       headline: "Backend Engineer | TypeScript API Specialist",
     };
 
@@ -65,6 +71,17 @@ describe("POST /cvs/ai-improve", () => {
     expect(response.body.data.headline).toBe(
       "Backend Engineer | TypeScript API Specialist"
     );
+    expect(response.body.meta.improvement_summary).toMatchObject({
+      changed_fields_count: 1,
+      summary: ["Headline diperbaiki."],
+      changed_fields: [
+        {
+          path: "headline",
+          label: "Headline",
+          change_type: "updated",
+        },
+      ],
+    });
     expect(AiService.checkAiUsageLimit).toHaveBeenCalledWith("user-1");
     expect(AiService.improveCv).toHaveBeenCalledWith(
       expect.not.objectContaining({
@@ -125,8 +142,13 @@ describe("POST /application-letters/ai-improve", () => {
 
   it("improves an application letter payload", async () => {
     const payload = buildApplicationLetterPayload("template-basic");
+    const {
+      signature: _signature,
+      template_id: _templateId,
+      ...aiPayload
+    } = payload;
     const improved = {
-      ...payload,
+      ...aiPayload,
       subject: "Application for Backend Engineer Position",
     };
 
@@ -148,6 +170,17 @@ describe("POST /application-letters/ai-improve", () => {
     expect(response.body.data.subject).toBe(
       "Application for Backend Engineer Position"
     );
+    expect(response.body.meta.improvement_summary).toMatchObject({
+      changed_fields_count: 1,
+      summary: ["Subjek diperbaiki."],
+      changed_fields: [
+        {
+          path: "subject",
+          label: "Subjek",
+          change_type: "updated",
+        },
+      ],
+    });
     expect(AiService.improveApplicationLetter).toHaveBeenCalledWith(
       expect.not.objectContaining({
         signature: expect.anything(),

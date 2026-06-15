@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AiService } from "../services/ai.service";
-import { sendSuccess } from "../utils/response-builder.util";
+import { buildAiImprovementSummary } from "../utils/ai-improvement-summary.util";
 import { validate } from "../utils/validate.util";
 import {
   AiImprovementValidation,
@@ -25,7 +25,16 @@ export class AiImprovementController {
       );
       await AiService.logAiUsage(req.user!.id, "cv");
 
-      sendSuccess(res, improvedData);
+      res.status(200).json({
+        data: improvedData,
+        meta: {
+          improvement_summary: buildAiImprovementSummary(
+            payload.data,
+            improvedData,
+            payload.data.language
+          ),
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -51,7 +60,16 @@ export class AiImprovementController {
       );
       await AiService.logAiUsage(req.user!.id, "application_letter");
 
-      sendSuccess(res, improvedData);
+      res.status(200).json({
+        data: improvedData,
+        meta: {
+          improvement_summary: buildAiImprovementSummary(
+            payload.data,
+            improvedData,
+            payload.data.language
+          ),
+        },
+      });
     } catch (error) {
       next(error);
     }

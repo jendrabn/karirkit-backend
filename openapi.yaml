@@ -1009,6 +1009,48 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/ValidationError"
+  /application-letters/ai-improve:
+    post:
+      tags: [Application Letters]
+      summary: Improve application letter with AI
+      description: Improve an application letter payload with AI and return the optimized payload in `data` plus a deterministic change summary in `meta.improvement_summary`.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationLetterAiImprovementRequest"
+      responses:
+        "200":
+          description: Improved application letter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationLetterAiImprovementResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Daily AI usage limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: AI processing error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AI improvement is disabled or the provider is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /application-letters/{id}:
     get:
       tags: [Application Letters]
@@ -1597,6 +1639,48 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/ValidationError"
+  /cvs/ai-improve:
+    post:
+      tags: [CVs]
+      summary: Improve CV with AI
+      description: Improve a CV payload with AI and return the optimized payload in `data` plus a deterministic change summary in `meta.improvement_summary`.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CvAiImprovementRequest"
+      responses:
+        "200":
+          description: Improved CV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CvAiImprovementResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Daily AI usage limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: AI processing error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AI improvement is disabled or the provider is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /cvs/{id}:
     get:
       tags: [CVs]
@@ -4804,6 +4888,36 @@ components:
           properties:
             preview_url:
               type: string
+    AiImprovementChangeType:
+      type: string
+      enum: [added, removed, updated]
+    AiImprovementChangedField:
+      type: object
+      properties:
+        path:
+          type: string
+        label:
+          type: string
+        change_type:
+          $ref: "#/components/schemas/AiImprovementChangeType"
+    AiImprovementSummary:
+      type: object
+      properties:
+        changed_fields_count:
+          type: integer
+        summary:
+          type: array
+          items:
+            type: string
+        changed_fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiImprovementChangedField"
+    AiImprovementMeta:
+      type: object
+      properties:
+        improvement_summary:
+          $ref: "#/components/schemas/AiImprovementSummary"
     Pagination:
       type: object
       properties:
@@ -5638,6 +5752,70 @@ components:
           closing_paragraph,
           template_id,
         ]
+    ApplicationLetterAiImprovementData:
+      type: object
+      properties:
+        name: { type: string }
+        birth_place_date: { type: string }
+        gender: { $ref: "#/components/schemas/Gender" }
+        marital_status: { $ref: "#/components/schemas/MaritalStatus" }
+        education: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        address: { type: string }
+        subject: { type: string }
+        applicant_city: { type: string }
+        application_date: { type: string }
+        receiver_title: { type: string }
+        company_name: { type: string }
+        company_city: { type: string, nullable: true }
+        company_address: { type: string, nullable: true }
+        opening_paragraph: { type: string }
+        body_paragraph: { type: string }
+        attachments: { type: string }
+        closing_paragraph: { type: string }
+        language:
+          $ref: "#/components/schemas/Language"
+          default: en
+      required:
+        [
+          name,
+          birth_place_date,
+          gender,
+          marital_status,
+          education,
+          phone,
+          email,
+          address,
+          subject,
+          applicant_city,
+          application_date,
+          receiver_title,
+          company_name,
+          opening_paragraph,
+          body_paragraph,
+          attachments,
+          closing_paragraph,
+        ]
+    ApplicationLetterAiImprovementRequest:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ApplicationLetterAiImprovementData"
+        target_position:
+          type: string
+          maxLength: 255
+        job_description:
+          type: string
+          maxLength: 5000
+      required: [data]
+    ApplicationLetterAiImprovementResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ApplicationLetterAiImprovementData"
+        meta:
+          $ref: "#/components/schemas/AiImprovementMeta"
     ApplicationLetterResponse:
       type: object
       properties:
@@ -6360,6 +6538,62 @@ components:
           type: array
           items: { $ref: "#/components/schemas/CvProject" }
       required: [name, headline, email, phone, address, about, template_id]
+    CvAiImprovementData:
+      type: object
+      properties:
+        name: { type: string }
+        headline: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        about: { type: string }
+        language:
+          $ref: "#/components/schemas/Language"
+          default: en
+        educations:
+          type: array
+          items: { $ref: "#/components/schemas/CvEducation" }
+        certificates:
+          type: array
+          items: { $ref: "#/components/schemas/CvCertificate" }
+        experiences:
+          type: array
+          items: { $ref: "#/components/schemas/CvExperience" }
+        skills:
+          type: array
+          items: { $ref: "#/components/schemas/CvSkill" }
+        awards:
+          type: array
+          items: { $ref: "#/components/schemas/CvAward" }
+        social_links:
+          type: array
+          items: { $ref: "#/components/schemas/CvSocialLink" }
+        organizations:
+          type: array
+          items: { $ref: "#/components/schemas/CvOrganization" }
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/CvProject" }
+      required: [name, headline, email, phone, address, about]
+    CvAiImprovementRequest:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CvAiImprovementData"
+        target_position:
+          type: string
+          maxLength: 255
+        job_description:
+          type: string
+          maxLength: 5000
+      required: [data]
+    CvAiImprovementResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CvAiImprovementData"
+        meta:
+          $ref: "#/components/schemas/AiImprovementMeta"
     CvSlugVisibilityPayload:
       type: object
       properties:
