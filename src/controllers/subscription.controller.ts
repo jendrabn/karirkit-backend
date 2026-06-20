@@ -12,28 +12,15 @@ const toPlanResponse = (plan: Record<string, any>) => ({
   max_applications: plan.maxApplications,
   max_application_letters: plan.maxApplicationLetters,
   max_document_storage_bytes: plan.maxDocumentStorageBytes,
-  cv_downloads_per_day: plan.cvDownloadsPerDay,
-  application_letter_downloads_per_day: plan.applicationLetterDownloadsPerDay,
-  cv_docx_downloads_per_day: plan.cvDocxDownloadsPerDay,
-  application_letter_docx_downloads_per_day:
-    plan.applicationLetterDocxDownloadsPerDay,
-  cv_pdf_downloads_per_day: plan.cvPdfDownloadsPerDay,
-  application_letter_pdf_downloads_per_day:
-    plan.applicationLetterPdfDownloadsPerDay,
-  ai_improvements_per_day: plan.aiImprovementsPerDay,
-  can_manage_documents: plan.canManageDocuments,
+  max_cv_pdf_downloads: plan.maxCvPdfDownloads,
+  max_cv_docx_downloads: plan.maxCvDocxDownloads,
+  max_letter_pdf_downloads: plan.maxLetterPdfDownloads,
+  max_letter_docx_downloads: plan.maxLetterDocxDownloads,
+  max_cv_ai_improvements: plan.maxCvAiImprovements,
+  max_application_letter_ai_improvements: plan.maxApplicationLetterAiImprovements,
   can_use_premium_cv_templates: plan.canUsePremiumCvTemplates,
   can_use_premium_application_letter_templates:
     plan.canUsePremiumApplicationLetterTemplates,
-  can_use_premium_templates: plan.canUsePremiumTemplates,
-  can_duplicate_cvs: plan.canDuplicateCvs,
-  can_duplicate_applications: plan.canDuplicateApplications,
-  can_duplicate_application_letters: plan.canDuplicateApplicationLetters,
-  can_download_cv_docx: plan.canDownloadCvDocx,
-  can_download_application_letter_docx:
-    plan.canDownloadApplicationLetterDocx,
-  can_download_cv_pdf: plan.canDownloadCvPdf,
-  can_download_application_letter_pdf: plan.canDownloadApplicationLetterPdf,
 });
 
 const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
@@ -58,36 +45,18 @@ const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
     max_applications: result.currentLimits.maxApplications,
     max_application_letters: result.currentLimits.maxApplicationLetters,
     max_document_storage_bytes: result.currentLimits.maxDocumentStorageBytes,
-    ai_improvements_per_day: result.currentLimits.aiImprovementsPerDay,
-    downloads: {
-      cv_per_day: result.currentLimits.downloads.cvPerDay,
-      application_letter_per_day:
-        result.currentLimits.downloads.applicationLetterPerDay,
-      cv_docx_per_day: result.currentLimits.downloads.cvDocxPerDay,
-      application_letter_docx_per_day:
-        result.currentLimits.downloads.applicationLetterDocxPerDay,
-      cv_pdf_per_day: result.currentLimits.downloads.cvPdfPerDay,
-      application_letter_pdf_per_day:
-        result.currentLimits.downloads.applicationLetterPdfPerDay,
-    },
+    max_cv_pdf_downloads: result.currentLimits.maxCvPdfDownloads,
+    max_cv_docx_downloads: result.currentLimits.maxCvDocxDownloads,
+    max_letter_pdf_downloads: result.currentLimits.maxLetterPdfDownloads,
+    max_letter_docx_downloads: result.currentLimits.maxLetterDocxDownloads,
+    max_cv_ai_improvements: result.currentLimits.maxCvAiImprovements,
+    max_application_letter_ai_improvements: result.currentLimits.maxApplicationLetterAiImprovements,
   },
   current_features: {
-    can_manage_documents: result.currentFeatures.canManageDocuments,
     can_use_premium_cv_templates:
       result.currentFeatures.canUsePremiumCvTemplates,
     can_use_premium_application_letter_templates:
       result.currentFeatures.canUsePremiumApplicationLetterTemplates,
-    can_use_premium_templates: result.currentFeatures.canUsePremiumTemplates,
-    can_duplicate_cvs: result.currentFeatures.canDuplicateCvs,
-    can_duplicate_applications: result.currentFeatures.canDuplicateApplications,
-    can_duplicate_application_letters:
-      result.currentFeatures.canDuplicateApplicationLetters,
-    can_download_cv_docx: result.currentFeatures.canDownloadCvDocx,
-    can_download_application_letter_docx:
-      result.currentFeatures.canDownloadApplicationLetterDocx,
-    can_download_cv_pdf: result.currentFeatures.canDownloadCvPdf,
-    can_download_application_letter_pdf:
-      result.currentFeatures.canDownloadApplicationLetterPdf,
   },
 });
 

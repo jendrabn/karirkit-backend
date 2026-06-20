@@ -26,14 +26,10 @@ import { DashboardController } from "../controllers/dashboard.controller";
 import { BlogController } from "../controllers/blog.controller";
 import { SubscriptionController } from "../controllers/subscription.controller";
 import {
-  checkApplicationDuplicateAccess,
   checkApplicationLetterLimit,
-  checkApplicationLetterDuplicateAccess,
   checkAiImprovementAccess,
   checkApplicationTrackerLimit,
   checkCvLimit,
-  checkCvDuplicateAccess,
-  checkDocumentAccess,
   checkPremiumTemplate,
 } from "../middleware/plan-limit.middleware";
 // Admin controllers
@@ -160,7 +156,6 @@ router.delete(
 router.post(
   "/applications/:id/duplicate",
   authMiddleware,
-  checkApplicationDuplicateAccess,
   checkApplicationTrackerLimit,
   ApplicationController.duplicate,
 );
@@ -208,7 +203,6 @@ router.delete(
 router.post(
   "/application-letters/:id/duplicate",
   authMiddleware,
-  checkApplicationLetterDuplicateAccess,
   checkApplicationLetterLimit,
   ApplicationLetterController.duplicate,
 );
@@ -262,7 +256,6 @@ router.delete("/cvs/:id", authMiddleware, CvController.delete);
 router.post(
   "/cvs/:id/duplicate",
   authMiddleware,
-  checkCvDuplicateAccess,
   checkCvLimit,
   CvController.duplicate,
 );
@@ -272,32 +265,27 @@ router.get("/cvs/:id/download", authMiddleware, CvController.download);
 router.get(
   "/documents",
   authMiddleware,
-  checkDocumentAccess,
   DocumentController.list,
 );
 router.post(
   "/documents",
   authMiddleware,
-  checkDocumentAccess,
   handleDocumentUpload,
   DocumentController.create,
 );
 router.delete(
   "/documents/mass-delete",
   authMiddleware,
-  checkDocumentAccess,
   DocumentController.massDelete,
 );
 router.delete(
   "/documents/:id",
   authMiddleware,
-  checkDocumentAccess,
   DocumentController.delete,
 );
 router.get(
   "/documents/:id/download",
   authMiddleware,
-  checkDocumentAccess,
   DocumentController.download,
 );
 

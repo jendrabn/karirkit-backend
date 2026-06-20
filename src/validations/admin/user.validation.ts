@@ -90,12 +90,6 @@ export class UserValidation {
       suspended: optionalBooleanSchema,
       created_at_from: optionalDateSchema(dateOnlySchema),
       created_at_to: optionalDateSchema(dateOnlySchema),
-      daily_download_limit_from: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
-      daily_download_limit_to: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
       document_storage_used_from: optionalNumberSchema(
         z.number().int().nonnegative()
       ),
@@ -119,18 +113,6 @@ export class UserValidation {
           code: z.ZodIssueCode.custom,
           path: ["created_at_from"],
           message: "Tanggal mulai tidak boleh setelah tanggal selesai",
-        });
-      }
-
-      if (
-        data.daily_download_limit_from !== undefined &&
-        data.daily_download_limit_to !== undefined &&
-        data.daily_download_limit_from > data.daily_download_limit_to
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["daily_download_limit_from"],
-          message: "Limit minimal tidak boleh lebih besar dari limit maksimal",
         });
       }
 

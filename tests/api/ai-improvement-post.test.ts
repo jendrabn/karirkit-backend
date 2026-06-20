@@ -82,7 +82,7 @@ describe("POST /cvs/ai-improve", () => {
         },
       ],
     });
-    expect(AiService.checkAiUsageLimit).toHaveBeenCalledWith("user-1");
+    expect(AiService.checkAiUsageLimit).toHaveBeenCalledWith("user-1", "cv");
     expect(AiService.improveCv).toHaveBeenCalledWith(
       expect.not.objectContaining({
         photo: expect.anything(),

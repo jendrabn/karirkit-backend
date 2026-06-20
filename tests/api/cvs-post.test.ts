@@ -106,7 +106,7 @@ describe("POST /cvs", () => {
 
   it("blocks creation when the free CV limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.cv.count.mockResolvedValue(5);
+    prisma.cv.count.mockResolvedValue(10);
 
     const response = await request(app)
       .post("/cvs")
@@ -122,7 +122,7 @@ describe("POST /cvs", () => {
 
   it("also blocks admins when their plan CV limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.cv.count.mockResolvedValue(5);
+    prisma.cv.count.mockResolvedValue(10);
 
     const response = await request(app)
       .post("/cvs")

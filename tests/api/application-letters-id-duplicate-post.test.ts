@@ -125,7 +125,7 @@ describe("POST /application-letters/:id/duplicate", () => {
 
   it("blocks duplication for admins when their plan application letter limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(5);
+    prisma.applicationLetter.count.mockResolvedValue(20);
 
     const response = await request(app)
       .post(`/application-letters/${validId}/duplicate`)

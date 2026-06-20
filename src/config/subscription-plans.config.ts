@@ -1,50 +1,24 @@
 export type PlanId = 'free' | 'pro' | 'max';
 
-export type DownloadKind = "cv" | "application_letter";
-export type DownloadFormat = "pdf" | "docx";
-export type DuplicateKind = "cv" | "application" | "application_letter";
 export type AiImprovementKind = "cv" | "application_letter";
 
 export interface SubscriptionPlan {
   id: PlanId;
   name: string;
-  /** Price in IDR. 0 = free */
   price: number;
-  /** Duration of the subscription in days. 0 = no expiry */
   durationDays: number;
-  /** Maximum number of CVs. -1 = unlimited */
   maxCvs: number;
-  /** Maximum number of Application Letters. -1 = unlimited */
   maxApplicationLetters: number;
-  /** Maximum number of application tracker records. -1 = unlimited */
   maxApplications: number;
-  /** Maximum document storage in bytes. -1 = unlimited */
   maxDocumentStorageBytes: number;
-  /** Maximum CV downloads per day across PDF/DOCX. -1 = unlimited */
-  cvDownloadsPerDay: number;
-  /** Maximum application letter downloads per day across PDF/DOCX. -1 = unlimited */
-  applicationLetterDownloadsPerDay: number;
-  /** Maximum CV DOCX downloads per day. -1 = unlimited */
-  cvDocxDownloadsPerDay: number;
-  /** Maximum application letter DOCX downloads per day. -1 = unlimited */
-  applicationLetterDocxDownloadsPerDay: number;
-  /** Maximum CV PDF downloads per day. Currently mirrors cvDownloadsPerDay. -1 = unlimited */
-  cvPdfDownloadsPerDay: number;
-  /** Maximum application letter PDF downloads per day. Currently mirrors applicationLetterDownloadsPerDay. -1 = unlimited */
-  applicationLetterPdfDownloadsPerDay: number;
-  /** Maximum AI improvements per day (combined CV + letter). -1 = unlimited */
-  aiImprovementsPerDay: number;
-  canManageDocuments: boolean;
+  maxCvPdfDownloads: number;
+  maxCvDocxDownloads: number;
+  maxLetterPdfDownloads: number;
+  maxLetterDocxDownloads: number;
+  maxCvAiImprovements: number;
+  maxApplicationLetterAiImprovements: number;
   canUsePremiumCvTemplates: boolean;
   canUsePremiumApplicationLetterTemplates: boolean;
-  canUsePremiumTemplates: boolean;
-  canDuplicateCvs: boolean;
-  canDuplicateApplications: boolean;
-  canDuplicateApplicationLetters: boolean;
-  canDownloadCvDocx: boolean;
-  canDownloadApplicationLetterDocx: boolean;
-  canDownloadCvPdf: boolean;
-  canDownloadApplicationLetterPdf: boolean;
 }
 
 export interface UserSubscriptionState {
@@ -58,84 +32,54 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     name: 'Free',
     price: 0,
     durationDays: 0,
-    maxCvs: 5,
-    maxApplicationLetters: 5,
+    maxCvs: 10,
+    maxApplicationLetters: 20,
     maxApplications: 100,
-    maxDocumentStorageBytes: 26214400, // 25 MB
-    cvDownloadsPerDay: 5,
-    applicationLetterDownloadsPerDay: 5,
-    cvDocxDownloadsPerDay: 5,
-    applicationLetterDocxDownloadsPerDay: 5,
-    cvPdfDownloadsPerDay: 5,
-    applicationLetterPdfDownloadsPerDay: 5,
-    aiImprovementsPerDay: 5,
-    canManageDocuments: true,
+    maxDocumentStorageBytes: 52428800,
+    maxCvPdfDownloads: 10,
+    maxCvDocxDownloads: 3,
+    maxLetterPdfDownloads: 10,
+    maxLetterDocxDownloads: 3,
+    maxCvAiImprovements: 10,
+    maxApplicationLetterAiImprovements: 20,
     canUsePremiumCvTemplates: false,
     canUsePremiumApplicationLetterTemplates: false,
-    canUsePremiumTemplates: false,
-    canDuplicateCvs: true,
-    canDuplicateApplications: true,
-    canDuplicateApplicationLetters: true,
-    canDownloadCvDocx: true,
-    canDownloadApplicationLetterDocx: true,
-    canDownloadCvPdf: true,
-    canDownloadApplicationLetterPdf: true,
   },
   pro: {
     id: 'pro',
     name: 'Pro',
     price: 25000,
     durationDays: 30,
-    maxCvs: 15,
-    maxApplicationLetters: 15,
+    maxCvs: 30,
+    maxApplicationLetters: 60,
     maxApplications: 500,
-    maxDocumentStorageBytes: 104857600, // 100 MB
-    cvDownloadsPerDay: 15,
-    applicationLetterDownloadsPerDay: 15,
-    cvDocxDownloadsPerDay: 15,
-    applicationLetterDocxDownloadsPerDay: 15,
-    cvPdfDownloadsPerDay: 15,
-    applicationLetterPdfDownloadsPerDay: 15,
-    aiImprovementsPerDay: 15,
-    canManageDocuments: true,
+    maxDocumentStorageBytes: 209715200,
+    maxCvPdfDownloads: 30,
+    maxCvDocxDownloads: 10,
+    maxLetterPdfDownloads: 30,
+    maxLetterDocxDownloads: 10,
+    maxCvAiImprovements: 50,
+    maxApplicationLetterAiImprovements: 100,
     canUsePremiumCvTemplates: true,
     canUsePremiumApplicationLetterTemplates: true,
-    canUsePremiumTemplates: true,
-    canDuplicateCvs: true,
-    canDuplicateApplications: true,
-    canDuplicateApplicationLetters: true,
-    canDownloadCvDocx: true,
-    canDownloadApplicationLetterDocx: true,
-    canDownloadCvPdf: true,
-    canDownloadApplicationLetterPdf: true,
   },
   max: {
     id: 'max',
     name: 'Max',
     price: 50000,
     durationDays: 30,
-    maxCvs: -1,
-    maxApplicationLetters: -1,
-    maxApplications: -1,
-    maxDocumentStorageBytes: 524288000, // 500 MB
-    cvDownloadsPerDay: -1,
-    applicationLetterDownloadsPerDay: -1,
-    cvDocxDownloadsPerDay: -1,
-    applicationLetterDocxDownloadsPerDay: -1,
-    cvPdfDownloadsPerDay: -1,
-    applicationLetterPdfDownloadsPerDay: -1,
-    aiImprovementsPerDay: 50,
-    canManageDocuments: true,
+    maxCvs: 75,
+    maxApplicationLetters: 150,
+    maxApplications: 1250,
+    maxDocumentStorageBytes: 524288000,
+    maxCvPdfDownloads: 75,
+    maxCvDocxDownloads: 25,
+    maxLetterPdfDownloads: 75,
+    maxLetterDocxDownloads: 25,
+    maxCvAiImprovements: 200,
+    maxApplicationLetterAiImprovements: 300,
     canUsePremiumCvTemplates: true,
     canUsePremiumApplicationLetterTemplates: true,
-    canUsePremiumTemplates: true,
-    canDuplicateCvs: true,
-    canDuplicateApplications: true,
-    canDuplicateApplicationLetters: true,
-    canDownloadCvDocx: true,
-    canDownloadApplicationLetterDocx: true,
-    canDownloadCvPdf: true,
-    canDownloadApplicationLetterPdf: true,
   },
 };
 
@@ -145,9 +89,6 @@ const PLAN_RANK: Record<PlanId, number> = {
   max: 2,
 };
 
-/**
- * Get a plan by its ID.
- */
 export function getPlan(planId: PlanId): SubscriptionPlan {
   return SUBSCRIPTION_PLANS[planId];
 }
@@ -168,92 +109,8 @@ export function getPlanRank(planId: PlanId): number {
   return PLAN_RANK[planId];
 }
 
-/**
- * Get all available plans as an array.
- */
 export function getAllPlans(): SubscriptionPlan[] {
   return Object.values(SUBSCRIPTION_PLANS);
-}
-
-export function isUnlimitedLimit(value: number): boolean {
-  return value < 0;
-}
-
-export function getDownloadLimit(
-  planId: PlanId,
-  kind: DownloadKind
-): number {
-  const plan = getPlan(planId);
-  return kind === "cv"
-    ? plan.cvDownloadsPerDay
-    : plan.applicationLetterDownloadsPerDay;
-}
-
-export function getPdfDownloadLimit(
-  planId: PlanId,
-  kind: DownloadKind
-): number {
-  const plan = getPlan(planId);
-  return kind === "cv"
-    ? plan.cvPdfDownloadsPerDay
-    : plan.applicationLetterPdfDownloadsPerDay;
-}
-
-export function getDocxDownloadLimit(
-  planId: PlanId,
-  kind: DownloadKind
-): number {
-  const plan = getPlan(planId);
-  return kind === "cv"
-    ? plan.cvDocxDownloadsPerDay
-    : plan.applicationLetterDocxDownloadsPerDay;
-}
-
-export function getAiImprovementLimit(planId: PlanId): number {
-  return getPlan(planId).aiImprovementsPerDay;
-}
-
-export function canDownloadByFormat(
-  planId: PlanId,
-  kind: DownloadKind,
-  format: DownloadFormat
-): boolean {
-  const plan = getPlan(planId);
-
-  if (kind === "cv") {
-    return format === "pdf" ? plan.canDownloadCvPdf : plan.canDownloadCvDocx;
-  }
-
-  return format === "pdf"
-    ? plan.canDownloadApplicationLetterPdf
-    : plan.canDownloadApplicationLetterDocx;
-}
-
-export function canDuplicateByKind(
-  planId: PlanId,
-  kind: DuplicateKind
-): boolean {
-  const plan = getPlan(planId);
-  if (kind === "cv") {
-    return plan.canDuplicateCvs;
-  }
-  if (kind === "application") {
-    return plan.canDuplicateApplications;
-  }
-  return plan.canDuplicateApplicationLetters;
-}
-
-export function getCombinedDownloadLimit(planId: PlanId): number {
-  const plan = getPlan(planId);
-
-  if (
-    isUnlimitedLimit(plan.cvDownloadsPerDay) ||
-    isUnlimitedLimit(plan.applicationLetterDownloadsPerDay)
-  ) {
-    return -1;
-  }
-
-  return plan.cvDownloadsPerDay + plan.applicationLetterDownloadsPerDay;
 }
 
 export function buildUserSubscriptionState(

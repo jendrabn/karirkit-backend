@@ -74,7 +74,7 @@ export class TemplateService {
         return plan.canUsePremiumApplicationLetterTemplates;
       }
 
-      return plan.canUsePremiumTemplates;
+      return false;
     });
   }
 }

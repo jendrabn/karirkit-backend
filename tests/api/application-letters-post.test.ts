@@ -116,7 +116,7 @@ describe("POST /application-letters", () => {
 
   it("blocks creation when the free application letter limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(5);
+    prisma.applicationLetter.count.mockResolvedValue(20);
 
     const response = await request(app)
       .post("/application-letters")
@@ -132,7 +132,7 @@ describe("POST /application-letters", () => {
 
   it("also blocks admins when their plan application letter limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(5);
+    prisma.applicationLetter.count.mockResolvedValue(20);
 
     const response = await request(app)
       .post("/application-letters")

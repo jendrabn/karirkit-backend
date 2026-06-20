@@ -79,28 +79,16 @@ type CurrentSubscriptionResult = {
     maxApplications: number;
     maxApplicationLetters: number;
     maxDocumentStorageBytes: number;
-    aiImprovementsPerDay: number;
-    downloads: {
-      cvPerDay: number;
-      applicationLetterPerDay: number;
-      cvDocxPerDay: number;
-      applicationLetterDocxPerDay: number;
-      cvPdfPerDay: number;
-      applicationLetterPdfPerDay: number;
-    };
+    maxCvPdfDownloads: number;
+    maxCvDocxDownloads: number;
+    maxLetterPdfDownloads: number;
+    maxLetterDocxDownloads: number;
+    maxCvAiImprovements: number;
+    maxApplicationLetterAiImprovements: number;
   };
   currentFeatures: {
-    canManageDocuments: boolean;
     canUsePremiumCvTemplates: boolean;
     canUsePremiumApplicationLetterTemplates: boolean;
-    canUsePremiumTemplates: boolean;
-    canDuplicateCvs: boolean;
-    canDuplicateApplications: boolean;
-    canDuplicateApplicationLetters: boolean;
-    canDownloadCvDocx: boolean;
-    canDownloadApplicationLetterDocx: boolean;
-    canDownloadCvPdf: boolean;
-    canDownloadApplicationLetterPdf: boolean;
   };
 };
 
@@ -251,31 +239,17 @@ export class SubscriptionService {
         maxApplications: plan.maxApplications,
         maxApplicationLetters: plan.maxApplicationLetters,
         maxDocumentStorageBytes: plan.maxDocumentStorageBytes,
-        aiImprovementsPerDay: plan.aiImprovementsPerDay,
-        downloads: {
-          cvPerDay: plan.cvDownloadsPerDay,
-          applicationLetterPerDay: plan.applicationLetterDownloadsPerDay,
-          cvDocxPerDay: plan.cvDocxDownloadsPerDay,
-          applicationLetterDocxPerDay:
-            plan.applicationLetterDocxDownloadsPerDay,
-          cvPdfPerDay: plan.cvPdfDownloadsPerDay,
-          applicationLetterPdfPerDay: plan.applicationLetterPdfDownloadsPerDay,
-        },
+        maxCvPdfDownloads: plan.maxCvPdfDownloads,
+        maxCvDocxDownloads: plan.maxCvDocxDownloads,
+        maxLetterPdfDownloads: plan.maxLetterPdfDownloads,
+        maxLetterDocxDownloads: plan.maxLetterDocxDownloads,
+        maxCvAiImprovements: plan.maxCvAiImprovements,
+        maxApplicationLetterAiImprovements: plan.maxApplicationLetterAiImprovements,
       },
       currentFeatures: {
-        canManageDocuments: plan.canManageDocuments,
         canUsePremiumCvTemplates: plan.canUsePremiumCvTemplates,
         canUsePremiumApplicationLetterTemplates:
           plan.canUsePremiumApplicationLetterTemplates,
-        canUsePremiumTemplates: plan.canUsePremiumTemplates,
-        canDuplicateCvs: plan.canDuplicateCvs,
-        canDuplicateApplications: plan.canDuplicateApplications,
-        canDuplicateApplicationLetters: plan.canDuplicateApplicationLetters,
-        canDownloadCvDocx: plan.canDownloadCvDocx,
-        canDownloadApplicationLetterDocx:
-          plan.canDownloadApplicationLetterDocx,
-        canDownloadCvPdf: plan.canDownloadCvPdf,
-        canDownloadApplicationLetterPdf: plan.canDownloadApplicationLetterPdf,
       },
     };
   }

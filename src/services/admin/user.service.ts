@@ -15,7 +15,6 @@ import {
 } from "../../services/download-log.service";
 import {
   buildUserSubscriptionState,
-  getCombinedDownloadLimit,
   resolvePlanId,
 } from "../../config/subscription-plans.config";
 import {
@@ -114,19 +113,15 @@ type StorageUsageRow = {
 };
 
 type DerivedUserMetrics = {
-  daily_download_limit: number;
   document_storage_used: number;
   download_total_count: number;
 };
 
 const buildDerivedUserMetrics = (
-  user: RawUserRecord,
+  _user: RawUserRecord,
   downloadTotalCount: number,
   used: number
 ): DerivedUserMetrics => ({
-  daily_download_limit: getCombinedDownloadLimit(
-    resolvePlanId(user.subscriptionPlan)
-  ),
   document_storage_used: used,
   download_total_count: downloadTotalCount,
 });
@@ -335,8 +330,6 @@ export class UserService {
     }
 
     const needsDerivedData =
-      requestData.daily_download_limit_from !== undefined ||
-      requestData.daily_download_limit_to !== undefined ||
       requestData.document_storage_used_from !== undefined ||
       requestData.document_storage_used_to !== undefined ||
       requestData.download_total_count_from !== undefined ||
@@ -460,18 +453,6 @@ export class UserService {
       items.filter(({ metrics }) => {
         if (!metrics) {
           return true;
-        }
-        if (
-          requestData.daily_download_limit_from !== undefined &&
-          metrics.daily_download_limit < requestData.daily_download_limit_from
-        ) {
-          return false;
-        }
-        if (
-          requestData.daily_download_limit_to !== undefined &&
-          metrics.daily_download_limit > requestData.daily_download_limit_to
-        ) {
-          return false;
         }
         if (
           requestData.document_storage_used_from !== undefined &&

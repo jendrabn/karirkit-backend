@@ -2,9 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import env from "../config/env.config";
 import { prisma } from "../config/prisma.config";
 import {
-  canDuplicateByKind,
   getPlan,
-  isUnlimitedLimit,
   resolvePlanId,
 } from "../config/subscription-plans.config";
 import { ResponseError } from "../utils/response-error.util";
@@ -36,10 +34,6 @@ export const checkCvLimit = async (
   try {
     const user = getAuthenticatedUser(req);
     const cvLimit = getUserPlan(req).maxCvs;
-    if (isUnlimitedLimit(cvLimit)) {
-      next();
-      return;
-    }
 
     const currentCount = await prisma.cv.count({
       where: { userId: user.id },
@@ -68,10 +62,6 @@ export const checkApplicationLetterLimit = async (
   try {
     const user = getAuthenticatedUser(req);
     const applicationLetterLimit = getUserPlan(req).maxApplicationLetters;
-    if (isUnlimitedLimit(applicationLetterLimit)) {
-      next();
-      return;
-    }
 
     const currentCount = await prisma.applicationLetter.count({
       where: { userId: user.id },
@@ -100,10 +90,6 @@ export const checkApplicationTrackerLimit = async (
   try {
     const user = getAuthenticatedUser(req);
     const applicationLimit = getUserPlan(req).maxApplications;
-    if (isUnlimitedLimit(applicationLimit)) {
-      next();
-      return;
-    }
 
     const currentCount = await prisma.application.count({
       where: { userId: user.id },
@@ -152,9 +138,7 @@ export const checkPremiumTemplate = async (
     const allowed =
       template.type === "application_letter"
         ? plan.canUsePremiumApplicationLetterTemplates
-        : template.type === "cv"
-          ? plan.canUsePremiumCvTemplates
-          : plan.canUsePremiumTemplates;
+        : plan.canUsePremiumCvTemplates;
 
     if (!allowed) {
       throw new ResponseError(
@@ -162,60 +146,6 @@ export const checkPremiumTemplate = async (
         "Template ini khusus untuk pengguna Pro atau Max",
         undefined,
         { code: "PREMIUM_TEMPLATE_REQUIRED" }
-      );
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-const buildDuplicateAccessChecker = (
-  kind: Parameters<typeof canDuplicateByKind>[1]
-) => (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void => {
-  try {
-    getAuthenticatedUser(req);
-    const planId = resolvePlanId(getAuthenticatedUser(req).subscriptionPlan);
-    if (!canDuplicateByKind(planId, kind)) {
-      throw new ResponseError(
-        403,
-        "Fitur duplikasi khusus untuk pengguna Pro atau Max",
-        undefined,
-        { code: "DUPLICATE_ACCESS_DENIED" }
-      );
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const checkCvDuplicateAccess = buildDuplicateAccessChecker("cv");
-export const checkApplicationDuplicateAccess =
-  buildDuplicateAccessChecker("application");
-export const checkApplicationLetterDuplicateAccess =
-  buildDuplicateAccessChecker("application_letter");
-
-export const checkDocumentAccess = (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void => {
-  try {
-    getAuthenticatedUser(req);
-    const plan = getUserPlan(req);
-    if (!plan.canManageDocuments) {
-      throw new ResponseError(
-        403,
-        "Fitur dokumen khusus untuk pengguna Pro atau Max",
-        undefined,
-        { code: "DOCUMENT_ACCESS_DENIED" }
       );
     }
 

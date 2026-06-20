@@ -1,27 +1,26 @@
 import { prisma } from "../config/prisma.config";
 import { ResponseError } from "../utils/response-error.util";
-import type { Prisma } from "../generated/prisma/client";
 import type { DownloadLogWhereInput } from "../generated/prisma/models/DownloadLog";
 import {
-  canDownloadByFormat,
-  type DownloadKind,
-  type DownloadFormat,
-  getCombinedDownloadLimit,
-  getDocxDownloadLimit,
-  getDownloadLimit,
-  getPdfDownloadLimit,
-  isUnlimitedLimit,
+  getPlan,
   resolvePlanId,
+  type PlanId,
 } from "../config/subscription-plans.config";
+import {
+  SubscriptionStatus,
+} from "../generated/prisma/client";
+
+type DownloadKind = "cv" | "application_letter";
+type DownloadFormat = "pdf" | "docx";
 
 export interface DownloadStatsBucket {
-  daily_limit: number;
-  today_count: number;
+  limit: number;
+  used: number;
   remaining: number;
   total_count: number;
 }
 
-export interface DownloadStats extends DownloadStatsBucket {
+export interface DownloadStats {
   cv: DownloadStatsBucket;
   application_letter: DownloadStatsBucket;
 }
@@ -29,22 +28,34 @@ export interface DownloadStats extends DownloadStatsBucket {
 const getDownloadLabel = (type: DownloadKind): string =>
   type === "cv" ? "CV" : "surat lamaran";
 
-const getPdfDownloadLabel = (type: DownloadKind): string =>
-  type === "cv" ? "PDF CV" : "PDF surat lamaran";
+const getFormatLabel = (type: DownloadKind, format: DownloadFormat): string => {
+  const docType = getDownloadLabel(type);
+  return `${format.toUpperCase()} ${docType}`;
+};
 
-const getDocxDownloadLabel = (type: DownloadKind): string =>
-  type === "cv" ? "DOCX CV" : "DOCX surat lamaran";
+const getPlanDownloadLimits = (planId: PlanId) => {
+  const plan = getPlan(planId);
+  return {
+    cv: { pdf: plan.maxCvPdfDownloads, docx: plan.maxCvDocxDownloads },
+    application_letter: { pdf: plan.maxLetterPdfDownloads, docx: plan.maxLetterDocxDownloads },
+  };
+};
 
-const buildBucketStats = (
-  limit: number,
-  todayCount: number,
-  totalCount: number
-): DownloadStatsBucket => ({
-  daily_limit: limit,
-  today_count: todayCount,
-  remaining: isUnlimitedLimit(limit) ? -1 : Math.max(0, limit - todayCount),
-  total_count: totalCount,
-});
+const getSubscriptionPeriodStart = async (
+  userId: string
+): Promise<Date | undefined> => {
+  const activeSubscription = await prisma.subscription.findFirst({
+    where: {
+      userId,
+      status: SubscriptionStatus.paid,
+      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+    },
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    select: { paidAt: true },
+  });
+
+  return activeSubscription?.paidAt ?? undefined;
+};
 
 export class DownloadLogService {
   static async checkDownloadLimit(
@@ -62,68 +73,27 @@ export class DownloadLogService {
     }
 
     const planId = resolvePlanId(user.subscriptionPlan);
-    if (!canDownloadByFormat(planId, type, format)) {
-      throw new ResponseError(
-        403,
-        type === "cv"
-          ? `Fitur download ${format.toUpperCase()} CV belum tersedia`
-          : `Fitur download ${format.toUpperCase()} surat lamaran belum tersedia`
-      );
-    }
+    const limits = getPlanDownloadLimits(planId);
+    const typeLimits = limits[type];
+    const formatLimit = typeLimits[format];
 
-    const dailyDownloadLimit = getDownloadLimit(planId, type);
-    // Reset at 00:00 server time
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const periodStart = await getSubscriptionPeriodStart(userId);
 
-    const formatDownloadLimit =
-      format === "pdf"
-        ? getPdfDownloadLimit(planId, type)
-        : getDocxDownloadLimit(planId, type);
-    const shouldCheckDailyLimit = !isUnlimitedLimit(dailyDownloadLimit);
-    const shouldCheckFormatLimit = !isUnlimitedLimit(formatDownloadLimit);
-
-    if (!shouldCheckDailyLimit && !shouldCheckFormatLimit) {
-      return;
-    }
-
-    const downloadCounts = await prisma.downloadLog.groupBy({
-      by: ["format"],
+    const where: Parameters<typeof prisma.downloadLog.count>[0] = {
       where: {
         userId,
         type,
-        downloadedAt: {
-          gte: today,
-        },
+        format,
+        ...(periodStart ? { downloadedAt: { gte: periodStart } } : {}),
       },
-      _count: {
-        _all: true,
-      },
-    });
+    };
 
-    let dailyDownloadCount = 0;
-    let formatDownloadCount = 0;
+    const usedCount = await prisma.downloadLog.count(where);
 
-    for (const count of downloadCounts) {
-      dailyDownloadCount += count._count._all;
-      if (count.format === format) {
-        formatDownloadCount = count._count._all;
-      }
-    }
-
-    if (shouldCheckDailyLimit && dailyDownloadCount >= dailyDownloadLimit) {
+    if (usedCount >= formatLimit) {
       throw new ResponseError(
         429,
-        `Batas unduhan harian ${getDownloadLabel(type)} tercapai. Anda sudah mengunduh ${dailyDownloadCount} dari ${dailyDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
-      );
-    }
-
-    if (shouldCheckFormatLimit && formatDownloadCount >= formatDownloadLimit) {
-      const label =
-        format === "pdf" ? getPdfDownloadLabel(type) : getDocxDownloadLabel(type);
-      throw new ResponseError(
-        429,
-        `Batas unduhan harian ${label} tercapai. Anda sudah mengunduh ${formatDownloadCount} dari ${formatDownloadLimit} dokumen hari ini. Silakan coba lagi besok.`
+        `Batas unduhan ${getFormatLabel(type, format)} tercapai. Anda sudah mengunduh ${usedCount} dari ${formatLimit} dokumen. Silakan tingkatkan paket langganan atau tunggu periode berlangganan berikutnya.`
       );
     }
   }
@@ -157,66 +127,33 @@ export class DownloadLogService {
     }
 
     const planId = resolvePlanId(user.subscriptionPlan);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const limits = getPlanDownloadLimits(planId);
+    const periodStart = await getSubscriptionPeriodStart(userId);
 
-    const [todayCvCount, todayApplicationLetterCount, totalCvCount, totalApplicationLetterCount] =
-      await Promise.all([
-        prisma.downloadLog.count({
-          where: {
-            userId,
-            type: "cv",
-            downloadedAt: {
-              gte: today,
-            },
-          },
-        }),
-        prisma.downloadLog.count({
-          where: {
-            userId,
-            type: "application_letter",
-            downloadedAt: {
-              gte: today,
-            },
-          },
-        }),
-        prisma.downloadLog.count({
-          where: {
-            userId,
-            type: "cv",
-          },
-        }),
-        prisma.downloadLog.count({
-          where: {
-            userId,
-            type: "application_letter",
-          },
-        }),
-      ]);
+    const periodFilter = periodStart ? { downloadedAt: { gte: periodStart } } : {};
 
-    const cvStats = buildBucketStats(
-      getDownloadLimit(planId, "cv"),
-      todayCvCount,
-      totalCvCount
-    );
-    const applicationLetterStats = buildBucketStats(
-      getDownloadLimit(planId, "application_letter"),
-      todayApplicationLetterCount,
-      totalApplicationLetterCount
-    );
-    const totalTodayCount = todayCvCount + todayApplicationLetterCount;
-    const totalCount = totalCvCount + totalApplicationLetterCount;
-    const combinedLimit = getCombinedDownloadLimit(planId);
-    const summary = buildBucketStats(
-      combinedLimit,
-      totalTodayCount,
-      totalCount
-    );
+    const buildBucket = async (
+      type: DownloadKind,
+      format: DownloadFormat
+    ): Promise<DownloadStatsBucket> => {
+      const limit = limits[type][format];
+      const used = await prisma.downloadLog.count({
+        where: { userId, type, format, ...periodFilter },
+      });
+      const totalCount = await prisma.downloadLog.count({
+        where: { userId, type, format },
+      });
+      return {
+        limit,
+        used,
+        remaining: Math.max(0, limit - used),
+        total_count: totalCount,
+      };
+    };
 
     return {
-      ...summary,
-      cv: cvStats,
-      application_letter: applicationLetterStats,
+      cv: await buildBucket("cv", "pdf"),
+      application_letter: await buildBucket("application_letter", "pdf"),
     };
   }
 

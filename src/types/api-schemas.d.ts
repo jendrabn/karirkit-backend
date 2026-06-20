@@ -32,8 +32,8 @@ export interface Pagination {
 }
 
 export interface DownloadStats {
-  daily_limit?: number;
-  today_count?: number;
+  limit?: number;
+  used?: number;
   remaining?: number;
   total_count?: number;
 }
@@ -61,7 +61,6 @@ export interface User {
   updated_at: string;
   email_verified_at: string | null;
   download_stats?: DownloadStats;
-  daily_download_limit?: number;
   document_storage_limit?: number;
   document_storage_stats?: DocumentStorageStats;
   social_links?: UserSocialLink[];

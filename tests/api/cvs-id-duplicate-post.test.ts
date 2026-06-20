@@ -119,7 +119,7 @@ describe("POST /cvs/:id/duplicate", () => {
 
   it("blocks duplication for admins when their plan CV limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.cv.count.mockResolvedValue(5);
+    prisma.cv.count.mockResolvedValue(10);
 
     const response = await request(app)
       .post(`/cvs/${validId}/duplicate`)

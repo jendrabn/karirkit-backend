@@ -1,7 +1,6 @@
 import { prisma } from "../config/prisma.config";
 import {
   getPlan,
-  isUnlimitedLimit,
   resolvePlanId,
 } from "../config/subscription-plans.config";
 import { ResponseError } from "../utils/response-error.util";
@@ -185,9 +184,7 @@ export class DashboardService {
     const plan = getPlan(resolvePlanId(user.subscriptionPlan));
     const documentStorageUsed = documentUsage._sum.size ?? 0;
     const documentStorageLimit = plan.maxDocumentStorageBytes;
-    const documentStorageRemaining = isUnlimitedLimit(documentStorageLimit)
-      ? -1
-      : Math.max(0, documentStorageLimit - documentStorageUsed);
+    const documentStorageRemaining = Math.max(0, documentStorageLimit - documentStorageUsed);
 
     return {
       total_applications: totalApplications,

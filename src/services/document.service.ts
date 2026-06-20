@@ -29,7 +29,6 @@ import {
 } from "../utils/file-signature.util";
 import {
   getPlan,
-  isUnlimitedLimit,
   resolvePlanId,
 } from "../config/subscription-plans.config";
 import { StorageService } from "./storage.service";
@@ -273,7 +272,7 @@ export class DocumentService {
     return {
       limit,
       used,
-      remaining: isUnlimitedLimit(limit) ? -1 : Math.max(0, limit - used),
+      remaining: Math.max(0, limit - used),
     };
   }
   static async list(
@@ -560,10 +559,6 @@ export class DocumentService {
     const limit = getPlan(
       resolvePlanId(user.subscriptionPlan)
     ).maxDocumentStorageBytes;
-
-    if (isUnlimitedLimit(limit)) {
-      return;
-    }
 
     const currentUsage = usage._sum.size ?? 0;
     if (currentUsage + additionalBytes > limit) {
