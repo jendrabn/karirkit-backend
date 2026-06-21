@@ -749,6 +749,15 @@ export class SubscriptionService {
       };
     }
 
+    if (filters.q) {
+      where.OR = [
+        { user: { name: { contains: filters.q } } },
+        { user: { email: { contains: filters.q } } },
+        { user: { phone: { contains: filters.q } } },
+        { orderId: { contains: filters.q } },
+      ];
+    }
+
     if (filters.user_id) {
       where.userId = filters.user_id;
     }

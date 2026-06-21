@@ -51,6 +51,7 @@ export class SubscriptionAdminValidation {
         parseCommaSeparated,
         z.array(z.enum(["manual", "midtrans"]))
       ).optional(),
+      q: z.string().trim().min(1).or(z.literal("")).optional(),
       user_id: z.string().uuid("ID user tidak valid").optional(),
       created_at_from: optionalDateSchema(dateOnlySchema),
       created_at_to: optionalDateSchema(dateOnlySchema),

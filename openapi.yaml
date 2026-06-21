@@ -2535,6 +2535,11 @@ paths:
           schema:
             type: string
           description: Comma-separated values of manual, midtrans
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by user name, email, phone, or order ID
         - name: user_id
           in: query
           schema:
