@@ -112,10 +112,17 @@ export class DownloadLogService {
       return {};
     }
 
+    const downloadFeatures: UsageFeature[] = [
+      UsageFeature.cv_download_pdf,
+      UsageFeature.cv_download_docx,
+      UsageFeature.app_letter_download_pdf,
+      UsageFeature.app_letter_download_docx,
+    ];
+
     const where: {
       userId: { in: string[] };
       createdAt?: { gte: Date };
-      feature?: UsageFeature;
+      feature?: UsageFeature | { in: UsageFeature[] };
     } = {
       userId: { in: userIds },
     };
@@ -126,6 +133,8 @@ export class DownloadLogService {
 
     if (type && format) {
       where.feature = kindToFeature(type, format);
+    } else {
+      where.feature = { in: downloadFeatures };
     }
 
     const groups = await prisma.usageLog.groupBy({
