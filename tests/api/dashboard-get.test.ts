@@ -58,11 +58,20 @@ describe("GET /dashboard", () => {
       saved_jobs_count: 7,
       subscription_plan: "pro",
       subscription_expires_at: "2026-12-31T00:00:00.000Z",
-      download_today_count: 2,
-      download_total_count: 14,
-      document_storage_limit: 1073741824,
-      document_storage_used: 1024,
-      document_storage_remaining: 1073740800,
+      usage: {
+        max_cvs: { limit: 30, used: 3, remaining: 27 },
+        max_application_letters: { limit: 60, used: 4, remaining: 56 },
+        max_applications: { limit: 500, used: 12, remaining: 488 },
+        max_document_storage_bytes: { limit: 209715200, used: 1024, remaining: 209714176 },
+        max_cv_pdf_downloads: { limit: 30, used: 14, remaining: 16 },
+        max_cv_docx_downloads: { limit: 10, used: 2, remaining: 8 },
+        max_letter_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
+        max_letter_docx_downloads: { limit: 10, used: 1, remaining: 9 },
+        max_cv_ai_improvements: { limit: 50, used: 3, remaining: 47 },
+        max_application_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
+        can_use_premium_cv_templates: true,
+        can_use_premium_application_letter_templates: true,
+      },
     } as never);
 
     const response = await request(app)
@@ -75,7 +84,9 @@ describe("GET /dashboard", () => {
       total_applications: 12,
       total_cvs: 3,
       subscription_plan: "pro",
-      download_total_count: 14,
+      usage: {
+        max_cv_pdf_downloads: { limit: 30, used: 14, remaining: 16 },
+      },
     });
     expect(typeof response.body.data.total_applications).toBe("number");
   });
@@ -108,11 +119,20 @@ describe("GET /dashboard", () => {
       saved_jobs_count: 0,
       subscription_plan: "free",
       subscription_expires_at: null,
-      download_today_count: 0,
-      download_total_count: 0,
-      document_storage_limit: 1073741824,
-      document_storage_used: 0,
-      document_storage_remaining: 1073741824,
+      usage: {
+        max_cvs: { limit: 10, used: 0, remaining: 10 },
+        max_application_letters: { limit: 20, used: 0, remaining: 20 },
+        max_applications: { limit: 100, used: 0, remaining: 100 },
+        max_document_storage_bytes: { limit: 52428800, used: 0, remaining: 52428800 },
+        max_cv_pdf_downloads: { limit: 10, used: 0, remaining: 10 },
+        max_cv_docx_downloads: { limit: 3, used: 0, remaining: 3 },
+        max_letter_pdf_downloads: { limit: 10, used: 0, remaining: 10 },
+        max_letter_docx_downloads: { limit: 3, used: 0, remaining: 3 },
+        max_cv_ai_improvements: { limit: 10, used: 0, remaining: 10 },
+        max_application_letter_ai_improvements: { limit: 20, used: 0, remaining: 20 },
+        can_use_premium_cv_templates: false,
+        can_use_premium_application_letter_templates: false,
+      },
     } as never);
 
     const response = await request(app)
@@ -122,7 +142,7 @@ describe("GET /dashboard", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.total_applications).toBe(0);
     expect(response.body.data.total_cvs).toBe(0);
-    expect(response.body.data.download_total_count).toBe(0);
+    expect(response.body.data.usage.max_cv_pdf_downloads.used).toBe(0);
   });
 });
 
@@ -205,9 +225,9 @@ describe("GET /dashboard", () => {
       total_documents: 0,
       saved_jobs_count: 0,
       subscription_plan: "free",
-      download_today_count: 0,
-      download_total_count: 0,
     });
+    expect(response.body.data).toHaveProperty("usage");
+    expect(typeof response.body.data.usage.max_cv_pdf_downloads.used).toBe("number");
   });
 
   it("returns 401 when the request is unauthenticated", async () => {

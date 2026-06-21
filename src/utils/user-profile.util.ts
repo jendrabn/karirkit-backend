@@ -1,4 +1,5 @@
 import type { User, UserSocialLink } from "../generated/prisma/client";
+import type { UsageStats } from "../services/usage-stats.service";
 
 export type UserProfile = {
   id: string;
@@ -30,8 +31,7 @@ export type UserProfile = {
 export type AccountUserProfile = UserProfile & {
   subscription_plan: User["subscriptionPlan"];
   subscription_expires_at: string | null;
-  download_total_count: number;
-  download_today_count: number;
+  usage: UsageStats;
 };
 
 type UserProfileSource = Pick<
@@ -101,15 +101,12 @@ export const toAccountUserProfile = (
     UserSocialLink,
     "id" | "userId" | "platform" | "url"
   >[],
-  downloadCounts: Pick<
-    AccountUserProfile,
-    "download_total_count" | "download_today_count"
-  >
+  usage: UsageStats
 ): AccountUserProfile => ({
   ...toUserProfile(user, socialLinks),
   subscription_plan: user.subscriptionPlan,
   subscription_expires_at: user.subscriptionExpiresAt
     ? user.subscriptionExpiresAt.toISOString()
     : null,
-  ...downloadCounts,
+  usage,
 });

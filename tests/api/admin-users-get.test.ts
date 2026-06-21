@@ -131,8 +131,11 @@ describe("GET /admin/users", () => {
     expect(response.body.data.items[0]).toHaveProperty("last_login_at");
     expect(response.body.data.items[0].subscription_plan).toBe("free");
     expect(response.body.data.items[0].subscription_expires_at).toBeNull();
-    expect(typeof response.body.data.items[0].download_total_count).toBe("number");
-    expect(typeof response.body.data.items[0].download_today_count).toBe("number");
+    expect(response.body.data.items[0]).toHaveProperty("usage");
+    expect(typeof response.body.data.items[0].usage.max_cvs).toBe("number");
+    expect(typeof response.body.data.items[0].usage.max_cv_pdf_downloads).toBe("number");
+    expect(response.body.data.items[0]).not.toHaveProperty("download_today_count");
+    expect(response.body.data.items[0]).not.toHaveProperty("download_total_count");
     expect(response.body.data.items[0]).not.toHaveProperty("download_stats");
     expect(response.body.data.items[0]).not.toHaveProperty("daily_download_limit");
     expect(response.body.data.items[0]).not.toHaveProperty("document_storage_limit");

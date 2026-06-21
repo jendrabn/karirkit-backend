@@ -123,9 +123,12 @@ describe("GET /admin/users/:id", () => {
       last_login_at: null,
       subscription_plan: "free",
       subscription_expires_at: null,
-      download_total_count: 0,
-      download_today_count: 0,
     });
+    expect(response.body.data).toHaveProperty("usage");
+    expect(typeof response.body.data.usage.max_cvs).toBe("number");
+    expect(typeof response.body.data.usage.max_cv_pdf_downloads).toBe("number");
+    expect(response.body.data).not.toHaveProperty("download_today_count");
+    expect(response.body.data).not.toHaveProperty("download_total_count");
     expect(response.body.data).not.toHaveProperty("download_stats");
     expect(response.body.data).not.toHaveProperty("daily_download_limit");
     expect(response.body.data).not.toHaveProperty("document_storage_limit");
@@ -157,9 +160,11 @@ describe("GET /admin/users/:id", () => {
       last_login_at: null,
       subscription_plan: "free",
       subscription_expires_at: null,
-      download_total_count: 0,
-      download_today_count: 0,
     });
+    expect(response.body.data).toHaveProperty("usage");
+    expect(typeof response.body.data.usage.max_cvs).toBe("number");
+    expect(response.body.data).not.toHaveProperty("download_today_count");
+    expect(response.body.data).not.toHaveProperty("download_total_count");
     expect(response.body.data).not.toHaveProperty("download_stats");
     expect(response.body.data).not.toHaveProperty("daily_download_limit");
     expect(response.body.data).not.toHaveProperty("document_storage_limit");

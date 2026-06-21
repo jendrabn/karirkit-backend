@@ -76,8 +76,20 @@ describe("GET /account/me", () => {
       suspended_until: null,
       subscription_plan: "pro",
       subscription_expires_at: "2030-01-01T00:00:00.000Z",
-      download_total_count: 12,
-      download_today_count: 2,
+      usage: {
+        max_cvs: { limit: 30, used: 5, remaining: 25 },
+        max_application_letters: { limit: 60, used: 3, remaining: 57 },
+        max_applications: { limit: 500, used: 10, remaining: 490 },
+        max_document_storage_bytes: { limit: 209715200, used: 50000, remaining: 209665200 },
+        max_cv_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
+        max_cv_docx_downloads: { limit: 10, used: 2, remaining: 8 },
+        max_letter_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
+        max_letter_docx_downloads: { limit: 10, used: 2, remaining: 8 },
+        max_cv_ai_improvements: { limit: 50, used: 3, remaining: 47 },
+        max_application_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
+        can_use_premium_cv_templates: false,
+        can_use_premium_application_letter_templates: false,
+      },
     } as never);
 
     const response = await request(app)
@@ -95,8 +107,11 @@ describe("GET /account/me", () => {
       status: "active",
       subscription_plan: "pro",
       subscription_expires_at: "2030-01-01T00:00:00.000Z",
-      download_total_count: 12,
-      download_today_count: 2,
+      usage: {
+        max_cvs: { limit: 30, used: 5, remaining: 25 },
+        max_cv_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
+        can_use_premium_cv_templates: false,
+      },
     });
     expect(typeof response.body.data.id).toBe("string");
   });
@@ -182,8 +197,6 @@ describe("GET /account/me", () => {
       role: "user",
       status: "active",
       subscription_plan: "pro",
-      download_total_count: 1,
-      download_today_count: 1,
     });
     expect(Array.isArray(response.body.data.social_links)).toBe(true);
     expect(response.body.data.social_links[0]).toMatchObject({
@@ -191,6 +204,10 @@ describe("GET /account/me", () => {
       url: "https://linkedin.com/in/test-user",
     });
     expect(response.body.data.subscription_expires_at).toBeTruthy();
+    expect(response.body.data).toHaveProperty("usage");
+    expect(response.body.data.usage.max_cv_pdf_downloads.used).toBe(1);
+    expect(response.body.data.usage.max_cv_pdf_downloads.limit).toBeGreaterThanOrEqual(1);
+    expect(response.body.data.usage.max_document_storage_bytes.used).toBeGreaterThan(0);
     expect(response.body.data).not.toHaveProperty("max_cvs");
     expect(response.body.data).not.toHaveProperty("max_applications");
     expect(response.body.data).not.toHaveProperty("max_application_letters");

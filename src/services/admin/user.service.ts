@@ -10,24 +10,31 @@ import { prisma } from "../../config/prisma.config";
 import { ResponseError } from "../../utils/response-error.util";
 import { validate } from "../../utils/validate.util";
 import { UserValidation } from "../../validations/admin/user.validation";
-import {
-  DownloadLogService,
-} from "../../services/download-log.service";
-import {
-  buildUserSubscriptionState,
-  resolvePlanId,
-} from "../../config/subscription-plans.config";
+import { UsageStatsService, type UsageStats } from "../../services/usage-stats.service";
+import { buildUserSubscriptionState } from "../../config/subscription-plans.config";
 import {
   toUserProfile,
   type UserProfile,
 } from "../../utils/user-profile.util";
 
+type AdminUsage = {
+  max_cvs: number;
+  max_application_letters: number;
+  max_applications: number;
+  max_document_storage_bytes: number;
+  max_cv_pdf_downloads: number;
+  max_cv_docx_downloads: number;
+  max_letter_pdf_downloads: number;
+  max_letter_docx_downloads: number;
+  max_cv_ai_improvements: number;
+  max_application_letter_ai_improvements: number;
+};
+
 type SafeUser = UserProfile & {
   last_login_at: string | null;
   subscription_plan: User["subscriptionPlan"];
   subscription_expires_at: string | null;
-  download_total_count: number;
-  download_today_count: number;
+  usage: AdminUsage;
 };
 
 type UserListResult = {
@@ -105,34 +112,17 @@ type RawUserRecord = {
   updatedAt: Date | null;
 };
 
-type StorageUsageRow = {
-  userId: string;
-  _sum: {
-    size: number | null;
-  };
-};
-
-type DerivedUserMetrics = {
-  document_storage_used: number;
-  download_total_count: number;
-};
-
-const buildDerivedUserMetrics = (
-  _user: RawUserRecord,
-  downloadTotalCount: number,
-  used: number
-): DerivedUserMetrics => ({
-  document_storage_used: used,
-  download_total_count: downloadTotalCount,
-});
-
-const buildDownloadCounts = (
-  userId: string,
-  todayCounts: Record<string, number>,
-  totalCounts: Record<string, number>
-): Pick<SafeUser, "download_today_count" | "download_total_count"> => ({
-  download_today_count: todayCounts[userId] ?? 0,
-  download_total_count: totalCounts[userId] ?? 0,
+const toAdminUsage = (stats: UsageStats): AdminUsage => ({
+  max_cvs: stats.max_cvs.used,
+  max_application_letters: stats.max_application_letters.used,
+  max_applications: stats.max_applications.used,
+  max_document_storage_bytes: stats.max_document_storage_bytes.used,
+  max_cv_pdf_downloads: stats.max_cv_pdf_downloads.used,
+  max_cv_docx_downloads: stats.max_cv_docx_downloads.used,
+  max_letter_pdf_downloads: stats.max_letter_pdf_downloads.used,
+  max_letter_docx_downloads: stats.max_letter_docx_downloads.used,
+  max_cv_ai_improvements: stats.max_cv_ai_improvements.used,
+  max_application_letter_ai_improvements: stats.max_application_letter_ai_improvements.used,
 });
 
 const toAdminUserProfile = (
@@ -161,7 +151,7 @@ const toAdminUserProfile = (
     | "suspendedUntil"
   >,
   socialLinks: UserSocialLink[],
-  downloadCounts: Pick<SafeUser, "download_today_count" | "download_total_count">
+  usage: AdminUsage
 ): SafeUser => ({
   ...toUserProfile(user, socialLinks),
   last_login_at: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
@@ -169,26 +159,21 @@ const toAdminUserProfile = (
   subscription_expires_at: user.subscriptionExpiresAt
     ? user.subscriptionExpiresAt.toISOString()
     : null,
-  ...downloadCounts,
+  usage,
 });
 
-const getTodayStart = (): Date => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-};
-
-const getUserDownloadCounts = async (
-  userId: string
-): Promise<Pick<SafeUser, "download_today_count" | "download_total_count">> => {
-  const today = getTodayStart();
-  const [todayCounts, totalCounts] = await Promise.all([
-    DownloadLogService.countDownloadsByUsers([userId], today),
-    DownloadLogService.countDownloadsByUsers([userId]),
-  ]);
-
-  return buildDownloadCounts(userId, todayCounts, totalCounts);
-};
+const getEmptyUsage = (_planId: string): AdminUsage => ({
+  max_cvs: 0,
+  max_application_letters: 0,
+  max_applications: 0,
+  max_document_storage_bytes: 0,
+  max_cv_pdf_downloads: 0,
+  max_cv_docx_downloads: 0,
+  max_letter_pdf_downloads: 0,
+  max_letter_docx_downloads: 0,
+  max_cv_ai_improvements: 0,
+  max_application_letter_ai_improvements: 0,
+});
 
 const normalizeNullableString = (
   value?: string | null
@@ -213,6 +198,19 @@ const normalizeNullableDate = (value?: string | null): Date | null | undefined =
 };
 
 // Schemas moved to UserValidation
+
+const USAGE_SORT_FIELDS = [
+  "max_cvs",
+  "max_application_letters",
+  "max_applications",
+  "max_document_storage_bytes",
+  "max_cv_pdf_downloads",
+  "max_cv_docx_downloads",
+  "max_letter_pdf_downloads",
+  "max_letter_docx_downloads",
+  "max_cv_ai_improvements",
+  "max_application_letter_ai_improvements",
+] as const;
 
 const sortFieldMap = {
   created_at: "createdAt",
@@ -329,13 +327,25 @@ export class UserService {
       }
     }
 
-    const needsDerivedData =
-      requestData.document_storage_used_from !== undefined ||
-      requestData.document_storage_used_to !== undefined ||
-      requestData.download_total_count_from !== undefined ||
-      requestData.download_total_count_to !== undefined ||
-      requestData.sort_by === "document_storage_used" ||
-      requestData.sort_by === "download_total_count";
+    const usageFilterKeys = [
+      "max_cvs",
+      "max_application_letters",
+      "max_applications",
+      "max_document_storage_bytes",
+      "max_cv_pdf_downloads",
+      "max_cv_docx_downloads",
+      "max_letter_pdf_downloads",
+      "max_letter_docx_downloads",
+      "max_cv_ai_improvements",
+      "max_application_letter_ai_improvements",
+    ] as const;
+
+    const needsDerivedData = (["_from", "_to"] as const).some((suffix) =>
+      usageFilterKeys.some((key) => {
+        const fromKey = `${key}${suffix === "_from" ? "_from" : "_to"}`;
+        return (requestData as any)[fromKey] !== undefined;
+      })
+    ) || USAGE_SORT_FIELDS.includes(requestData.sort_by as any);
 
     const selectFields = {
       id: true,
@@ -384,32 +394,6 @@ export class UserService {
         ]);
 
     const userIds = records.map((user) => user.id);
-    const today = getTodayStart();
-
-    const [todayCounts, totalCounts, storageUsageRows] = needsDerivedData
-      ? await Promise.all([
-          DownloadLogService.countDownloadsByUsers(userIds, today),
-          DownloadLogService.countDownloadsByUsers(userIds),
-          userIds.length
-            ? prisma.document.groupBy({
-                by: ["userId"],
-                where: { userId: { in: userIds } },
-                _sum: { size: true },
-              })
-            : Promise.resolve([]),
-        ])
-      : await Promise.all([
-          DownloadLogService.countDownloadsByUsers(userIds, today),
-          DownloadLogService.countDownloadsByUsers(userIds),
-          Promise.resolve([]),
-        ]);
-
-    const storageUsage = (storageUsageRows as StorageUsageRow[]).reduce<
-      Record<string, number>
-    >((acc: Record<string, number>, row: StorageUsageRow) => {
-        acc[row.userId] = row._sum.size ?? 0;
-        return acc;
-      }, {});
 
     const socialLinks = userIds.length
       ? await prisma.userSocialLink.findMany({
@@ -427,64 +411,37 @@ export class UserService {
       return acc;
     }, {});
 
-    const usersWithMetrics = records.map((user) => {
-      const downloadCounts = buildDownloadCounts(user.id, todayCounts, totalCounts);
-      const metrics = needsDerivedData
-        ? buildDerivedUserMetrics(
-            user,
-            downloadCounts.download_total_count,
-            storageUsage[user.id] ?? 0
-          )
-        : null;
+    const usageMap = userIds.length
+      ? await UsageStatsService.getBatchLifetimeUsageStats(userIds)
+      : {};
 
-      return {
-        user: toAdminUserProfile(
-          user,
-          socialLinksByUser[user.id] ?? [],
-          downloadCounts
-        ),
-        metrics,
-      };
-    });
+    const usersWithUsage = records.map((user) => ({
+      user: toAdminUserProfile(
+        user,
+        socialLinksByUser[user.id] ?? [],
+        usageMap[user.id]
+          ? toAdminUsage(usageMap[user.id])
+          : getEmptyUsage(user.subscriptionPlan)
+      ),
+    }));
 
-    const applyDerivedFilters = (
-      items: { user: SafeUser; metrics: DerivedUserMetrics | null }[]
+    const applyUsageFilters = (
+      items: { user: SafeUser }[]
     ) =>
-      items.filter(({ metrics }) => {
-        if (!metrics) {
-          return true;
-        }
-        if (
-          requestData.document_storage_used_from !== undefined &&
-          metrics.document_storage_used <
-            requestData.document_storage_used_from
-        ) {
-          return false;
-        }
-        if (
-          requestData.document_storage_used_to !== undefined &&
-          metrics.document_storage_used > requestData.document_storage_used_to
-        ) {
-          return false;
-        }
-        if (
-          requestData.download_total_count_from !== undefined &&
-          metrics.download_total_count < requestData.download_total_count_from
-        ) {
-          return false;
-        }
-        if (
-          requestData.download_total_count_to !== undefined &&
-          metrics.download_total_count > requestData.download_total_count_to
-        ) {
-          return false;
+      items.filter(({ user: u }) => {
+        for (const key of usageFilterKeys) {
+          const fromKey = `${key}_from` as keyof typeof requestData;
+          const toKey = `${key}_to` as keyof typeof requestData;
+          const fromVal = requestData[fromKey] as number | undefined;
+          const toVal = requestData[toKey] as number | undefined;
+          const usedVal = (u.usage as any)[key];
+          if (fromVal !== undefined && usedVal < fromVal) return false;
+          if (toVal !== undefined && usedVal > toVal) return false;
         }
         return true;
       });
 
-    const sortUsers = (
-      items: { user: SafeUser; metrics: DerivedUserMetrics | null }[]
-    ) => {
+    const sortUsers = (items: { user: SafeUser }[]) => {
       const direction = requestData.sort_order === "asc" ? 1 : -1;
       const sortBy = requestData.sort_by;
       const getStringValue = (value: string | null) => value ?? "";
@@ -508,23 +465,21 @@ export class UserService {
             left = getStringValue(a.user.status);
             right = getStringValue(b.user.status);
             break;
-          case "document_storage_used":
-            left = a.metrics?.document_storage_used ?? 0;
-            right = b.metrics?.document_storage_used ?? 0;
-            break;
-          case "download_total_count":
-            left = a.metrics?.download_total_count ?? 0;
-            right = b.metrics?.download_total_count ?? 0;
-            break;
           case "updated_at":
             left = Date.parse(a.user.updated_at ?? "");
             right = Date.parse(b.user.updated_at ?? "");
             break;
           case "created_at":
-          default:
+          default: {
+            if (USAGE_SORT_FIELDS.includes(sortBy as any)) {
+              left = (a.user.usage as any)[sortBy] ?? 0;
+              right = (b.user.usage as any)[sortBy] ?? 0;
+              break;
+            }
             left = Date.parse(a.user.created_at ?? "");
             right = Date.parse(b.user.created_at ?? "");
             break;
+          }
         }
 
         if (left < right) return -1 * direction;
@@ -534,8 +489,8 @@ export class UserService {
     };
 
     const filteredUsers = needsDerivedData
-      ? sortUsers(applyDerivedFilters(usersWithMetrics))
-      : usersWithMetrics;
+      ? sortUsers(applyUsageFilters(usersWithUsage))
+      : usersWithUsage;
 
     const totalFilteredItems = needsDerivedData
       ? filteredUsers.length
@@ -561,9 +516,7 @@ export class UserService {
 
   static async get(id: string): Promise<SafeUser> {
     const user = await prisma.user.findFirst({
-      where: {
-        id,
-      },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -593,14 +546,14 @@ export class UserService {
       throw new ResponseError(404, "Pengguna tidak ditemukan");
     }
 
-    const [socialLinks, downloadCounts] = await Promise.all([
+    const [socialLinks, rawUsage] = await Promise.all([
       prisma.userSocialLink.findMany({
         where: { userId: id },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       }),
-      getUserDownloadCounts(id),
+      UsageStatsService.getLifetimeUsageStats(id),
     ]);
-    return toAdminUserProfile(user, socialLinks, downloadCounts);
+    return toAdminUserProfile(user, socialLinks, toAdminUsage(rawUsage));
   }
 
   static async create(request: CreateUserRequest): Promise<SafeUser> {
@@ -696,10 +649,7 @@ export class UserService {
       where: { userId: user.id },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
-    return toAdminUserProfile(user, socialLinks, {
-      download_today_count: 0,
-      download_total_count: 0,
-    });
+    return toAdminUserProfile(user, socialLinks, getEmptyUsage(user.subscriptionPlan));
   }
 
   static async update(
@@ -908,14 +858,14 @@ export class UserService {
       return updatedUser;
     });
 
-    const [socialLinks, downloadCounts] = await Promise.all([
+    const [socialLinks, rawUsage] = await Promise.all([
       prisma.userSocialLink.findMany({
         where: { userId: id },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       }),
-      getUserDownloadCounts(id),
+      UsageStatsService.getLifetimeUsageStats(id),
     ]);
-    return toAdminUserProfile(user, socialLinks, downloadCounts);
+    return toAdminUserProfile(user, socialLinks, toAdminUsage(rawUsage));
   }
 
   static async updateStatus(id: string, request: unknown): Promise<SafeUser> {
@@ -967,14 +917,14 @@ export class UserService {
       },
     });
 
-    const [socialLinks, downloadCounts] = await Promise.all([
+    const [socialLinks, rawUsage] = await Promise.all([
       prisma.userSocialLink.findMany({
         where: { userId: id },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       }),
-      getUserDownloadCounts(id),
+      UsageStatsService.getLifetimeUsageStats(id),
     ]);
-    return toAdminUserProfile(user, socialLinks, downloadCounts);
+    return toAdminUserProfile(user, socialLinks, toAdminUsage(rawUsage));
   }
 
   static async delete(id: string): Promise<void> {

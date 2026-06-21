@@ -78,8 +78,16 @@ export class UserValidation {
           "email",
           "role",
           "status",
-          "document_storage_used",
-          "download_total_count",
+          "max_cvs",
+          "max_application_letters",
+          "max_applications",
+          "max_document_storage_bytes",
+          "max_cv_pdf_downloads",
+          "max_cv_docx_downloads",
+          "max_letter_pdf_downloads",
+          "max_letter_docx_downloads",
+          "max_cv_ai_improvements",
+          "max_application_letter_ai_improvements",
         ])
         .default("created_at"),
       sort_order: z.enum(["asc", "desc"]).default("desc"),
@@ -90,18 +98,26 @@ export class UserValidation {
       suspended: optionalBooleanSchema,
       created_at_from: optionalDateSchema(dateOnlySchema),
       created_at_to: optionalDateSchema(dateOnlySchema),
-      document_storage_used_from: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
-      document_storage_used_to: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
-      download_total_count_from: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
-      download_total_count_to: optionalNumberSchema(
-        z.number().int().nonnegative()
-      ),
+      max_cvs_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cvs_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_application_letters_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_application_letters_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_applications_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_applications_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_document_storage_bytes_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_document_storage_bytes_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_pdf_downloads_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_pdf_downloads_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_docx_downloads_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_docx_downloads_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_letter_pdf_downloads_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_letter_pdf_downloads_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_letter_docx_downloads_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_letter_docx_downloads_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_ai_improvements_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cv_ai_improvements_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_application_letter_ai_improvements_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_application_letter_ai_improvements_to: optionalNumberSchema(z.number().int().nonnegative()),
     })
     .superRefine((data, ctx) => {
       if (
@@ -113,30 +129,6 @@ export class UserValidation {
           code: z.ZodIssueCode.custom,
           path: ["created_at_from"],
           message: "Tanggal mulai tidak boleh setelah tanggal selesai",
-        });
-      }
-
-      if (
-        data.document_storage_used_from !== undefined &&
-        data.document_storage_used_to !== undefined &&
-        data.document_storage_used_from > data.document_storage_used_to
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["document_storage_used_from"],
-          message: "Storage minimal tidak boleh lebih besar dari maksimal",
-        });
-      }
-
-      if (
-        data.download_total_count_from !== undefined &&
-        data.download_total_count_to !== undefined &&
-        data.download_total_count_from > data.download_total_count_to
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["download_total_count_from"],
-          message: "Jumlah download minimal tidak boleh lebih besar dari maksimal",
         });
       }
     });

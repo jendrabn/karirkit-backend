@@ -5,34 +5,13 @@ import { ChangePasswordRequest, UpdateMeRequest } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { UploadService } from "../services/upload.service";
 import { validate } from "../utils/validate.util";
-import { DownloadLogService } from "./download-log.service";
+import { UsageStatsService } from "./usage-stats.service";
 import {
   toAccountUserProfile,
   type AccountUserProfile,
 } from "../utils/user-profile.util";
 import { AccountValidation } from "../validations/account.validation";
 export type SafeUser = AccountUserProfile;
-
-const getTodayStart = (): Date => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-};
-
-const getUserDownloadCounts = async (
-  userId: string
-): Promise<Pick<SafeUser, "download_today_count" | "download_total_count">> => {
-  const today = getTodayStart();
-  const [todayCounts, totalCounts] = await Promise.all([
-    DownloadLogService.countDownloadsByUsers([userId], today),
-    DownloadLogService.countDownloadsByUsers([userId]),
-  ]);
-
-  return {
-    download_today_count: todayCounts[userId] ?? 0,
-    download_total_count: totalCounts[userId] ?? 0,
-  };
-};
 
 export class AccountService {
   static async me(userId: string): Promise<SafeUser> {
@@ -49,8 +28,8 @@ export class AccountService {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    const downloadCounts = await getUserDownloadCounts(userId);
-    return toAccountUserProfile(user, user.socialLinks, downloadCounts);
+    const usage = await UsageStatsService.getPeriodUsageStats(userId);
+    return toAccountUserProfile(user, user.socialLinks, usage);
   }
 
   static async updateMe(
@@ -249,8 +228,8 @@ export class AccountService {
         where: { userId },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      const downloadCounts = await getUserDownloadCounts(userId);
-      return toAccountUserProfile(user, socialLinks, downloadCounts);
+      const usage = await UsageStatsService.getPeriodUsageStats(userId);
+      return toAccountUserProfile(user, socialLinks, usage);
     } catch (error) {
       if (movedAvatarPath) {
         await UploadService.deleteUpload(movedAvatarPath, ["uploads/avatars"]);

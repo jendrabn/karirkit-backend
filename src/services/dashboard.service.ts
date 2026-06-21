@@ -1,10 +1,6 @@
 import { prisma } from "../config/prisma.config";
-import {
-  getPlan,
-  resolvePlanId,
-} from "../config/subscription-plans.config";
 import { ResponseError } from "../utils/response-error.util";
-import { DownloadLogService } from "./download-log.service";
+import { UsageStatsService, type UsageStats } from "./usage-stats.service";
 
 export type UserDashboardStats = {
   total_applications: number;
@@ -24,22 +20,13 @@ export type UserDashboardStats = {
   saved_jobs_count: number;
   subscription_plan: string;
   subscription_expires_at: string | null;
-  download_today_count: number;
-  download_total_count: number;
-  document_storage_limit: number;
-  document_storage_used: number;
-  document_storage_remaining: number;
-};
-
-const getTodayStart = (): Date => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
+  usage: UsageStats;
 };
 
 export class DashboardService {
   static async getUserStats(userId: string): Promise<UserDashboardStats> {
-    const today = getTodayStart();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const [
       user,
@@ -57,10 +44,7 @@ export class DashboardService {
       totalCvs,
       totalPortfolios,
       totalDocuments,
-      documentUsage,
       savedJobsCount,
-      todayCounts,
-      totalCounts,
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -69,122 +53,49 @@ export class DashboardService {
           subscriptionExpiresAt: true,
         },
       }),
+      prisma.application.count({ where: { userId } }),
       prisma.application.count({
-        where: {
-          userId,
-        },
+        where: { userId, status: { notIn: ["rejected", "accepted"] } },
+      }),
+      prisma.application.count({
+        where: { userId, status: { in: ["rejected", "accepted"] } },
       }),
       prisma.application.count({
         where: {
           userId,
-          status: {
-            notIn: ["rejected", "accepted"],
-          },
+          status: { in: ["hr_interview", "user_interview", "final_interview"] },
         },
       }),
+      prisma.application.count({ where: { userId, status: "offering" } }),
+      prisma.application.count({ where: { userId, status: "accepted" } }),
+      prisma.application.count({ where: { userId, status: "rejected" } }),
+      prisma.application.count({ where: { userId, followUpDate: { not: null } } }),
       prisma.application.count({
         where: {
           userId,
-          status: {
-            in: ["rejected", "accepted"],
-          },
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          status: {
-            in: ["hr_interview", "user_interview", "final_interview"],
-          },
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          status: "offering",
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          status: "accepted",
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          status: "rejected",
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          followUpDate: {
-            not: null,
-          },
-        },
-      }),
-      prisma.application.count({
-        where: {
-          userId,
-          followUpDate: {
-            lt: today,
-          },
-          status: {
-            notIn: ["rejected", "accepted"],
-          },
+          followUpDate: { lt: today },
+          status: { notIn: ["rejected", "accepted"] },
         },
       }),
       prisma.application.count({
         where: {
           userId,
           followUpDate: null,
-          status: {
-            notIn: ["rejected", "accepted"],
-          },
+          status: { notIn: ["rejected", "accepted"] },
         },
       }),
-      prisma.applicationLetter.count({
-        where: {
-          userId,
-        },
-      }),
-      prisma.cv.count({
-        where: {
-          userId,
-        },
-      }),
-      prisma.portfolio.count({
-        where: {
-          userId,
-        },
-      }),
-      prisma.document.count({
-        where: {
-          userId,
-        },
-      }),
-      prisma.document.aggregate({
-        where: { userId },
-        _sum: { size: true },
-      }),
-      prisma.savedJob.count({
-        where: {
-          userId,
-        },
-      }),
-      DownloadLogService.countDownloadsByUsers([userId], today),
-      DownloadLogService.countDownloadsByUsers([userId]),
+      prisma.applicationLetter.count({ where: { userId } }),
+      prisma.cv.count({ where: { userId } }),
+      prisma.portfolio.count({ where: { userId } }),
+      prisma.document.count({ where: { userId } }),
+      prisma.savedJob.count({ where: { userId } }),
     ]);
 
     if (!user) {
       throw new ResponseError(401, "Tidak terautentikasi");
     }
 
-    const plan = getPlan(resolvePlanId(user.subscriptionPlan));
-    const documentStorageUsed = documentUsage._sum.size ?? 0;
-    const documentStorageLimit = plan.maxDocumentStorageBytes;
-    const documentStorageRemaining = Math.max(0, documentStorageLimit - documentStorageUsed);
+    const usage = await UsageStatsService.getPeriodUsageStats(userId);
 
     return {
       total_applications: totalApplications,
@@ -206,11 +117,7 @@ export class DashboardService {
       subscription_expires_at: user.subscriptionExpiresAt
         ? user.subscriptionExpiresAt.toISOString()
         : null,
-      download_today_count: todayCounts[userId] ?? 0,
-      download_total_count: totalCounts[userId] ?? 0,
-      document_storage_limit: documentStorageLimit,
-      document_storage_used: documentStorageUsed,
-      document_storage_remaining: documentStorageRemaining,
+      usage,
     };
   }
 }
