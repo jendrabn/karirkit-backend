@@ -8,7 +8,7 @@ beforeAll(async () => {
     prisma: {
       user: { findUnique: jest.fn() },
       subscription: { findFirst: jest.fn() },
-      downloadLog: { count: jest.fn(), create: jest.fn(), groupBy: jest.fn() },
+      usageLog: { count: jest.fn(), create: jest.fn(), groupBy: jest.fn() },
     },
   }));
 
@@ -22,119 +22,61 @@ describe("DownloadLogService", () => {
     prismaMock as unknown as {
       user: { findUnique: jest.Mock };
       subscription: { findFirst: jest.Mock };
-      downloadLog: { count: jest.Mock; create: jest.Mock; groupBy: jest.Mock };
+      usageLog: { count: jest.Mock; create: jest.Mock; groupBy: jest.Mock };
     };
 
   beforeEach(() => {
     const prisma = getPrisma();
     prisma.user.findUnique.mockReset();
     prisma.subscription.findFirst.mockReset();
-    prisma.downloadLog.count.mockReset();
-    prisma.downloadLog.groupBy.mockReset();
+    prisma.usageLog.count.mockReset();
+    prisma.usageLog.create.mockReset();
+    prisma.usageLog.groupBy.mockReset();
   });
 
-  it("enforces period-based PDF download limits for free plan", async () => {
+  it("logs a CV PDF download to usage_logs", async () => {
     const prisma = getPrisma();
     prisma.user.findUnique.mockResolvedValue({
-      subscriptionPlan: "free",
+      createdAt: new Date("2026-01-01"),
     });
-    prisma.subscription.findFirst.mockResolvedValue(null);
-    prisma.downloadLog.count.mockResolvedValue(10);
 
-    await expect(
-      DownloadLogService.checkDownloadLimit("user-1", "cv", "pdf")
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      message: expect.stringContaining("Batas unduhan PDF CV tercapai"),
-    });
-  });
+    await DownloadLogService.logDownload("user-1", "cv", "doc-1", "my-cv.pdf", "pdf");
 
-  it("allows download when usage is below the limit", async () => {
-    const prisma = getPrisma();
-    prisma.user.findUnique.mockResolvedValue({
-      subscriptionPlan: "free",
-    });
-    prisma.subscription.findFirst.mockResolvedValue(null);
-    prisma.downloadLog.count.mockResolvedValue(5);
-
-    await expect(
-      DownloadLogService.checkDownloadLimit("user-1", "cv", "pdf")
-    ).resolves.toBeUndefined();
-  });
-
-  it("returns 404 for unknown users", async () => {
-    const prisma = getPrisma();
-    prisma.user.findUnique.mockResolvedValue(null);
-
-    await expect(
-      DownloadLogService.checkDownloadLimit("nonexistent", "cv", "pdf")
-    ).rejects.toMatchObject({
-      statusCode: 404,
-    });
-  });
-
-  it("uses subscription period start when user has active subscription", async () => {
-    const prisma = getPrisma();
-    const paidAt = new Date("2026-06-01T00:00:00.000Z");
-    prisma.user.findUnique.mockResolvedValue({
-      subscriptionPlan: "pro",
-    });
-    prisma.subscription.findFirst.mockResolvedValue({ paidAt });
-    prisma.downloadLog.count.mockResolvedValue(5);
-
-    await expect(
-      DownloadLogService.checkDownloadLimit("user-1", "cv", "pdf")
-    ).resolves.toBeUndefined();
-
-    expect(prisma.downloadLog.count).toHaveBeenCalledWith({
-      where: {
+    expect(prisma.usageLog.create).toHaveBeenCalledWith({
+      data: {
         userId: "user-1",
-        type: "cv",
-        format: "pdf",
-        downloadedAt: { gte: paidAt },
+        feature: "cv_download_pdf",
       },
     });
   });
 
-  it("enforces application letter PDF download limits separately", async () => {
+  it("logs an application letter DOCX download to usage_logs", async () => {
     const prisma = getPrisma();
-    prisma.user.findUnique.mockResolvedValue({
-      subscriptionPlan: "free",
-    });
-    prisma.subscription.findFirst.mockResolvedValue(null);
-    prisma.downloadLog.count.mockResolvedValue(10);
 
-    await expect(
-      DownloadLogService.checkDownloadLimit("user-1", "application_letter", "pdf")
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      message: expect.stringContaining("Batas unduhan PDF surat lamaran tercapai"),
+    await DownloadLogService.logDownload(
+      "user-1",
+      "application_letter",
+      "doc-2",
+      "letter.docx",
+      "docx"
+    );
+
+    expect(prisma.usageLog.create).toHaveBeenCalledWith({
+      data: {
+        userId: "user-1",
+        feature: "app_letter_download_docx",
+      },
     });
   });
 
-  it("enforces DOCX download limits separately from PDF limits", async () => {
+  it("returns plan-derived download stats for free plan", async () => {
     const prisma = getPrisma();
     prisma.user.findUnique.mockResolvedValue({
       subscriptionPlan: "free",
+      createdAt: new Date("2026-01-01"),
     });
     prisma.subscription.findFirst.mockResolvedValue(null);
-    prisma.downloadLog.count.mockResolvedValue(3);
-
-    await expect(
-      DownloadLogService.checkDownloadLimit("user-1", "cv", "docx")
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      message: expect.stringContaining("Batas unduhan DOCX CV tercapai"),
-    });
-  });
-
-  it("returns plan-derived download stats for admins", async () => {
-    const prisma = getPrisma();
-    prisma.user.findUnique.mockResolvedValue({
-      subscriptionPlan: "free",
-    });
-    prisma.subscription.findFirst.mockResolvedValue(null);
-    prisma.downloadLog.count
+    prisma.usageLog.count
       .mockResolvedValueOnce(3)
       .mockResolvedValueOnce(7)
       .mockResolvedValueOnce(1)
@@ -156,5 +98,17 @@ describe("DownloadLogService", () => {
         total_count: 2,
       },
     });
+  });
+
+  it("counts downloads by multiple users", async () => {
+    const prisma = getPrisma();
+    prisma.usageLog.groupBy.mockResolvedValue([
+      { userId: "user-1", _count: { _all: 5 } },
+      { userId: "user-2", _count: { _all: 3 } },
+    ]);
+
+    const result = await DownloadLogService.countDownloadsByUsers(["user-1", "user-2"]);
+
+    expect(result).toEqual({ "user-1": 5, "user-2": 3 });
   });
 });

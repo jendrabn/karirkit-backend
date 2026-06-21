@@ -533,46 +533,6 @@ export class DocumentService {
     return validate(DocumentValidation.UPLOAD, request);
   }
 
-  private static async assertStorageLimit(
-    userId: string,
-    additionalBytes: number
-  ): Promise<void> {
-    if (additionalBytes <= 0) {
-      return;
-    }
-
-    const [user, usage] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { subscriptionPlan: true },
-      }),
-      prisma.document.aggregate({
-        where: { userId },
-        _sum: { size: true },
-      }),
-    ]);
-
-    if (!user) {
-      throw new ResponseError(404, "Pengguna tidak ditemukan");
-    }
-
-    const limit = getPlan(
-      resolvePlanId(user.subscriptionPlan)
-    ).maxDocumentStorageBytes;
-
-    const currentUsage = usage._sum.size ?? 0;
-    if (currentUsage + additionalBytes > limit) {
-      const limitMb = Math.max(
-        1,
-        Math.floor(limit / (1024 * 1024))
-      );
-      throw new ResponseError(
-        400,
-        `Batas penyimpanan dokumen tercapai. Kuota Anda ${limitMb} MB.`
-      );
-    }
-  }
-
   private static buildUploadOptions(
     mimetype: string,
     compression?: DocumentCompressionLevel
@@ -698,8 +658,6 @@ export class DocumentService {
       }
     }
 
-    await DocumentService.assertStorageLimit(userId, processedBuffer.length);
-
     const filename = DocumentService.buildFilename(extension);
     const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
     await StorageService.write(publicPath, processedBuffer, finalMimeType);
@@ -707,7 +665,7 @@ export class DocumentService {
     return {
       path: publicPath,
       original_name: file.originalname,
-      size: processedBuffer.length,
+      size: file.buffer.length,
       mime_type: finalMimeType,
     };
   }

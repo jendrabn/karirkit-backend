@@ -30,7 +30,12 @@ import {
   checkAiImprovementAccess,
   checkApplicationTrackerLimit,
   checkCvLimit,
+  checkCvAiImproveLimit,
+  checkCvDownloadLimit,
+  checkLetterAiImproveLimit,
+  checkLetterDownloadLimit,
   checkPremiumTemplate,
+  checkStorageLimit,
 } from "../middleware/plan-limit.middleware";
 // Admin controllers
 import { DashboardController as AdminDashboardController } from "../controllers/admin/dashboard.controller";
@@ -177,6 +182,7 @@ router.post(
   "/application-letters/ai-improve",
   authMiddleware,
   checkAiImprovementAccess,
+  checkLetterAiImproveLimit,
   AiImprovementController.improveApplicationLetter,
 );
 router.delete(
@@ -209,6 +215,7 @@ router.post(
 router.get(
   "/application-letters/:id/download",
   authMiddleware,
+  checkLetterDownloadLimit,
   ApplicationLetterController.download,
 );
 
@@ -237,6 +244,7 @@ router.post(
   "/cvs/ai-improve",
   authMiddleware,
   checkAiImprovementAccess,
+  checkCvAiImproveLimit,
   AiImprovementController.improveCv,
 );
 router.delete("/cvs/mass-delete", authMiddleware, CvController.massDelete);
@@ -259,7 +267,12 @@ router.post(
   checkCvLimit,
   CvController.duplicate,
 );
-router.get("/cvs/:id/download", authMiddleware, CvController.download);
+router.get(
+  "/cvs/:id/download",
+  authMiddleware,
+  checkCvDownloadLimit,
+  CvController.download,
+);
 
 // Documents API
 router.get(
@@ -271,6 +284,7 @@ router.post(
   "/documents",
   authMiddleware,
   handleDocumentUpload,
+  checkStorageLimit,
   DocumentController.create,
 );
 router.delete(

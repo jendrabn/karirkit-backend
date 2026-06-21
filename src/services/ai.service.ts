@@ -1,11 +1,9 @@
 import type { Language } from "../generated/prisma/client";
+import { UsageFeature } from "../generated/prisma/client";
 import { prisma } from "../config/prisma.config";
 import env from "../config/env.config";
 import {
-  getPlan,
-  resolvePlanId,
   type AiImprovementKind,
-  type PlanId,
 } from "../config/subscription-plans.config";
 import { ResponseError } from "../utils/response-error.util";
 import { appLogger } from "../middleware/logger.middleware";
@@ -20,9 +18,6 @@ import {
   buildCvImprovementPrompt,
   type AiPromptBundle,
 } from "./ai-prompts";
-import {
-  SubscriptionStatus,
-} from "../generated/prisma/client";
 
 const extractJsonObject = (content: string): unknown => {
   const withoutFence = content
@@ -156,29 +151,6 @@ const runPrompt = async (prompt: AiPromptBundle): Promise<unknown> => {
   }
 };
 
-const getAiLimit = (planId: PlanId, kind: AiImprovementKind): number => {
-  const plan = getPlan(planId);
-  return kind === "cv"
-    ? plan.maxCvAiImprovements
-    : plan.maxApplicationLetterAiImprovements;
-};
-
-const getSubscriptionPeriodStart = async (
-  userId: string
-): Promise<Date | undefined> => {
-  const activeSubscription = await prisma.subscription.findFirst({
-    where: {
-      userId,
-      status: SubscriptionStatus.paid,
-      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-    },
-    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
-    select: { paidAt: true },
-  });
-
-  return activeSubscription?.paidAt ?? undefined;
-};
-
 export class AiService {
   static async improveCv(
     data: CvAiImprovementDataInput,
@@ -237,53 +209,19 @@ export class AiService {
     return result.data;
   }
 
-  static async checkAiUsageLimit(
-    userId: string,
-    kind: AiImprovementKind
-  ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { subscriptionPlan: true },
-    });
-
-    if (!user) {
-      throw new ResponseError(404, "User not found");
-    }
-
-    const planId = resolvePlanId(user.subscriptionPlan);
-    const limit = getAiLimit(planId, kind);
-
-    const periodStart = await getSubscriptionPeriodStart(userId);
-
-    const where: Parameters<typeof prisma.aiImprovementLog.count>[0] = {
-      where: {
-        userId,
-        type: kind,
-        ...(periodStart ? { usedAt: { gte: periodStart } } : {}),
-      },
-    };
-
-    const usedCount = await prisma.aiImprovementLog.count(where);
-
-    if (usedCount >= limit) {
-      const kindLabel = kind === "cv" ? "CV" : "surat lamaran";
-      throw new ResponseError(
-        429,
-        `Batas perbaikan AI ${kindLabel} tercapai. Anda sudah menggunakan ${usedCount} dari ${limit} perbaikan. Silakan tingkatkan paket langganan atau tunggu periode berlangganan berikutnya.`,
-        undefined,
-        { code: "AI_LIMIT_REACHED" }
-      );
-    }
-  }
-
   static async logAiUsage(
     userId: string,
     type: AiImprovementKind
   ): Promise<void> {
-    await prisma.aiImprovementLog.create({
+    const feature =
+      type === "cv"
+        ? UsageFeature.ai_improve_cv
+        : UsageFeature.ai_improve_app_letter;
+
+    await prisma.usageLog.create({
       data: {
         userId,
-        type,
+        feature,
       },
     });
   }

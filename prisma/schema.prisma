@@ -38,8 +38,7 @@ model User {
   blogs                 Blog[]
   cvs                   Cv[]
   documents             Document[]
-  downloadLogs          DownloadLog[]
-  aiImprovementLogs     AiImprovementLog[]
+  usageLogs             UsageLog[]
   otps                  Otp[]
   portfolios            Portfolio[]
   savedJobs             SavedJob[]
@@ -558,34 +557,17 @@ model JobMedia {
   @@map("job_medias")
 }
 
-model DownloadLog {
-  id           String       @id @default(uuid()) @db.VarChar(255)
-  userId       String       @map("user_id") @db.VarChar(255)
-  type         DownloadType
-  format       DownloadFormat @default(docx)
-  documentId   String       @map("document_id") @db.VarChar(255)
-  documentName String       @map("document_name") @db.VarChar(255)
-  downloadedAt DateTime     @default(now()) @map("downloaded_at") @db.Timestamp(0)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+model UsageLog {
+  id        String       @id @default(uuid()) @db.VarChar(255)
+  userId    String       @map("user_id") @db.VarChar(255)
+  feature   UsageFeature
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([downloadedAt])
-  @@index([userId, downloadedAt])
-  @@index([userId, type, format, downloadedAt])
-  @@map("download_logs")
-}
-
-model AiImprovementLog {
-  id     String            @id @default(uuid()) @db.VarChar(255)
-  userId String            @map("user_id") @db.VarChar(255)
-  type   AiImprovementType
-  usedAt DateTime          @default(now()) @map("used_at") @db.Timestamp(0)
-  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([usedAt])
-  @@index([userId, type, usedAt])
-  @@map("ai_improvement_logs")
+  @@index([createdAt])
+  @@index([userId, feature, createdAt])
+  @@map("usage_logs")
 }
 
 model Document {
@@ -939,19 +921,13 @@ enum OtpPurpose {
   login_verification
 }
 
-enum DownloadType {
-  cv
-  application_letter
-}
-
-enum DownloadFormat {
-  pdf
-  docx
-}
-
-enum AiImprovementType {
-  cv
-  application_letter
+enum UsageFeature {
+  cv_download_pdf
+  cv_download_docx
+  app_letter_download_pdf
+  app_letter_download_docx
+  ai_improve_cv
+  ai_improve_app_letter
 }
 
 enum DocumentType {

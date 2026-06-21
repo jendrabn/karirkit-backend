@@ -7,16 +7,29 @@ import {
 let app: typeof import("../../src/index").default;
 let env: typeof import("../../src/config/env.config").default;
 let AiService: typeof import("../../src/services/ai.service").AiService;
-let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
   jest.resetModules();
   jest.doMock("../../src/config/prisma.config", () => ({
-    prisma: {},
+    prisma: {
+      usageLog: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn(),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "user-1",
+          subscriptionPlan: "free",
+          createdAt: new Date("2026-01-01"),
+        }),
+      },
+      subscription: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    },
   }));
   jest.doMock("../../src/services/ai.service", () => ({
     AiService: {
-      checkAiUsageLimit: jest.fn(),
       improveCv: jest.fn(),
       improveApplicationLetter: jest.fn(),
       logAiUsage: jest.fn(),
@@ -26,9 +39,6 @@ beforeAll(async () => {
   ({ default: app } = await import("../../src/index"));
   ({ default: env } = await import("../../src/config/env.config"));
   ({ AiService } = await import("../../src/services/ai.service"));
-  ({ ResponseError: ResponseErrorClass } = await import(
-    "../../src/utils/response-error.util"
-  ));
 });
 
 afterAll(() => {
@@ -54,7 +64,6 @@ describe("POST /cvs/ai-improve", () => {
       headline: "Backend Engineer | TypeScript API Specialist",
     };
 
-    jest.mocked(AiService.checkAiUsageLimit).mockResolvedValue(undefined);
     jest.mocked(AiService.improveCv).mockResolvedValue(improved as never);
     jest.mocked(AiService.logAiUsage).mockResolvedValue(undefined);
 
@@ -82,7 +91,6 @@ describe("POST /cvs/ai-improve", () => {
         },
       ],
     });
-    expect(AiService.checkAiUsageLimit).toHaveBeenCalledWith("user-1", "cv");
     expect(AiService.improveCv).toHaveBeenCalledWith(
       expect.not.objectContaining({
         photo: expect.anything(),
@@ -112,26 +120,6 @@ describe("POST /cvs/ai-improve", () => {
     expect(AiService.improveCv).not.toHaveBeenCalled();
   });
 
-  it("returns 429 when the daily AI limit is reached", async () => {
-    jest.mocked(AiService.checkAiUsageLimit).mockRejectedValue(
-      new ResponseErrorClass(
-        429,
-        "Batas perbaikan AI harian tercapai.",
-        undefined,
-        { code: "AI_LIMIT_REACHED" }
-      )
-    );
-
-    const response = await request(app)
-      .post("/cvs/ai-improve")
-      .set("Authorization", "Bearer user-token")
-      .send({ data: buildCvPayload("template-basic") });
-
-    expect(response.status).toBe(429);
-    expect(response.body.code).toBe("AI_LIMIT_REACHED");
-    expect(AiService.improveCv).not.toHaveBeenCalled();
-    expect(AiService.logAiUsage).not.toHaveBeenCalled();
-  });
 });
 
 describe("POST /application-letters/ai-improve", () => {
@@ -152,7 +140,6 @@ describe("POST /application-letters/ai-improve", () => {
       subject: "Application for Backend Engineer Position",
     };
 
-    jest.mocked(AiService.checkAiUsageLimit).mockResolvedValue(undefined);
     jest
       .mocked(AiService.improveApplicationLetter)
       .mockResolvedValue(improved as never);

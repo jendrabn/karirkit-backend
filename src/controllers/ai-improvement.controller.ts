@@ -16,7 +16,6 @@ export class AiImprovementController {
         req.body
       );
 
-      await AiService.checkAiUsageLimit(req.user!.id, "cv");
       const improvedData = await AiService.improveCv(
         payload.data,
         payload.data.language,
@@ -51,7 +50,6 @@ export class AiImprovementController {
         req.body
       );
 
-      await AiService.checkAiUsageLimit(req.user!.id, "application_letter");
       const improvedData = await AiService.improveApplicationLetter(
         payload.data,
         payload.data.language,

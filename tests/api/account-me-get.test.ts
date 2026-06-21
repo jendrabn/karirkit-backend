@@ -161,12 +161,10 @@ describe("GET /account/me", () => {
         updatedAt: new Date(),
       },
     });
-    await prisma.downloadLog.create({
+    await prisma.usageLog.create({
       data: {
         userId: user.id,
-        type: "cv",
-        documentId: "resume-1",
-        documentName: "resume.pdf",
+        feature: "cv_download_pdf",
       },
     });
 

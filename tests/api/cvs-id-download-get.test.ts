@@ -19,6 +19,24 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 beforeAll(async () => {
   jest.resetModules();
   if (!process.env.RUN_REAL_API_TESTS) {
+    jest.doMock("../../src/config/prisma.config", () => ({
+      prisma: {
+        usageLog: {
+          count: jest.fn().mockResolvedValue(0),
+          create: jest.fn(),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            createdAt: new Date("2026-01-01"),
+          }),
+        },
+        subscription: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        cv: { count: jest.fn().mockResolvedValue(0) },
+        document: { findMany: jest.fn().mockResolvedValue([]) },
+      },
+    }));
     jest.doMock("../../src/services/cv.service", () => ({
       CvService: {
         download: jest.fn(),
@@ -26,7 +44,6 @@ beforeAll(async () => {
     }));
     jest.doMock("../../src/services/download-log.service", () => ({
       DownloadLogService: {
-        checkDownloadLimit: jest.fn(),
         logDownload: jest.fn(),
       },
     }));
@@ -61,9 +78,7 @@ describe("GET /cvs/:id/download", () => {
 
   it("downloads a CV document", async () => {
     const downloadMock = jest.mocked(CvService.download);
-    const checkLimitMock = jest.mocked(DownloadLogService.checkDownloadLimit);
     const logDownloadMock = jest.mocked(DownloadLogService.logDownload);
-    checkLimitMock.mockResolvedValue(undefined as never);
     logDownloadMock.mockResolvedValue(undefined as never);
     downloadMock.mockResolvedValue({
       fileName: "resume.docx",
@@ -82,7 +97,6 @@ describe("GET /cvs/:id/download", () => {
     );
     expect(response.headers["content-disposition"]).toContain("attachment;");
     expect(logDownloadMock).toHaveBeenCalledTimes(1);
-    expect(checkLimitMock).toHaveBeenCalledWith("user-1", "cv", "docx");
     expect(logDownloadMock).toHaveBeenCalledWith(
       "user-1",
       "cv",
@@ -92,11 +106,9 @@ describe("GET /cvs/:id/download", () => {
     );
   });
 
-  it("passes document download limit arguments for PDF downloads", async () => {
+  it("logs download for PDF format", async () => {
     const downloadMock = jest.mocked(CvService.download);
-    const checkLimitMock = jest.mocked(DownloadLogService.checkDownloadLimit);
     const logDownloadMock = jest.mocked(DownloadLogService.logDownload);
-    checkLimitMock.mockResolvedValue(undefined as never);
     logDownloadMock.mockResolvedValue(undefined as never);
     downloadMock.mockResolvedValue({
       fileName: "resume.pdf",
@@ -109,7 +121,6 @@ describe("GET /cvs/:id/download", () => {
       .set("Authorization", "Bearer user-token");
 
     expect(response.status).toBe(200);
-    expect(checkLimitMock).toHaveBeenCalledWith("user-1", "cv", "pdf");
     expect(logDownloadMock).toHaveBeenCalledWith(
       "user-1",
       "cv",
@@ -127,9 +138,7 @@ describe("GET /cvs/:id/download", () => {
   });
 
   it("returns errors when the requested format is invalid", async () => {
-    const checkLimitMock = jest.mocked(DownloadLogService.checkDownloadLimit);
     const downloadMock = jest.mocked(CvService.download);
-    checkLimitMock.mockResolvedValue(undefined as never);
     downloadMock.mockRejectedValue(new ResponseErrorClass(400, "Format unduhan tidak didukung"));
 
     const response = await request(app)
@@ -188,15 +197,13 @@ describe("GET /cvs/:id/download", () => {
     expect(response.headers["content-disposition"]).toContain("attachment;");
     expect(Number(response.headers["content-length"])).toBeGreaterThan(0);
 
-    const logs = await prisma.downloadLog.findMany({
-      where: { userId: user.id, documentId: cv.id },
+    const logs = await prisma.usageLog.findMany({
+      where: { userId: user.id, feature: "cv_download_docx" },
     });
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({
       userId: user.id,
-      documentId: cv.id,
-      type: "cv",
-      format: "docx",
+      feature: "cv_download_docx",
     });
   });
 

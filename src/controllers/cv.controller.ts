@@ -107,11 +107,6 @@ export class CvController {
         typeof rawFormat === "string" ? rawFormat : undefined
       );
 
-      await DownloadLogService.checkDownloadLimit(
-        req.user!.id,
-        "cv",
-        format
-      );
       const document = await CvService.download(
         req.user!.id,
         req.params.id,

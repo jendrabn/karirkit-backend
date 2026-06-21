@@ -84,11 +84,6 @@ export class ApplicationLetterController {
         typeof rawFormat === "string" ? rawFormat : undefined
       );
 
-      await DownloadLogService.checkDownloadLimit(
-        req.user!.id,
-        "application_letter",
-        format
-      );
       const document = await ApplicationLetterService.download(
         req.user!.id,
         req.params.id,
