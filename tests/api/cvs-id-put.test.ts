@@ -9,6 +9,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -17,11 +18,10 @@ let CvService: typeof import("../../src/services/cv.service").CvService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/cv.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -44,11 +44,11 @@ describe("PUT /cvs/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a cv record", async () => {
-    const updateMock = jest.mocked(CvService.update);
+    const updateMock = CvService.update;
     updateMock.mockResolvedValue({ id: validId, name: "CV Diperbarui" } as never);
 
     const response = await request(app)
@@ -73,7 +73,7 @@ describe("PUT /cvs/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(CvService.update);
+    const updateMock = CvService.update;
     updateMock.mockRejectedValue(new ResponseErrorClass(400, "Payload tidak valid"));
 
     const response = await request(app)

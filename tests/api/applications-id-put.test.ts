@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 const buildUpdatePayload = () => ({
@@ -35,11 +36,10 @@ let ApplicationService: typeof import("../../src/services/application.service").
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -63,11 +63,11 @@ describe("PUT /applications/:id", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a application record", async () => {
-    const updateMock = jest.mocked(ApplicationService.update);
+    const updateMock = ApplicationService.update;
     updateMock.mockResolvedValue({ id: validId, name: "Application Diperbarui" } as never);
 
     const response = await request(app)
@@ -91,7 +91,7 @@ describe("PUT /applications/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(ApplicationService.update);
+    const updateMock = ApplicationService.update;
     updateMock.mockRejectedValue(new ResponseErrorClass(400, "Payload tidak valid"));
 
     const response = await request(app)

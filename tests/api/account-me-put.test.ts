@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const tinyPngBuffer = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XGN0AAAAASUVORK5CYII=",
@@ -17,28 +18,27 @@ let AccountService: typeof import("../../src/services/account.service").AccountS
 let UploadService: typeof import("../../src/services/upload.service").UploadService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {},
     }));
-    jest.doMock("../../src/services/download-log.service", () => ({
+    mock.module("../../src/services/download-log.service", () => ({
       DownloadLogService: {},
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
-    jest.doMock("../../src/services/account.service", () => ({
+    mock.module("../../src/services/account.service", () => ({
       AccountService: {
-        updateMe: jest.fn(),
+        updateMe: mock(() => {}),
       },
     }));
-    jest.doMock("../../src/services/upload.service", () => ({
+    mock.module("../../src/services/upload.service", () => ({
       UploadService: {
-        uploadFile: jest.fn(),
+        uploadFile: mock(() => {}),
       },
     }));
   }
@@ -59,12 +59,12 @@ describe("PUT /account/me", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates the authenticated profile and uploads the avatar when present", async () => {
-    const updateMeMock = jest.mocked(AccountService.updateMe);
-    const uploadFileMock = jest.mocked(UploadService.uploadFile);
+    const updateMeMock = AccountService.updateMe;
+    const uploadFileMock = UploadService.uploadFile;
     uploadFileMock.mockResolvedValue({
       path: "/uploads/temp/avatar.webp",
       original_name: "avatar.png",

@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getTags: jest.fn(),
+        getTags: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /blogs/tags", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns blog tags inside data.items", async () => {
-    const getTagsMock = jest.mocked(BlogService.getTags);
+    const getTagsMock = BlogService.getTags;
     getTagsMock.mockResolvedValue([{ id: "tag-1", name: "Interview" }] as never);
 
     const response = await request(app).get("/blogs/tags");
@@ -57,7 +57,7 @@ describe("GET /blogs/tags", () => {
   });
 
   it("returns service errors when tags cannot be loaded", async () => {
-    const getTagsMock = jest.mocked(BlogService.getTags);
+    const getTagsMock = BlogService.getTags;
     getTagsMock.mockRejectedValue(
       new ResponseErrorClass(500, "Tag blog gagal dimuat"),
     );
@@ -69,7 +69,7 @@ describe("GET /blogs/tags", () => {
   });
 
   it("supports an empty tag list", async () => {
-    const getTagsMock = jest.mocked(BlogService.getTags);
+    const getTagsMock = BlogService.getTags;
     getTagsMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/blogs/tags");

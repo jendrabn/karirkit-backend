@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AdminJobService: typeof import("../../src/services/admin/job.service").AdminJobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/job.service", () => ({
       AdminJobService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("POST /admin/jobs", () => {
   const roleId = "550e8400-e29b-41d4-a716-446655440002";
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a job posting for admins", async () => {
-    const createMock = jest.mocked(AdminJobService.create);
+    const createMock = AdminJobService.create;
     createMock.mockResolvedValue({
       id: "job-1",
       title: "Senior Backend Engineer",
@@ -99,7 +99,7 @@ describe("POST /admin/jobs", () => {
   });
 
   it("accepts an empty contact phone and normalizes it to null", async () => {
-    const createMock = jest.mocked(AdminJobService.create);
+    const createMock = AdminJobService.create;
     createMock.mockResolvedValue({
       id: "job-2",
       title: "Senior Backend Engineer",

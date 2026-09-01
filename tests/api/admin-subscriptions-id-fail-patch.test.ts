@@ -1,13 +1,12 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      markFailed: jest.fn(),
+      markFailed: mock(() => {}),
     },
   }));
 
@@ -19,11 +18,11 @@ beforeAll(async () => {
 
 describe("PATCH /admin/subscriptions/:id/fail", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("marks a subscription as failed", async () => {
-    const failMock = jest.mocked(SubscriptionService.markFailed);
+    const failMock = SubscriptionService.markFailed;
     failMock.mockResolvedValue(undefined);
 
     const response = await request(app)

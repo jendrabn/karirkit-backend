@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let DashboardService: typeof import("../../src/services/admin/dashboard.service").DashboardService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/dashboard.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/dashboard.service", () => ({
       DashboardService: {
-        getStats: jest.fn(),
+        getStats: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("GET /admin/dashboard", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns dashboard statistics for admin users", async () => {
-    const getStatsMock = jest.mocked(DashboardService.getStats);
+    const getStatsMock = DashboardService.getStats;
     getStatsMock.mockResolvedValue({
       total_accounts: 14,
       total_users: 12,

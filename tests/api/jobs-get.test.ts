@@ -8,16 +8,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        list: jest.fn(),
+        list: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("GET /jobs", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a paginated public job list", async () => {
-    const listMock = jest.mocked(JobService.list);
+    const listMock = JobService.list;
     listMock.mockResolvedValue({
       items: [{ slug: "backend-engineer", title: "Backend Engineer" }],
       pagination: { page: 1, per_page: 5, total_items: 1, total_pages: 1 },
@@ -68,7 +68,7 @@ describe("GET /jobs", () => {
   });
 
   it("passes the authenticated user id to optional-auth listings", async () => {
-    const listMock = jest.mocked(JobService.list);
+    const listMock = JobService.list;
     listMock.mockResolvedValue({
       items: [
         { slug: "backend-engineer", title: "Backend Engineer", is_saved: true },

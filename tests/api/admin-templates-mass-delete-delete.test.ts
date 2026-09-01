@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let TemplateService: typeof import("../../src/services/admin/template.service").TemplateService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/template.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/template.service", () => ({
       TemplateService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("DELETE /admin/templates/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple template records", async () => {
-    const massDeleteMock = jest.mocked(TemplateService.massDelete);
+    const massDeleteMock = TemplateService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       message: "2 template berhasil dihapus",
@@ -82,7 +82,7 @@ describe("DELETE /admin/templates/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(TemplateService.massDelete);
+    const massDeleteMock = TemplateService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         ids: ["Minimal satu ID harus dipilih"],

@@ -1,9 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
 import request from "supertest";
-import app from "../../src/index";
+import { afterEach, beforeAll, describe, expect, it } from "bun:test";
 
+let app: typeof import("../../src/index").default;
 const publicDirectory = path.resolve(process.cwd(), "public");
+
+beforeAll(async () => {
+  ({ default: app } = await import("../../src/index"));
+});
 
 describe("GET /uploads/* security", () => {
   const createdPaths: string[] = [];

@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogTagService: typeof import("../../src/services/admin/blog-tag.service").BlogTagService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-tag.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-tag.service", () => ({
       BlogTagService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /admin/blog-tags", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a blog tag record", async () => {
-    const createMock = jest.mocked(BlogTagService.create);
+    const createMock = BlogTagService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       name: "Blog Tag Baru",
@@ -75,7 +75,7 @@ describe("POST /admin/blog-tags", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(BlogTagService.create);
+    const createMock = BlogTagService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         name: ["String must contain at least 1 character(s)"],

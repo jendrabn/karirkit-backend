@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AuthService: typeof import("../../src/services/auth.service").AuthService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/auth.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/auth.service", () => ({
       AuthService: {
-        resetPassword: jest.fn(),
+        resetPassword: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /auth/reset-password", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("resets the password and returns a success message", async () => {
-    const resetPasswordMock = jest.mocked(AuthService.resetPassword);
+    const resetPasswordMock = AuthService.resetPassword;
     resetPasswordMock.mockResolvedValue(undefined as never);
 
     const response = await request(app).post("/auth/reset-password").send({
@@ -57,7 +57,7 @@ describe("POST /auth/reset-password", () => {
   });
 
   it("returns validation errors for an invalid reset token", async () => {
-    const resetPasswordMock = jest.mocked(AuthService.resetPassword);
+    const resetPasswordMock = AuthService.resetPassword;
     resetPasswordMock.mockRejectedValue(
       new ResponseErrorClass(400, "Token reset tidak valid")
     );
@@ -73,7 +73,7 @@ describe("POST /auth/reset-password", () => {
   });
 
   it("returns errors when the token has already been used", async () => {
-    const resetPasswordMock = jest.mocked(AuthService.resetPassword);
+    const resetPasswordMock = AuthService.resetPassword;
     resetPasswordMock.mockRejectedValue(
       new ResponseErrorClass(400, "Token reset sudah tidak berlaku")
     );

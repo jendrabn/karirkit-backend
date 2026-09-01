@@ -7,17 +7,17 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let AdminJobService: typeof import("../../src/services/admin/job.service").AdminJobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/job.service", () => ({
       AdminJobService: {
-        get: jest.fn(),
+        get: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("GET /admin/jobs/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a single admin job detail", async () => {
-    const getMock = jest.mocked(AdminJobService.get);
+    const getMock = AdminJobService.get;
     getMock.mockResolvedValue({
       id: validId,
       title: "Backend Engineer",

@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let UserService: typeof import("../../src/services/admin/user.service").UserService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/user.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/user.service", () => ({
       UserService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("DELETE /admin/users/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple user records", async () => {
-    const massDeleteMock = jest.mocked(UserService.massDelete);
+    const massDeleteMock = UserService.massDelete;
     massDeleteMock.mockResolvedValue({
       message: "2 pengguna berhasil dihapus",
       deleted_count: 2,
@@ -80,7 +80,7 @@ describe("DELETE /admin/users/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(UserService.massDelete);
+    const massDeleteMock = UserService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         ids: ["Minimal satu ID harus dipilih"],

@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const buildPortfolioPayload = (suffix: string) => ({
   title: `Portfolio ${suffix}`,
@@ -33,11 +34,10 @@ let PortfolioService: typeof import("../../src/services/portfolio.service").Port
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/portfolio.service", () => ({
       PortfolioService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -60,11 +60,11 @@ describe("POST /portfolios", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a portfolio record", async () => {
-    const createMock = jest.mocked(PortfolioService.create);
+    const createMock = PortfolioService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Portfolio Baru",
@@ -95,7 +95,7 @@ describe("POST /portfolios", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(PortfolioService.create);
+    const createMock = PortfolioService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         title: ["Judul wajib diisi"],

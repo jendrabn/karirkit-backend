@@ -1,22 +1,22 @@
 import crypto from "crypto";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+const userFindUnique = mock(() => {});
+const subscriptionFindFirst = mock(() => {});
+const subscriptionFindMany = mock(() => {});
+const subscriptionFindUnique = mock(() => {});
+const subscriptionCreate = mock(() => {});
+const subscriptionUpdate = mock(() => {});
+const subscriptionUpdateMany = mock(() => {});
+const transaction = mock(() => {});
 
-const userFindUnique = jest.fn();
-const subscriptionFindFirst = jest.fn();
-const subscriptionFindMany = jest.fn();
-const subscriptionFindUnique = jest.fn();
-const subscriptionCreate = jest.fn();
-const subscriptionUpdate = jest.fn();
-const subscriptionUpdateMany = jest.fn();
-const transaction = jest.fn();
+const txSubscriptionUpdate = mock(() => {});
+const txSubscriptionUpdateMany = mock(() => {});
+const txUserUpdate = mock(() => {});
 
-const txSubscriptionUpdate = jest.fn();
-const txSubscriptionUpdateMany = jest.fn();
-const txUserUpdate = jest.fn();
-
-const midtransCancel = jest.fn();
-const midtransStatus = jest.fn();
-const midtransCreateTransaction = jest.fn();
-const midtransSnap = jest.fn(() => ({
+const midtransCancel = mock(() => {});
+const midtransStatus = mock(() => {});
+const midtransCreateTransaction = mock(() => {});
+const midtransSnap = mock(() => ({
   createTransaction: midtransCreateTransaction,
   transaction: {
     cancel: midtransCancel,
@@ -25,10 +25,8 @@ const midtransSnap = jest.fn(() => ({
 }));
 
 const loadService = async (paymentGatewayEnabled: boolean) => {
-  jest.resetModules();
-  jest.doMock("../../src/config/env.config", () => ({
-    __esModule: true,
-    default: {
+    mock.module("../../src/config/env.config", () => ({
+        default: {
       paymentGatewayEnabled,
       frontendUrl: "http://localhost:5173",
       midtrans: {
@@ -38,7 +36,7 @@ const loadService = async (paymentGatewayEnabled: boolean) => {
       },
     },
   }));
-  jest.doMock("../../src/config/prisma.config", () => ({
+  mock.module("../../src/config/prisma.config", () => ({
     prisma: {
       user: {
         findUnique: userFindUnique,
@@ -54,7 +52,7 @@ const loadService = async (paymentGatewayEnabled: boolean) => {
       $transaction: transaction,
     },
   }));
-  jest.doMock("midtrans-client", () => ({
+  mock.module("midtrans-client", () => ({
     Snap: midtransSnap,
   }));
 
@@ -77,7 +75,7 @@ const loadService = async (paymentGatewayEnabled: boolean) => {
 
 describe("SubscriptionService payment gateway fallback", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     userFindUnique.mockResolvedValue({
       id: "user-1",
       name: "User",

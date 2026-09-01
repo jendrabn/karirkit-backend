@@ -7,6 +7,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -14,11 +15,10 @@ let UserService: typeof import("../../src/services/admin/user.service").UserServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/user.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/user.service", () => ({
       UserService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("PUT /admin/users/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a user record", async () => {
-    const updateMock = jest.mocked(UserService.update);
+    const updateMock = UserService.update;
     updateMock.mockResolvedValue({
       id: validId,
       name: "User Diperbarui",
@@ -79,7 +79,7 @@ describe("PUT /admin/users/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(UserService.update);
+    const updateMock = UserService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         email: ["Format email tidak valid"],

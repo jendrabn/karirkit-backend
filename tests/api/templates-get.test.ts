@@ -6,17 +6,33 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let TemplateService: typeof import("../../src/services/template.service").TemplateService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/template.service", () => ({
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/middleware/auth.middleware", () => ({
+      authMiddleware: (req: any, _res: unknown, next: () => void) => {
+        const auth = req.headers?.authorization;
+        if (auth) {
+          req.user = { subscriptionPlan: "pro" };
+        }
+        next();
+      },
+      default: (req: any, _res: unknown, next: () => void) => {
+        const auth = req.headers?.authorization;
+        if (auth) {
+          req.user = { subscriptionPlan: "pro" };
+        }
+        next();
+      },
+    }));
+    mock.module("../../src/services/template.service", () => ({
       TemplateService: {
-        getTemplates: jest.fn(),
+        getTemplates: mock(() => {}),
       },
     }));
   }
@@ -39,11 +55,11 @@ describe("GET /templates", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns public templates inside the items wrapper", async () => {
-    const getTemplatesMock = jest.mocked(TemplateService.getTemplates);
+    const getTemplatesMock = TemplateService.getTemplates;
     getTemplatesMock.mockResolvedValue([
       { id: "template-1", name: "Modern CV", type: "cv" },
     ] as never);
@@ -66,7 +82,7 @@ describe("GET /templates", () => {
   });
 
   it("passes the authenticated plan into template filtering", async () => {
-    const getTemplatesMock = jest.mocked(TemplateService.getTemplates);
+    const getTemplatesMock = TemplateService.getTemplates;
     getTemplatesMock.mockResolvedValue([
       { id: "template-2", name: "Premium CV", type: "cv" },
     ] as never);
@@ -84,7 +100,7 @@ describe("GET /templates", () => {
   });
 
   it("returns validation errors when the template query is invalid", async () => {
-    const getTemplatesMock = jest.mocked(TemplateService.getTemplates);
+    const getTemplatesMock = TemplateService.getTemplates;
     getTemplatesMock.mockRejectedValue(
       new ResponseErrorClass(400, "Filter template tidak valid"),
     );
@@ -96,7 +112,7 @@ describe("GET /templates", () => {
   });
 
   it("supports an empty template collection", async () => {
-    const getTemplatesMock = jest.mocked(TemplateService.getTemplates);
+    const getTemplatesMock = TemplateService.getTemplates;
     getTemplatesMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/templates");

@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -17,40 +18,38 @@ let DownloadLogService: typeof import("../../src/services/download-log.service")
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
         usageLog: {
-          count: jest.fn().mockResolvedValue(0),
-          create: jest.fn(),
+          count: mock(() => {}).mockResolvedValue(0),
+          create: mock(() => {}),
         },
         user: {
-          findUnique: jest.fn().mockResolvedValue({
+          findUnique: mock(() => {}).mockResolvedValue({
             createdAt: new Date("2026-01-01"),
           }),
         },
         subscription: {
-          findFirst: jest.fn().mockResolvedValue(null),
+          findFirst: mock(() => {}).mockResolvedValue(null),
         },
-        cv: { count: jest.fn().mockResolvedValue(0) },
-        document: { findMany: jest.fn().mockResolvedValue([]) },
+        cv: { count: mock(() => {}).mockResolvedValue(0) },
+        document: { findMany: mock(() => {}).mockResolvedValue([]) },
       },
     }));
-    jest.doMock("../../src/services/cv.service", () => ({
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        download: jest.fn(),
+        download: mock(() => {}),
       },
     }));
-    jest.doMock("../../src/services/download-log.service", () => ({
+    mock.module("../../src/services/download-log.service", () => ({
       DownloadLogService: {
-        logDownload: jest.fn(),
+        logDownload: mock(() => {}),
       },
     }));
   } else {
-    jest.doMock("docx-templates", () => ({
-      __esModule: true,
-      default: jest.fn().mockResolvedValue(Buffer.from("docx-content")),
+    mock.module("docx-templates", () => ({
+            default: mock(() => {}).mockResolvedValue(Buffer.from("docx-content")),
     }));
   }
 
@@ -73,12 +72,12 @@ describe("GET /cvs/:id/download", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("downloads a CV document", async () => {
-    const downloadMock = jest.mocked(CvService.download);
-    const logDownloadMock = jest.mocked(DownloadLogService.logDownload);
+    const downloadMock = CvService.download;
+    const logDownloadMock = DownloadLogService.logDownload;
     logDownloadMock.mockResolvedValue(undefined as never);
     downloadMock.mockResolvedValue({
       fileName: "resume.docx",
@@ -107,8 +106,8 @@ describe("GET /cvs/:id/download", () => {
   });
 
   it("logs download for PDF format", async () => {
-    const downloadMock = jest.mocked(CvService.download);
-    const logDownloadMock = jest.mocked(DownloadLogService.logDownload);
+    const downloadMock = CvService.download;
+    const logDownloadMock = DownloadLogService.logDownload;
     logDownloadMock.mockResolvedValue(undefined as never);
     downloadMock.mockResolvedValue({
       fileName: "resume.pdf",
@@ -138,7 +137,7 @@ describe("GET /cvs/:id/download", () => {
   });
 
   it("returns errors when the requested format is invalid", async () => {
-    const downloadMock = jest.mocked(CvService.download);
+    const downloadMock = CvService.download;
     downloadMock.mockRejectedValue(new ResponseErrorClass(400, "Format unduhan tidak didukung"));
 
     const response = await request(app)

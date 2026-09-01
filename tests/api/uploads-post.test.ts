@@ -5,6 +5,7 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const tinyPngBuffer = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XGN0AAAAASUVORK5CYII=",
@@ -16,11 +17,10 @@ let UploadService: typeof import("../../src/services/upload.service").UploadServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/upload.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/upload.service", () => ({
       UploadService: {
-        uploadFile: jest.fn(),
+        uploadFile: mock(() => {}),
       },
     }));
   }
@@ -43,11 +43,11 @@ describe("POST /uploads", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("uploads a temporary file for authenticated users", async () => {
-    const uploadFileMock = jest.mocked(UploadService.uploadFile);
+    const uploadFileMock = UploadService.uploadFile;
     uploadFileMock.mockResolvedValue({
       path: "/uploads/temp/avatar.webp",
       original_name: "avatar.png",
@@ -82,7 +82,7 @@ describe("POST /uploads", () => {
   });
 
   it("returns 400 when the file is missing", async () => {
-    const uploadFileMock = jest.mocked(UploadService.uploadFile);
+    const uploadFileMock = UploadService.uploadFile;
     uploadFileMock.mockRejectedValue(
       new ResponseErrorClass(400, "File diperlukan")
     );

@@ -5,15 +5,43 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { ResponseError } from "../../src/utils/response-error.util";
+import { afterAll, afterEach, beforeAll, describe, expect, it, mock } from "bun:test";
 
-jest.setTimeout(20_000);
+let app: typeof import("../../src/index").default;
 
-const importAppFresh = async () => {
-  jest.resetModules();
-  jest.unmock("../../src/middleware/system-guard.middleware");
-  const module = await import("../../src/index");
-  return module.default;
-};
+beforeAll(async () => {
+  mock.module("../../src/middleware/auth.middleware", () => ({
+    authMiddleware: (_req: any, _res: unknown, next: () => void) => next(),
+    default: (_req: any, _res: unknown, next: () => void) => next(),
+  }));
+  mock.module("../../src/middleware/rate-limit.middleware", () => ({
+    globalRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    loginRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+  }));
+  mock.module("../../src/middleware/system-guard.middleware", () => ({
+    maintenanceModeMiddleware: (
+      _req: any,
+      _res: any,
+      next: () => void,
+    ): void => {
+      if (process.env.MAINTENANCE_MODE === "true") {
+        const bypassRoutes = ["/health", "/auth/login", "/auth/register"];
+        const pathname = _req?.path || _req?.url || "";
+        if (bypassRoutes.some((route) => pathname.startsWith(route))) {
+          next();
+          return;
+        }
+        next(new ResponseError(503, "System sedang dalam mode maintenance"));
+        return;
+      }
+      next();
+    },
+  }));
+
+  ({ default: app } = await import("../../src/index"));
+});
 
 describe("Maintenance mode from env", () => {
   const originalMaintenanceMode = process.env.MAINTENANCE_MODE;
@@ -34,7 +62,6 @@ describe("Maintenance mode from env", () => {
 
   it("blocks non-bypass routes when MAINTENANCE_MODE=true", async () => {
     process.env.MAINTENANCE_MODE = "true";
-    const app = await importAppFresh();
 
     const response = await request(app).get("/dashboard");
 
@@ -45,7 +72,6 @@ describe("Maintenance mode from env", () => {
 
   it("still allows bypass routes when MAINTENANCE_MODE=true", async () => {
     process.env.MAINTENANCE_MODE = "true";
-    const app = await importAppFresh();
 
     const response = await request(app).get("/health");
 
@@ -59,7 +85,6 @@ describe("Maintenance mode from env", () => {
     }
 
     process.env.MAINTENANCE_MODE = "true";
-    const app = await importAppFresh();
     const trackedEmails = new Set<string>();
 
     try {

@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogCategoryService: typeof import("../../src/services/admin/blog-category.service").BlogCategoryService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-category.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-category.service", () => ({
       BlogCategoryService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("DELETE /admin/blog-categories/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple blog category records", async () => {
-    const massDeleteMock = jest.mocked(BlogCategoryService.massDelete);
+    const massDeleteMock = BlogCategoryService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       message: "2 kategori blog berhasil dihapus",
@@ -82,7 +82,7 @@ describe("DELETE /admin/blog-categories/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(BlogCategoryService.massDelete);
+    const massDeleteMock = BlogCategoryService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         ids: ["Minimal satu ID harus dipilih"],

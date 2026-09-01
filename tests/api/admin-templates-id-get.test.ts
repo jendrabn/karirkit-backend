@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let TemplateService: typeof import("../../src/services/admin/template.service").
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/template.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/template.service", () => ({
       TemplateService: {
-        get: jest.fn(),
+        get: mock(() => {}),
       },
     }));
   }
@@ -42,11 +42,11 @@ describe("GET /admin/templates/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns template details", async () => {
-    const getMock = jest.mocked(TemplateService.get);
+    const getMock = TemplateService.get;
     getMock.mockResolvedValue({
       id: validId,
       name: "Template Detail",
@@ -76,7 +76,7 @@ describe("GET /admin/templates/:id", () => {
   });
 
   it("returns 404 when the template does not exist", async () => {
-    const getMock = jest.mocked(TemplateService.get);
+    const getMock = TemplateService.get;
     getMock.mockRejectedValue(
       new ResponseErrorClass(404, "Template tidak ditemukan"),
     );

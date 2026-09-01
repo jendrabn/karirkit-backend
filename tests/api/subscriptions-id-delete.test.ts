@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/subscription.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/subscription.service", () => ({
       SubscriptionService: {
-        cancelSubscription: jest.fn(),
+        cancelSubscription: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("DELETE /subscriptions/:id", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("cancels a pending subscription", async () => {
-    const cancelMock = jest.mocked(SubscriptionService.cancelSubscription);
+    const cancelMock = SubscriptionService.cancelSubscription;
     cancelMock.mockResolvedValue(undefined);
 
     const response = await request(app)

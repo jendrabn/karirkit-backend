@@ -6,29 +6,29 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AccountService: typeof import("../../src/services/account.service").AccountService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {},
     }));
-    jest.doMock("../../src/services/download-log.service", () => ({
+    mock.module("../../src/services/download-log.service", () => ({
       DownloadLogService: {},
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
-    jest.doMock("../../src/services/account.service", () => ({
+    mock.module("../../src/services/account.service", () => ({
       AccountService: {
-        me: jest.fn(),
+        me: mock(() => {}),
       },
     }));
   }
@@ -51,11 +51,11 @@ describe("GET /account/me", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns the authenticated account profile", async () => {
-    const meMock = jest.mocked(AccountService.me);
+    const meMock = AccountService.me;
     meMock.mockResolvedValue({
       id: "user-1",
       name: "User Test",
@@ -125,7 +125,7 @@ describe("GET /account/me", () => {
   });
 
   it("propagates service errors when the account cannot be loaded", async () => {
-    const meMock = jest.mocked(AccountService.me);
+    const meMock = AccountService.me;
     meMock.mockRejectedValue(new ResponseErrorClass(404, "Akun tidak ditemukan"));
 
     const response = await request(app)

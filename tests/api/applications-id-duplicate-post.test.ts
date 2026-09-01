@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -43,19 +44,18 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        application: { count: jest.fn() },
+        application: { count: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        duplicate: jest.fn(),
+        duplicate: mock(() => {}),
       },
     }));
   }
@@ -80,15 +80,15 @@ describe("POST /applications/:id/duplicate", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      application: { count: jest.Mock };
+      application: { count: Mock };
     };
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     getPrisma().application.count.mockResolvedValue(0);
   });
 
   it("duplicates the application record", async () => {
-    const duplicateMock = jest.mocked(ApplicationService.duplicate);
+    const duplicateMock = ApplicationService.duplicate;
     duplicateMock.mockResolvedValue({
       id: "660e8400-e29b-41d4-a716-446655440000",
       company_name: "Application Salinan",
@@ -115,7 +115,7 @@ describe("POST /applications/:id/duplicate", () => {
   });
 
   it("returns 404 when the application cannot be duplicated", async () => {
-    const duplicateMock = jest.mocked(ApplicationService.duplicate);
+    const duplicateMock = ApplicationService.duplicate;
     duplicateMock.mockRejectedValue(
       new ResponseErrorClass(404, "Lamaran tidak ditemukan"),
     );

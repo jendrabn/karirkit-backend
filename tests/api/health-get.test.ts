@@ -1,6 +1,11 @@
 import request from "supertest";
+import { beforeAll, describe, expect, it } from "bun:test";
 
-import app from "../../src/index";
+let app: typeof import("../../src/index").default;
+
+beforeAll(async () => {
+  ({ default: app } = await import("../../src/index"));
+});
 
 describe("GET /health", () => {
   it("returns service health information", async () => {

@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let BlogTagService: typeof import("../../src/services/admin/blog-tag.service").B
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-tag.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-tag.service", () => ({
       BlogTagService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("PUT /admin/blog-tags/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a blog tag record", async () => {
-    const updateMock = jest.mocked(BlogTagService.update);
+    const updateMock = BlogTagService.update;
     updateMock.mockResolvedValue({
       id: validId,
       name: "Blog Tag Diperbarui",
@@ -76,7 +76,7 @@ describe("PUT /admin/blog-tags/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(BlogTagService.update);
+    const updateMock = BlogTagService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         name: ["String must contain at least 1 character(s)"],

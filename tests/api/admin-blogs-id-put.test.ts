@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -14,11 +15,10 @@ let BlogService: typeof import("../../src/services/admin/blog.service").BlogServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog.service", () => ({
       BlogService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("PUT /admin/blogs/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates an admin blog record", async () => {
-    const updateMock = jest.mocked(BlogService.update);
+    const updateMock = BlogService.update;
     updateMock.mockResolvedValue({
       id: validId,
       title: "Admin Blog Diperbarui",
@@ -77,7 +77,7 @@ describe("PUT /admin/blogs/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(BlogService.update);
+    const updateMock = BlogService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );

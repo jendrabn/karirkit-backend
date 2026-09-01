@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let BlogCategoryService: typeof import("../../src/services/admin/blog-category.s
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-category.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-category.service", () => ({
       BlogCategoryService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -42,11 +42,11 @@ describe("DELETE /admin/blog-categories/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes the blog category resource", async () => {
-    const deleteMock = jest.mocked(BlogCategoryService.delete);
+    const deleteMock = BlogCategoryService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -68,7 +68,7 @@ describe("DELETE /admin/blog-categories/:id", () => {
   });
 
   it("returns 404 when the blog category cannot be found", async () => {
-    const deleteMock = jest.mocked(BlogCategoryService.delete);
+    const deleteMock = BlogCategoryService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Kategori blog tidak ditemukan"),
     );

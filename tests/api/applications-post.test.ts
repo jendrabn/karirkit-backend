@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const buildApplicationPayload = () => ({
   company_name: "PT Karir Global",
@@ -35,19 +36,18 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        application: { count: jest.fn() },
+        application: { count: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -72,16 +72,16 @@ describe("POST /applications", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      application: { count: jest.Mock };
+      application: { count: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     getPrisma().application.count.mockResolvedValue(0);
   });
 
   it("creates a application record", async () => {
-    const createMock = jest.mocked(ApplicationService.create);
+    const createMock = ApplicationService.create;
     createMock.mockResolvedValue({ id: "550e8400-e29b-41d4-a716-446655440000", name: "Application Baru" } as never);
 
     const response = await request(app)
@@ -105,7 +105,7 @@ describe("POST /applications", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(ApplicationService.create);
+    const createMock = ApplicationService.create;
     createMock.mockRejectedValue(new ResponseErrorClass(400, "Payload tidak valid"));
 
     const response = await request(app)

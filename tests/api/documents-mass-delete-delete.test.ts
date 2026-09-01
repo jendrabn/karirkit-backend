@@ -8,6 +8,7 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -15,11 +16,10 @@ let DocumentService: typeof import("../../src/services/document.service").Docume
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/document.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/document.service", () => ({
       DocumentService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -43,11 +43,11 @@ describe("DELETE /documents/mass-delete", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple document records", async () => {
-    const massDeleteMock = jest.mocked(DocumentService.massDelete);
+    const massDeleteMock = DocumentService.massDelete;
     massDeleteMock.mockResolvedValue({ deleted_count: 2, ids: ["550e8400-e29b-41d4-a716-446655440000", "660e8400-e29b-41d4-a716-446655440000"] } as never);
 
     const response = await request(app)
@@ -71,7 +71,7 @@ describe("DELETE /documents/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(DocumentService.massDelete);
+    const massDeleteMock = DocumentService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Minimal satu data harus dipilih"),
     );
@@ -86,7 +86,7 @@ describe("DELETE /documents/mass-delete", () => {
   });
 
   it("allows free users to mass delete documents", async () => {
-    const massDeleteMock = jest.mocked(DocumentService.massDelete);
+    const massDeleteMock = DocumentService.massDelete;
     massDeleteMock.mockResolvedValue({ deleted_count: 1, ids: [validId] } as never);
 
     const response = await request(app)

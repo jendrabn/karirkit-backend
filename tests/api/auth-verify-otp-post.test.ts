@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let OtpService: typeof import("../../src/services/otp.service").OtpService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/otp.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/otp.service", () => ({
       OtpService: {
-        verifyOtp: jest.fn(),
+        verifyOtp: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("POST /auth/verify-otp", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("verifies the OTP and creates a session cookie", async () => {
-    const verifyOtpMock = jest.mocked(OtpService.verifyOtp);
+    const verifyOtpMock = OtpService.verifyOtp;
     verifyOtpMock.mockResolvedValue({
       token: "otp-session-token",
       expires_at: Date.now() + 60_000,
@@ -67,7 +67,7 @@ describe("POST /auth/verify-otp", () => {
   });
 
   it("returns validation errors when the OTP is invalid", async () => {
-    const verifyOtpMock = jest.mocked(OtpService.verifyOtp);
+    const verifyOtpMock = OtpService.verifyOtp;
     verifyOtpMock.mockRejectedValue(
       new ResponseErrorClass(400, "Kode OTP tidak valid")
     );
@@ -82,7 +82,7 @@ describe("POST /auth/verify-otp", () => {
   });
 
   it("returns errors when the OTP has expired", async () => {
-    const verifyOtpMock = jest.mocked(OtpService.verifyOtp);
+    const verifyOtpMock = OtpService.verifyOtp;
     verifyOtpMock.mockRejectedValue(
       new ResponseErrorClass(400, "Kode OTP sudah kedaluwarsa")
     );

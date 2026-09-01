@@ -9,6 +9,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
@@ -16,20 +17,19 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        applicationLetter: { count: jest.fn() },
-        template: { findUnique: jest.fn() },
+        applicationLetter: { count: mock(() => {}) },
+        template: { findUnique: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -56,19 +56,19 @@ describe("POST /application-letters", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      applicationLetter: { count: jest.Mock };
-      template: { findUnique: jest.Mock };
+      applicationLetter: { count: Mock };
+      template: { findUnique: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     const prisma = getPrisma();
     prisma.applicationLetter.count.mockResolvedValue(0);
     prisma.template.findUnique.mockResolvedValue(null);
   });
 
   it("creates an application letter record", async () => {
-    const createMock = jest.mocked(ApplicationLetterService.create);
+    const createMock = ApplicationLetterService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       name: "Application Letter Baru",
@@ -99,7 +99,7 @@ describe("POST /application-letters", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(ApplicationLetterService.create);
+    const createMock = ApplicationLetterService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );

@@ -8,6 +8,7 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -15,11 +16,10 @@ let DocumentService: typeof import("../../src/services/document.service").Docume
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/document.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/document.service", () => ({
       DocumentService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -43,11 +43,11 @@ describe("DELETE /documents/:id", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes the document resource", async () => {
-    const deleteMock = jest.mocked(DocumentService.delete);
+    const deleteMock = DocumentService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -67,7 +67,7 @@ describe("DELETE /documents/:id", () => {
   });
 
   it("returns 404 when the document cannot be found", async () => {
-    const deleteMock = jest.mocked(DocumentService.delete);
+    const deleteMock = DocumentService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Document tidak ditemukan"),
     );
@@ -81,7 +81,7 @@ describe("DELETE /documents/:id", () => {
   });
 
   it("allows free users to delete documents", async () => {
-    const deleteMock = jest.mocked(DocumentService.delete);
+    const deleteMock = DocumentService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)

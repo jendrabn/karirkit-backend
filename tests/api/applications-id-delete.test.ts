@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let ApplicationService: typeof import("../../src/services/application.service").
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("DELETE /applications/:id", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes the application resource", async () => {
-    const deleteMock = jest.mocked(ApplicationService.delete);
+    const deleteMock = ApplicationService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -65,7 +65,7 @@ describe("DELETE /applications/:id", () => {
   });
 
   it("returns 404 when the application cannot be found", async () => {
-    const deleteMock = jest.mocked(ApplicationService.delete);
+    const deleteMock = ApplicationService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Application tidak ditemukan"),
     );

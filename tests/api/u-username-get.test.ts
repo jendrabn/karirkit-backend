@@ -5,6 +5,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -12,11 +13,10 @@ let PublicPortfolioService: typeof import("../../src/services/public-portfolio.s
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/public-portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/public-portfolio.service", () => ({
       PublicPortfolioService: {
-        listByUsername: jest.fn(),
+        listByUsername: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("GET /u/@:username", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a public portfolio listing for the username", async () => {
-    const listByUsernameMock = jest.mocked(PublicPortfolioService.listByUsername);
+    const listByUsernameMock = PublicPortfolioService.listByUsername;
     listByUsernameMock.mockResolvedValue({
       user: { username: "johndoe" },
       portfolios: [{ id: validId, title: "Frontend Portfolio" }],
@@ -66,7 +66,7 @@ describe("GET /u/@:username", () => {
   });
 
   it("returns 404 when the user is not found", async () => {
-    const listByUsernameMock = jest.mocked(PublicPortfolioService.listByUsername);
+    const listByUsernameMock = PublicPortfolioService.listByUsername;
     listByUsernameMock.mockRejectedValue(
       new ResponseErrorClass(404, "Pengguna tidak ditemukan"),
     );
@@ -79,7 +79,7 @@ describe("GET /u/@:username", () => {
   });
 
   it("supports users who have no public portfolio items yet", async () => {
-    const listByUsernameMock = jest.mocked(PublicPortfolioService.listByUsername);
+    const listByUsernameMock = PublicPortfolioService.listByUsername;
     listByUsernameMock.mockResolvedValue({
       user: { username: "johndoe" },
       portfolios: [],

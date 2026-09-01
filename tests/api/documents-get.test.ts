@@ -8,17 +8,17 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let DocumentService: typeof import("../../src/services/document.service").DocumentService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/document.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/document.service", () => ({
       DocumentService: {
-        list: jest.fn(),
+        list: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("GET /documents", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a paginated document list", async () => {
-    const listMock = jest.mocked(DocumentService.list);
+    const listMock = DocumentService.list;
     listMock.mockResolvedValue({
       items: [{ id: validId, name: "Document 1" }],
       meta: { page: 1, per_page: 20, total: 1 },
@@ -71,7 +71,7 @@ describe("GET /documents", () => {
   });
 
   it("supports an empty document state", async () => {
-    const listMock = jest.mocked(DocumentService.list);
+    const listMock = DocumentService.list;
     listMock.mockResolvedValue({ items: [], meta: { page: 1, per_page: 20, total: 0 } } as never);
 
     const response = await request(app)
@@ -84,7 +84,7 @@ describe("GET /documents", () => {
   });
 
   it("allows free users to list documents", async () => {
-    const listMock = jest.mocked(DocumentService.list);
+    const listMock = DocumentService.list;
     listMock.mockResolvedValue({
       items: [],
       meta: { page: 1, per_page: 20, total: 0 },
@@ -99,7 +99,7 @@ describe("GET /documents", () => {
   });
 
   it("also allows admins on free plan to list documents", async () => {
-    const listMock = jest.mocked(DocumentService.list);
+    const listMock = DocumentService.list;
     listMock.mockResolvedValue({
       items: [],
       meta: { page: 1, per_page: 20, total: 0 },

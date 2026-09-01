@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getRelatedBlogs: jest.fn(),
+        getRelatedBlogs: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /blogs/:slug/related", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns related blogs for the requested slug", async () => {
-    const getRelatedBlogsMock = jest.mocked(BlogService.getRelatedBlogs);
+    const getRelatedBlogsMock = BlogService.getRelatedBlogs;
     getRelatedBlogsMock.mockResolvedValue([
       { slug: "related-post", title: "Related Post" },
     ] as never);
@@ -59,7 +59,7 @@ describe("GET /blogs/:slug/related", () => {
   });
 
   it("returns 404 when the source blog cannot be found", async () => {
-    const getRelatedBlogsMock = jest.mocked(BlogService.getRelatedBlogs);
+    const getRelatedBlogsMock = BlogService.getRelatedBlogs;
     getRelatedBlogsMock.mockRejectedValue(
       new ResponseErrorClass(404, "Blog tidak ditemukan"),
     );
@@ -71,7 +71,7 @@ describe("GET /blogs/:slug/related", () => {
   });
 
   it("supports an empty related blog list", async () => {
-    const getRelatedBlogsMock = jest.mocked(BlogService.getRelatedBlogs);
+    const getRelatedBlogsMock = BlogService.getRelatedBlogs;
     getRelatedBlogsMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/blogs/sample-slug/related");

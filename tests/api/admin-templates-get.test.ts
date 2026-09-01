@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let TemplateService: typeof import("../../src/services/admin/template.service").TemplateService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/template.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/template.service", () => ({
       TemplateService: {
-        list: jest.fn(),
+        list: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /admin/templates", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a paginated template list", async () => {
-    const listMock = jest.mocked(TemplateService.list);
+    const listMock = TemplateService.list;
     listMock.mockResolvedValue({
       items: [{ id: validId, name: "Template 1" }],
       pagination: { page: 1, per_page: 20, total_items: 1, total_pages: 1 },
@@ -74,7 +74,7 @@ describe("GET /admin/templates", () => {
   });
 
   it("supports an empty template state", async () => {
-    const listMock = jest.mocked(TemplateService.list);
+    const listMock = TemplateService.list;
     listMock.mockResolvedValue({
       items: [],
       pagination: { page: 1, per_page: 20, total_items: 0, total_pages: 0 },

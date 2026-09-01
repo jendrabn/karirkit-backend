@@ -1,33 +1,32 @@
 import request from "supertest";
 import { disconnectPrisma } from "./real-mode";
-
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {},
     }));
-    jest.doMock("../../src/services/download-log.service", () => ({
+    mock.module("../../src/services/download-log.service", () => ({
       DownloadLogService: {},
     }));
-    jest.doMock("../../src/services/application.service", () => ({
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {},
     }));
-    jest.doMock("../../src/services/template.service", () => ({
+    mock.module("../../src/services/template.service", () => ({
       TemplateService: {},
     }));
-    jest.doMock("../../src/services/job.service", () => ({
+    mock.module("../../src/services/job.service", () => ({
       JobService: {},
     }));
-    jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
       SubscriptionService: {
-        getPlans: jest.fn(),
+        getPlans: mock(() => {}),
       },
     }));
   }
@@ -50,11 +49,11 @@ describe("GET /subscriptions/plans", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns public subscription plans", async () => {
-    const getPlansMock = jest.mocked(SubscriptionService.getPlans);
+    const getPlansMock = SubscriptionService.getPlans;
     getPlansMock.mockReturnValue([
       {
         id: "free",

@@ -1,14 +1,13 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      getAdminSubscription: jest.fn(),
+      getAdminSubscription: mock(() => {}),
     },
   }));
 
@@ -23,11 +22,11 @@ beforeAll(async () => {
 
 describe("GET /admin/subscriptions/:id", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns subscription detail for admins", async () => {
-    const getMock = jest.mocked(SubscriptionService.getAdminSubscription);
+    const getMock = SubscriptionService.getAdminSubscription;
     getMock.mockResolvedValue({
       id: "sub-1",
       userId: "user-1",
@@ -67,7 +66,7 @@ describe("GET /admin/subscriptions/:id", () => {
   });
 
   it("propagates admin detail errors", async () => {
-    const getMock = jest.mocked(SubscriptionService.getAdminSubscription);
+    const getMock = SubscriptionService.getAdminSubscription;
     getMock.mockRejectedValue(
       new ResponseErrorClass(404, "Subscription tidak ditemukan")
     );

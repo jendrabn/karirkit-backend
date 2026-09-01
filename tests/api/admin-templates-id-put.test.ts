@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let TemplateService: typeof import("../../src/services/admin/template.service").
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/template.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/template.service", () => ({
       TemplateService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -42,11 +42,11 @@ describe("PUT /admin/templates/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a template record", async () => {
-    const updateMock = jest.mocked(TemplateService.update);
+    const updateMock = TemplateService.update;
     updateMock.mockResolvedValue({
       id: validId,
       name: "Template Diperbarui",
@@ -78,7 +78,7 @@ describe("PUT /admin/templates/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(TemplateService.update);
+    const updateMock = TemplateService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         name: ["String must contain at least 1 character(s)"],

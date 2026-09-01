@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let PortfolioService: typeof import("../../src/services/portfolio.service").PortfolioService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/portfolio.service", () => ({
       PortfolioService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("DELETE /portfolios/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple portfolio records", async () => {
-    const massDeleteMock = jest.mocked(PortfolioService.massDelete);
+    const massDeleteMock = PortfolioService.massDelete;
     massDeleteMock.mockResolvedValue({
       message: "2 portfolio berhasil dihapus",
       deleted_count: 2,
@@ -79,7 +79,7 @@ describe("DELETE /portfolios/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(PortfolioService.massDelete);
+    const massDeleteMock = PortfolioService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         ids: ["Minimal satu ID harus dipilih"],

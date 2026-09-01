@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/admin/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog.service", () => ({
       BlogService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("DELETE /admin/blogs/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple admin blog records", async () => {
-    const massDeleteMock = jest.mocked(BlogService.massDelete);
+    const massDeleteMock = BlogService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       ids: [
@@ -86,7 +86,7 @@ describe("DELETE /admin/blogs/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(BlogService.massDelete);
+    const massDeleteMock = BlogService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Minimal satu data harus dipilih")
     );

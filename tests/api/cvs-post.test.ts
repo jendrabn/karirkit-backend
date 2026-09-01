@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let CvService: typeof import("../../src/services/cv.service").CvService;
@@ -15,17 +16,16 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        cv: { count: jest.fn() },
-        template: { findUnique: jest.fn() },
+        cv: { count: mock(() => {}) },
+        template: { findUnique: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/cv.service", () => ({
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -50,19 +50,19 @@ describe("POST /cvs", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      cv: { count: jest.Mock };
-      template: { findUnique: jest.Mock };
+      cv: { count: Mock };
+      template: { findUnique: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     const prisma = getPrisma();
     prisma.cv.count.mockResolvedValue(0);
     prisma.template.findUnique.mockResolvedValue(null);
   });
 
   it("creates a cv record", async () => {
-    const createMock = jest.mocked(CvService.create);
+    const createMock = CvService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       name: "CV Baru",
@@ -91,7 +91,7 @@ describe("POST /cvs", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(CvService.create);
+    const createMock = CvService.create;
     createMock.mockRejectedValue(new ResponseErrorClass(400, "Payload tidak valid"));
 
     const response = await request(app)

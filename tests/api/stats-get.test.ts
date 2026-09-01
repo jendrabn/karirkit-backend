@@ -5,26 +5,40 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { ResponseError } from "../../src/utils/response-error.util";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
+let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/middleware/auth.middleware", () => ({
+      authMiddleware: (_req: any, _res: unknown, next: () => void) => next(),
+      default: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/middleware/rate-limit.middleware", () => ({
+      globalRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      loginRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        user: { count: jest.fn() },
-        cv: { count: jest.fn() },
-        applicationLetter: { count: jest.fn() },
-        application: { count: jest.fn() },
-        template: { count: jest.fn() },
+        user: { count: mock(() => {}) },
+        cv: { count: mock(() => {}) },
+        applicationLetter: { count: mock(() => {}) },
+        application: { count: mock(() => {}) },
+        template: { count: mock(() => {}) },
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
   ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
+  ({ ResponseError: ResponseErrorClass } = await import(
+    "../../src/utils/response-error.util"
+  ));
 });
 
 afterAll(async () => {
@@ -39,15 +53,15 @@ describe("GET /stats", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      user: { count: jest.Mock };
-      cv: { count: jest.Mock };
-      applicationLetter: { count: jest.Mock };
-      application: { count: jest.Mock };
-      template: { count: jest.Mock };
+      user: { count: Mock };
+      cv: { count: Mock };
+      applicationLetter: { count: Mock };
+      application: { count: Mock };
+      template: { count: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns aggregated public statistics", async () => {
@@ -75,7 +89,9 @@ describe("GET /stats", () => {
 
   it("returns 500 when one of the counters fails", async () => {
     const prisma = getPrisma();
-    prisma.user.count.mockRejectedValue(new Error("Database unavailable"));
+    prisma.user.count.mockRejectedValue(
+      new ResponseErrorClass(500, "Database unavailable"),
+    );
 
     const response = await request(app).get("/stats");
 

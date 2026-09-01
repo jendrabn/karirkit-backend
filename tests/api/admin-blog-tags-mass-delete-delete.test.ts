@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogTagService: typeof import("../../src/services/admin/blog-tag.service").BlogTagService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-tag.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-tag.service", () => ({
       BlogTagService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("DELETE /admin/blog-tags/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple blog tag records", async () => {
-    const massDeleteMock = jest.mocked(BlogTagService.massDelete);
+    const massDeleteMock = BlogTagService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       message: "2 tag blog berhasil dihapus",
@@ -80,7 +80,7 @@ describe("DELETE /admin/blog-tags/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(BlogTagService.massDelete);
+    const massDeleteMock = BlogTagService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         ids: ["Minimal satu ID harus dipilih"],

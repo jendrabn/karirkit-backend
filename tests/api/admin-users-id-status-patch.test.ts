@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let UserService: typeof import("../../src/services/admin/user.service").UserServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/user.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/user.service", () => ({
       UserService: {
-        updateStatus: jest.fn(),
+        updateStatus: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("PATCH /admin/users/:id/status", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates user status", async () => {
-    const updateStatusMock = jest.mocked(UserService.updateStatus);
+    const updateStatusMock = UserService.updateStatus;
     updateStatusMock.mockResolvedValue({
       id: validId,
       status: "suspended",
@@ -80,7 +80,7 @@ describe("PATCH /admin/users/:id/status", () => {
   });
 
   it("returns validation errors for invalid patch payloads", async () => {
-    const updateStatusMock = jest.mocked(UserService.updateStatus);
+    const updateStatusMock = UserService.updateStatus;
     updateStatusMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         suspended_until: ["Format tanggal penangguhan tidak valid"],

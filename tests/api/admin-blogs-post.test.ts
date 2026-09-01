@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, test } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/admin/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog.service", () => ({
       BlogService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /admin/blogs", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates an admin blog record", async () => {
-    const createMock = jest.mocked(BlogService.create);
+    const createMock = BlogService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Admin Blog Baru",
@@ -75,7 +75,7 @@ describe("POST /admin/blogs", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(BlogService.create);
+    const createMock = BlogService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );

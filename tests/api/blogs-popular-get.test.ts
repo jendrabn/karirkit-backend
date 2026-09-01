@@ -5,22 +5,36 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { ResponseError } from "../../src/utils/response-error.util";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
+let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/middleware/auth.middleware", () => ({
+      authMiddleware: (_req: any, _res: unknown, next: () => void) => next(),
+      default: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/middleware/rate-limit.middleware", () => ({
+      globalRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      loginRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getPopular: jest.fn(),
+        getPopular: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
   ({ BlogService } = await import("../../src/services/blog.service"));
+  ({ ResponseError: ResponseErrorClass } = await import(
+    "../../src/utils/response-error.util"
+  ));
 });
 
 afterAll(async () => {
@@ -34,11 +48,11 @@ describe("GET /blogs/popular", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns popular blogs for the requested window", async () => {
-    const getPopularMock = jest.mocked(BlogService.getPopular);
+    const getPopularMock = BlogService.getPopular;
     getPopularMock.mockResolvedValue([
       { slug: "popular-post", title: "Popular Post" },
     ] as never);
@@ -55,8 +69,10 @@ describe("GET /blogs/popular", () => {
   });
 
   it("returns service errors when the popular list cannot be generated", async () => {
-    const getPopularMock = jest.mocked(BlogService.getPopular);
-    getPopularMock.mockRejectedValue(new Error("Popular blogs unavailable"));
+    const getPopularMock = BlogService.getPopular;
+    getPopularMock.mockRejectedValue(
+      new ResponseErrorClass(500, "Popular blogs unavailable"),
+    );
 
     const response = await request(app).get("/blogs/popular");
 
@@ -65,7 +81,7 @@ describe("GET /blogs/popular", () => {
   });
 
   it("uses the default window and a clamped limit when the query is extreme", async () => {
-    const getPopularMock = jest.mocked(BlogService.getPopular);
+    const getPopularMock = BlogService.getPopular;
     getPopularMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/blogs/popular?limit=0");

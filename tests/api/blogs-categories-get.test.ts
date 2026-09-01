@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getCategories: jest.fn(),
+        getCategories: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /blogs/categories", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns blog categories inside data.items", async () => {
-    const getCategoriesMock = jest.mocked(BlogService.getCategories);
+    const getCategoriesMock = BlogService.getCategories;
     getCategoriesMock.mockResolvedValue([{ id: "cat-1", name: "Career" }] as never);
 
     const response = await request(app).get("/blogs/categories");
@@ -57,7 +57,7 @@ describe("GET /blogs/categories", () => {
   });
 
   it("returns service errors when categories cannot be loaded", async () => {
-    const getCategoriesMock = jest.mocked(BlogService.getCategories);
+    const getCategoriesMock = BlogService.getCategories;
     getCategoriesMock.mockRejectedValue(
       new ResponseErrorClass(500, "Kategori blog gagal dimuat"),
     );
@@ -69,7 +69,7 @@ describe("GET /blogs/categories", () => {
   });
 
   it("supports an empty category list", async () => {
-    const getCategoriesMock = jest.mocked(BlogService.getCategories);
+    const getCategoriesMock = BlogService.getCategories;
     getCategoriesMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/blogs/categories");

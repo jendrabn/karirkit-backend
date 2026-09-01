@@ -5,17 +5,17 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AccountService: typeof import("../../src/services/account.service").AccountService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/account.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/account.service", () => ({
       AccountService: {
-        changePassword: jest.fn(),
+        changePassword: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("PUT /account/change-password", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("changes the password for the authenticated user", async () => {
-    const changePasswordMock = jest.mocked(AccountService.changePassword);
+    const changePasswordMock = AccountService.changePassword;
     changePasswordMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -70,7 +70,7 @@ describe("PUT /account/change-password", () => {
   });
 
   it("returns validation errors when the old password is incorrect", async () => {
-    const changePasswordMock = jest.mocked(AccountService.changePassword);
+    const changePasswordMock = AccountService.changePassword;
     changePasswordMock.mockRejectedValue(
       new ResponseErrorClass(400, "Password saat ini tidak sesuai"),
     );

@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let BlogService: typeof import("../../src/services/admin/blog.service").BlogServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog.service", () => ({
       BlogService: {
-        list: jest.fn(),
+        list: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("GET /admin/blogs", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a paginated admin blog list", async () => {
-    const listMock = jest.mocked(BlogService.list);
+    const listMock = BlogService.list;
     listMock.mockResolvedValue({
       items: [{ id: validId, title: "Admin Blog 1" }],
       pagination: { page: 1, per_page: 20, total_items: 1, total_pages: 1 },
@@ -76,7 +76,7 @@ describe("GET /admin/blogs", () => {
   });
 
   it("returns 400 when the blog view range is invalid", async () => {
-    const listMock = jest.mocked(BlogService.list);
+    const listMock = BlogService.list;
     listMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         views_from: ["Views minimal tidak boleh lebih besar dari maksimal"],

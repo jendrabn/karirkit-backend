@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AdminJobRoleService: typeof import("../../src/services/admin/job-role.service").AdminJobRoleService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/job-role.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/job-role.service", () => ({
       AdminJobRoleService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("POST /admin/job-roles", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a job role for admin users", async () => {
-    const createMock = jest.mocked(AdminJobRoleService.create);
+    const createMock = AdminJobRoleService.create;
     createMock.mockResolvedValue({
       id: "role-1",
       name: "Backend Engineer",

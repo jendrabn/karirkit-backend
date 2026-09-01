@@ -9,6 +9,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -17,11 +18,10 @@ let ApplicationLetterService: typeof import("../../src/services/application-lett
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application-letter.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -46,11 +46,11 @@ describe("PUT /application-letters/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates an application letter record", async () => {
-    const updateMock = jest.mocked(ApplicationLetterService.update);
+    const updateMock = ApplicationLetterService.update;
     updateMock.mockResolvedValue({
       id: validId,
       name: "Application Letter Diperbarui",
@@ -81,7 +81,7 @@ describe("PUT /application-letters/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(ApplicationLetterService.update);
+    const updateMock = ApplicationLetterService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );

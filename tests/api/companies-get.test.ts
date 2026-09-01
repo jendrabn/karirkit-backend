@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        listCompanies: jest.fn(),
+        listCompanies: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /companies", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns public company options", async () => {
-    const listCompaniesMock = jest.mocked(JobService.listCompanies);
+    const listCompaniesMock = JobService.listCompanies;
     listCompaniesMock.mockResolvedValue([
       { id: "company-1", name: "Acme" },
     ] as never);
@@ -58,7 +58,7 @@ describe("GET /companies", () => {
   });
 
   it("returns service errors when companies cannot be loaded", async () => {
-    const listCompaniesMock = jest.mocked(JobService.listCompanies);
+    const listCompaniesMock = JobService.listCompanies;
     listCompaniesMock.mockRejectedValue(
       new ResponseErrorClass(500, "Daftar perusahaan gagal dimuat"),
     );
@@ -72,7 +72,7 @@ describe("GET /companies", () => {
   });
 
   it("supports an empty company option list", async () => {
-    const listCompaniesMock = jest.mocked(JobService.listCompanies);
+    const listCompaniesMock = JobService.listCompanies;
     listCompaniesMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/companies");

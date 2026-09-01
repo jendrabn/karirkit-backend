@@ -5,6 +5,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -12,11 +13,10 @@ let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getBySlug: jest.fn(),
+        getBySlug: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("GET /blogs/:slug", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a blog detail by slug", async () => {
-    const getBySlugMock = jest.mocked(BlogService.getBySlug);
+    const getBySlugMock = BlogService.getBySlug;
     getBySlugMock.mockResolvedValue({
       id: validId,
       slug: "sample-slug",
@@ -68,7 +68,7 @@ describe("GET /blogs/:slug", () => {
   });
 
   it("returns 404 when the resource is not found", async () => {
-    const getBySlugMock = jest.mocked(BlogService.getBySlug);
+    const getBySlugMock = BlogService.getBySlug;
     getBySlugMock.mockRejectedValue(
       new ResponseErrorClass(404, "Blog tidak ditemukan"),
     );
@@ -80,7 +80,7 @@ describe("GET /blogs/:slug", () => {
   });
 
   it("supports blogs that have no tags", async () => {
-    const getBySlugMock = jest.mocked(BlogService.getBySlug);
+    const getBySlugMock = BlogService.getBySlug;
     getBySlugMock.mockResolvedValue({
       id: validId,
       slug: "sample-slug",

@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let BlogCategoryService: typeof import("../../src/services/admin/blog-category.s
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-category.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-category.service", () => ({
       BlogCategoryService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -42,11 +42,11 @@ describe("PUT /admin/blog-categories/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a blog category record", async () => {
-    const updateMock = jest.mocked(BlogCategoryService.update);
+    const updateMock = BlogCategoryService.update;
     updateMock.mockResolvedValue({
       id: validId,
       name: "Blog Category Diperbarui",
@@ -78,7 +78,7 @@ describe("PUT /admin/blog-categories/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(BlogCategoryService.update);
+    const updateMock = BlogCategoryService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         name: ["String must contain at least 1 character(s)"],

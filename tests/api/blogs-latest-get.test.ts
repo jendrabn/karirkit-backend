@@ -5,22 +5,36 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { ResponseError } from "../../src/utils/response-error.util";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
+let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/middleware/auth.middleware", () => ({
+      authMiddleware: (_req: any, _res: unknown, next: () => void) => next(),
+      default: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/middleware/rate-limit.middleware", () => ({
+      globalRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      loginRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        getLatest: jest.fn(),
+        getLatest: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
   ({ BlogService } = await import("../../src/services/blog.service"));
+  ({ ResponseError: ResponseErrorClass } = await import(
+    "../../src/utils/response-error.util"
+  ));
 });
 
 afterAll(async () => {
@@ -34,11 +48,11 @@ describe("GET /blogs/latest", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns the latest published blogs", async () => {
-    const getLatestMock = jest.mocked(BlogService.getLatest);
+    const getLatestMock = BlogService.getLatest;
     getLatestMock.mockResolvedValue([
       { slug: "latest-post", title: "Latest Post" },
     ] as never);
@@ -56,8 +70,10 @@ describe("GET /blogs/latest", () => {
   });
 
   it("returns service errors when latest blogs cannot be loaded", async () => {
-    const getLatestMock = jest.mocked(BlogService.getLatest);
-    getLatestMock.mockRejectedValue(new Error("Latest blogs unavailable"));
+    const getLatestMock = BlogService.getLatest;
+    getLatestMock.mockRejectedValue(
+      new ResponseErrorClass(500, "Latest blogs unavailable"),
+    );
 
     const response = await request(app).get("/blogs/latest");
 
@@ -66,7 +82,7 @@ describe("GET /blogs/latest", () => {
   });
 
   it("clamps the limit query parameter to the controller maximum", async () => {
-    const getLatestMock = jest.mocked(BlogService.getLatest);
+    const getLatestMock = BlogService.getLatest;
     getLatestMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/blogs/latest?limit=999");

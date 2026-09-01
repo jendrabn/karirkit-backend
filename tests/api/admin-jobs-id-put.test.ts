@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -13,11 +14,10 @@ let app: typeof import("../../src/index").default;
 let AdminJobService: typeof import("../../src/services/admin/job.service").AdminJobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/job.service", () => ({
       AdminJobService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("PUT /admin/jobs/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates an admin job", async () => {
-    const updateMock = jest.mocked(AdminJobService.update);
+    const updateMock = AdminJobService.update;
     updateMock.mockResolvedValue({
       id: validId,
       title: "Updated Backend Engineer",
@@ -254,7 +254,7 @@ describe("PUT /admin/jobs/:id", () => {
   });
 
   it("accepts an empty contact phone and normalizes it to null", async () => {
-    const updateMock = jest.mocked(AdminJobService.update);
+    const updateMock = AdminJobService.update;
     updateMock.mockResolvedValue({
       id: validId,
       title: "Updated Backend Engineer",

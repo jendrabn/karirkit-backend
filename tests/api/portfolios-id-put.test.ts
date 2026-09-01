@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let PortfolioService: typeof import("../../src/services/portfolio.service").Port
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/portfolio.service", () => ({
       PortfolioService: {
-        update: jest.fn(),
+        update: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("PUT /portfolios/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates a portfolio record", async () => {
-    const updateMock = jest.mocked(PortfolioService.update);
+    const updateMock = PortfolioService.update;
     updateMock.mockResolvedValue({
       id: validId,
       title: "Portfolio Diperbarui",
@@ -75,7 +75,7 @@ describe("PUT /portfolios/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = jest.mocked(PortfolioService.update);
+    const updateMock = PortfolioService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         title: ["Judul wajib diisi"],

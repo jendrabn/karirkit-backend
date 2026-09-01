@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let PortfolioService: typeof import("../../src/services/portfolio.service").Port
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/portfolio.service", () => ({
       PortfolioService: {
-        get: jest.fn(),
+        get: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("GET /portfolios/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns portfolio details", async () => {
-    const getMock = jest.mocked(PortfolioService.get);
+    const getMock = PortfolioService.get;
     getMock.mockResolvedValue({
       id: validId,
       title: "Portfolio Detail",
@@ -73,7 +73,7 @@ describe("GET /portfolios/:id", () => {
   });
 
   it("returns 404 when the portfolio does not exist", async () => {
-    const getMock = jest.mocked(PortfolioService.get);
+    const getMock = PortfolioService.get;
     getMock.mockRejectedValue(
       new ResponseErrorClass(404, "Portfolio tidak ditemukan"),
     );

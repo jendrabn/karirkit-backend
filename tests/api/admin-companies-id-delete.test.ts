@@ -8,17 +8,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let AdminCompanyService: typeof import("../../src/services/admin/company.service").AdminCompanyService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/company.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/company.service", () => ({
       AdminCompanyService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("DELETE /admin/companies/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes a company for admin users", async () => {
-    const deleteMock = jest.mocked(AdminCompanyService.delete);
+    const deleteMock = AdminCompanyService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)

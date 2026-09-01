@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /blogs", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a blog record", async () => {
-    const createMock = jest.mocked(BlogService.create);
+    const createMock = BlogService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Blog Baru",
@@ -72,7 +72,7 @@ describe("POST /blogs", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(BlogService.create);
+    const createMock = BlogService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         title: ["Judul wajib diisi"],

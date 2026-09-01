@@ -4,18 +4,18 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AuthService: typeof import("../../src/services/auth.service").AuthService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
-let enqueueEmailMock: jest.MockedFunction<any>;
+let enqueueEmailMock: Mock;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/auth.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/auth.service", () => ({
       AuthService: {
-        sendPasswordResetLink: jest.fn(),
+        sendPasswordResetLink: mock(() => {}),
       },
     }));
   }
@@ -25,8 +25,8 @@ beforeAll(async () => {
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
   ));
-  enqueueEmailMock = jest.mocked(
-    (await import("../../src/queues/email.queue")).enqueueEmail
+  enqueueEmailMock = 
+    (await import("../../src/queues/email.queue").enqueueEmail
   );
 });
 
@@ -41,11 +41,11 @@ describe("POST /auth/forgot-password", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a neutral password reset response", async () => {
-    const forgotPasswordMock = jest.mocked(AuthService.sendPasswordResetLink);
+    const forgotPasswordMock = AuthService.sendPasswordResetLink;
     forgotPasswordMock.mockResolvedValue(undefined as never);
 
     const response = await request(app).post("/auth/forgot-password").send({
@@ -60,7 +60,7 @@ describe("POST /auth/forgot-password", () => {
   });
 
   it("returns validation errors when the reset request is invalid", async () => {
-    const forgotPasswordMock = jest.mocked(AuthService.sendPasswordResetLink);
+    const forgotPasswordMock = AuthService.sendPasswordResetLink;
     forgotPasswordMock.mockRejectedValue(
       new ResponseErrorClass(400, "Email tidak valid")
     );
@@ -75,7 +75,7 @@ describe("POST /auth/forgot-password", () => {
   });
 
   it("keeps the same neutral message for unknown email addresses", async () => {
-    const forgotPasswordMock = jest.mocked(AuthService.sendPasswordResetLink);
+    const forgotPasswordMock = AuthService.sendPasswordResetLink;
     forgotPasswordMock.mockResolvedValue(undefined as never);
 
     const response = await request(app).post("/auth/forgot-password").send({
@@ -98,7 +98,7 @@ describe("POST /auth/forgot-password", () => {
   afterEach(async () => {
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a neutral password reset response", async () => {

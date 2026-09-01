@@ -8,6 +8,7 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -15,11 +16,10 @@ let DocumentService: typeof import("../../src/services/document.service").Docume
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/document.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/document.service", () => ({
       DocumentService: {
-        download: jest.fn(),
+        download: mock(() => {}),
       },
     }));
   }
@@ -42,11 +42,11 @@ describe("GET /documents/:id/download", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("downloads a stored document", async () => {
-    const downloadMock = jest.mocked(DocumentService.download);
+    const downloadMock = DocumentService.download;
     downloadMock.mockResolvedValue({
       fileName: "resume.pdf",
       mimeType: "application/pdf",
@@ -71,7 +71,7 @@ describe("GET /documents/:id/download", () => {
   });
 
   it("returns 404 when the document does not exist", async () => {
-    const downloadMock = jest.mocked(DocumentService.download);
+    const downloadMock = DocumentService.download;
     downloadMock.mockRejectedValue(
       new ResponseErrorClass(404, "Dokumen tidak ditemukan"),
     );
@@ -86,7 +86,7 @@ describe("GET /documents/:id/download", () => {
   });
 
   it("allows free users to download documents", async () => {
-    const downloadMock = jest.mocked(DocumentService.download);
+    const downloadMock = DocumentService.download;
     downloadMock.mockResolvedValue({
       fileName: "resume.pdf",
       mimeType: "application/pdf",

@@ -6,17 +6,16 @@ import {
   loadPrisma,
 } from "./real-mode";
 import { AuthValidation } from "../../src/validations/auth.validation";
-
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let AuthService: typeof import("../../src/services/auth.service").AuthService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/auth.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/auth.service", () => ({
       AuthService: {
-        register: jest.fn(),
+        register: mock(() => {}),
       },
     }));
   }
@@ -39,11 +38,11 @@ describe("POST /auth/register", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a new user account", async () => {
-    const registerMock = jest.mocked(AuthService.register);
+    const registerMock = AuthService.register;
     registerMock.mockResolvedValue({
       id: "user-1",
       email: "user@example.com",
@@ -68,7 +67,7 @@ describe("POST /auth/register", () => {
   });
 
   it("returns validation-style errors when registration fails", async () => {
-    const registerMock = jest.mocked(AuthService.register);
+    const registerMock = AuthService.register;
     registerMock.mockRejectedValue(
       new ResponseErrorClass(400, "Registrasi gagal", {
         email: ["Email sudah digunakan"],
@@ -89,7 +88,7 @@ describe("POST /auth/register", () => {
   });
 
   it("propagates service errors for malformed payload edge cases", async () => {
-    const registerMock = jest.mocked(AuthService.register);
+    const registerMock = AuthService.register;
     registerMock.mockRejectedValue(
       new ResponseErrorClass(400, "Registrasi gagal", {
         username: ["Username minimal 3 karakter"],

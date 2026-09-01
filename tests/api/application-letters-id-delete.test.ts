@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -16,11 +17,10 @@ let ApplicationLetterService: typeof import("../../src/services/application-lett
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application-letter.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -45,11 +45,11 @@ describe("DELETE /application-letters/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes the application letter resource", async () => {
-    const deleteMock = jest.mocked(ApplicationLetterService.delete);
+    const deleteMock = ApplicationLetterService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -69,7 +69,7 @@ describe("DELETE /application-letters/:id", () => {
   });
 
   it("returns 404 when the application letter cannot be found", async () => {
-    const deleteMock = jest.mocked(ApplicationLetterService.delete);
+    const deleteMock = ApplicationLetterService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Surat lamaran tidak ditemukan")
     );

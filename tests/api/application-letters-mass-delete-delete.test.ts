@@ -8,17 +8,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application-letter.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
-        massDelete: jest.fn(),
+        massDelete: mock(() => {}),
       },
     }));
   }
@@ -43,11 +43,11 @@ describe("DELETE /application-letters/mass-delete", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple application letter records", async () => {
-    const massDeleteMock = jest.mocked(ApplicationLetterService.massDelete);
+    const massDeleteMock = ApplicationLetterService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       ids: [
@@ -89,7 +89,7 @@ describe("DELETE /application-letters/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = jest.mocked(ApplicationLetterService.massDelete);
+    const massDeleteMock = ApplicationLetterService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Minimal satu data harus dipilih")
     );

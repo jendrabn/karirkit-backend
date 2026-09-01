@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let DashboardService: typeof import("../../src/services/dashboard.service").DashboardService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/dashboard.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/dashboard.service", () => ({
       DashboardService: {
-        getUserStats: jest.fn(),
+        getUserStats: mock(() => {}),
       },
     }));
   }
@@ -35,11 +35,11 @@ describe("GET /dashboard", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns authenticated dashboard statistics", async () => {
-    const getUserStatsMock = jest.mocked(DashboardService.getUserStats);
+    const getUserStatsMock = DashboardService.getUserStats;
     getUserStatsMock.mockResolvedValue({
       total_applications: 12,
       active_applications: 8,
@@ -100,7 +100,7 @@ describe("GET /dashboard", () => {
   });
 
   it("supports empty dashboard data for new users", async () => {
-    const getUserStatsMock = jest.mocked(DashboardService.getUserStats);
+    const getUserStatsMock = DashboardService.getUserStats;
     getUserStatsMock.mockResolvedValue({
       total_applications: 0,
       active_applications: 0,

@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
 let ApplicationService: typeof import("../../src/services/application.service").ApplicationService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        list: jest.fn(),
+        list: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("GET /applications", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a paginated application list", async () => {
-    const listMock = jest.mocked(ApplicationService.list);
+    const listMock = ApplicationService.list;
     listMock.mockResolvedValue({
       items: [{ id: validId, name: "Application 1" }],
       meta: { page: 1, per_page: 20, total: 1 },
@@ -69,7 +69,7 @@ describe("GET /applications", () => {
   });
 
   it("supports an empty application state", async () => {
-    const listMock = jest.mocked(ApplicationService.list);
+    const listMock = ApplicationService.list;
     listMock.mockResolvedValue({ items: [], meta: { page: 1, per_page: 20, total: 0 } } as never);
 
     const response = await request(app)

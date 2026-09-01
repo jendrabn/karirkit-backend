@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        listJobRoles: jest.fn(),
+        listJobRoles: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /job-roles", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns public job role options", async () => {
-    const listJobRolesMock = jest.mocked(JobService.listJobRoles);
+    const listJobRolesMock = JobService.listJobRoles;
     listJobRolesMock.mockResolvedValue([
       { id: "role-1", name: "Backend Engineer" },
     ] as never);
@@ -58,7 +58,7 @@ describe("GET /job-roles", () => {
   });
 
   it("returns service errors when job roles cannot be loaded", async () => {
-    const listJobRolesMock = jest.mocked(JobService.listJobRoles);
+    const listJobRolesMock = JobService.listJobRoles;
     listJobRolesMock.mockRejectedValue(
       new ResponseErrorClass(500, "Daftar job role gagal dimuat"),
     );
@@ -72,7 +72,7 @@ describe("GET /job-roles", () => {
   });
 
   it("supports an empty job role option list", async () => {
-    const listJobRolesMock = jest.mocked(JobService.listJobRoles);
+    const listJobRolesMock = JobService.listJobRoles;
     listJobRolesMock.mockResolvedValue([] as never);
 
     const response = await request(app).get("/job-roles");

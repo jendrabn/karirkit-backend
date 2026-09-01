@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -13,11 +14,10 @@ let BlogService: typeof import("../../src/services/blog.service").BlogService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/blog.service", () => ({
       BlogService: {
-        get: jest.fn(),
+        get: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("GET /blogs/admin/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns blog details", async () => {
-    const getMock = jest.mocked(BlogService.get);
+    const getMock = BlogService.get;
     getMock.mockResolvedValue({ id: validId, title: "Blog Detail" } as never);
 
     const response = await request(app)
@@ -66,7 +66,7 @@ describe("GET /blogs/admin/:id", () => {
   });
 
   it("returns 404 when the blog does not exist", async () => {
-    const getMock = jest.mocked(BlogService.get);
+    const getMock = BlogService.get;
     getMock.mockRejectedValue(
       new ResponseErrorClass(404, "Blog tidak ditemukan"),
     );

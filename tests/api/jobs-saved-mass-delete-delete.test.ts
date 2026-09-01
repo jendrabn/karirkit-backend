@@ -8,16 +8,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        massDeleteSavedJobs: jest.fn(),
+        massDeleteSavedJobs: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("DELETE /jobs/saved/mass-delete", () => {
   const validId = "550e8400-e29b-41d4-a716-446655440000";
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes multiple saved jobs", async () => {
-    const massDeleteSavedJobsMock = jest.mocked(JobService.massDeleteSavedJobs);
+    const massDeleteSavedJobsMock = JobService.massDeleteSavedJobs;
     massDeleteSavedJobsMock.mockResolvedValue({
       deleted_count: 1,
       ids: [validId],

@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AuthService: typeof import("../../src/services/auth.service").AuthService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/auth.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/auth.service", () => ({
       AuthService: {
-        login: jest.fn(),
+        login: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("POST /auth/login", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("logs in the user and sets the session cookie", async () => {
-    const loginMock = jest.mocked(AuthService.login);
+    const loginMock = AuthService.login;
     loginMock.mockResolvedValue({
       token: "session-token",
       expires_at: Date.now() + 60_000,
@@ -69,7 +69,7 @@ describe("POST /auth/login", () => {
   });
 
   it("returns validation errors when login fails", async () => {
-    const loginMock = jest.mocked(AuthService.login);
+    const loginMock = AuthService.login;
     loginMock.mockRejectedValue(
       new ResponseErrorClass(400, "Email atau password salah"),
     );
@@ -85,7 +85,7 @@ describe("POST /auth/login", () => {
   });
 
   it("returns OTP instructions when the account requires two-step verification", async () => {
-    const loginMock = jest.mocked(AuthService.login);
+    const loginMock = AuthService.login;
     loginMock.mockResolvedValue({
       requires_otp: true,
       message: "Kode OTP telah dikirim",

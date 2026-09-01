@@ -1,14 +1,14 @@
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let DownloadLogService: typeof import("../../src/services/download-log.service").DownloadLogService;
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 let SUBSCRIPTION_PLANS: typeof import("../../src/config/subscription-plans.config").SUBSCRIPTION_PLANS;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/config/prisma.config", () => ({
+    mock.module("../../src/config/prisma.config", () => ({
     prisma: {
-      user: { findUnique: jest.fn() },
-      subscription: { findFirst: jest.fn() },
-      usageLog: { count: jest.fn(), create: jest.fn(), groupBy: jest.fn() },
+      user: { findUnique: mock(() => {}) },
+      subscription: { findFirst: mock(() => {}) },
+      usageLog: { count: mock(() => {}), create: mock(() => {}), groupBy: mock(() => {}) },
     },
   }));
 
@@ -20,9 +20,9 @@ beforeAll(async () => {
 describe("DownloadLogService", () => {
   const getPrisma = () =>
     prismaMock as unknown as {
-      user: { findUnique: jest.Mock };
-      subscription: { findFirst: jest.Mock };
-      usageLog: { count: jest.Mock; create: jest.Mock; groupBy: jest.Mock };
+      user: { findUnique: Mock };
+      subscription: { findFirst: Mock };
+      usageLog: { count: Mock; create: Mock; groupBy: Mock };
     };
 
   beforeEach(() => {

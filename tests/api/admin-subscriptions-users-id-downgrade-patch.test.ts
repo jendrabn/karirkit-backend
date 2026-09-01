@@ -1,13 +1,12 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      forceDowngradeToFree: jest.fn(),
+      forceDowngradeToFree: mock(() => {}),
     },
   }));
 
@@ -19,11 +18,11 @@ beforeAll(async () => {
 
 describe("PATCH /admin/subscriptions/users/:userId/downgrade", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("forces a user downgrade to free", async () => {
-    const downgradeMock = jest.mocked(SubscriptionService.forceDowngradeToFree);
+    const downgradeMock = SubscriptionService.forceDowngradeToFree;
     downgradeMock.mockResolvedValue(undefined);
 
     const response = await request(app)

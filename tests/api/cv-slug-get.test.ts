@@ -7,17 +7,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let CvService: typeof import("../../src/services/cv.service").CvService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/cv.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        getPublicBySlug: jest.fn(),
+        getPublicBySlug: mock(() => {}),
       },
     }));
   }
@@ -40,11 +40,11 @@ describe("GET /cv/:slug", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns the public CV payload for a visible slug", async () => {
-    const getPublicBySlugMock = jest.mocked(CvService.getPublicBySlug);
+    const getPublicBySlugMock = CvService.getPublicBySlug;
     getPublicBySlugMock.mockResolvedValue({
       slug: "public-cv",
       name: "User Resume",
@@ -61,7 +61,7 @@ describe("GET /cv/:slug", () => {
   });
 
   it("returns 404 when the CV slug does not exist", async () => {
-    const getPublicBySlugMock = jest.mocked(CvService.getPublicBySlug);
+    const getPublicBySlugMock = CvService.getPublicBySlug;
     getPublicBySlugMock.mockRejectedValue(new ResponseErrorClass(404, "CV publik tidak ditemukan"));
 
     const response = await request(app).get("/cv/missing-cv");
@@ -71,7 +71,7 @@ describe("GET /cv/:slug", () => {
   });
 
   it("returns 404 when the CV is not public anymore", async () => {
-    const getPublicBySlugMock = jest.mocked(CvService.getPublicBySlug);
+    const getPublicBySlugMock = CvService.getPublicBySlug;
     getPublicBySlugMock.mockRejectedValue(new ResponseErrorClass(404, "CV tidak tersedia"));
 
     const response = await request(app).get("/cv/hidden-cv");

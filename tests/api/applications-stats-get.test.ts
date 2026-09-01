@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let ApplicationService: typeof import("../../src/services/application.service").ApplicationService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/application.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/application.service", () => ({
       ApplicationService: {
-        getStats: jest.fn(),
+        getStats: mock(() => {}),
       },
     }));
   }
@@ -35,11 +35,11 @@ describe("GET /applications/stats", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns application statistics", async () => {
-    const getStatsMock = jest.mocked(ApplicationService.getStats);
+    const getStatsMock = ApplicationService.getStats;
     getStatsMock.mockResolvedValue({
       total_applications: 4,
       active_applications: 3,
@@ -76,7 +76,7 @@ describe("GET /applications/stats", () => {
   });
 
   it("supports zero-value application statistics", async () => {
-    const getStatsMock = jest.mocked(ApplicationService.getStats);
+    const getStatsMock = ApplicationService.getStats;
     getStatsMock.mockResolvedValue({
       total_applications: 0,
       active_applications: 0,

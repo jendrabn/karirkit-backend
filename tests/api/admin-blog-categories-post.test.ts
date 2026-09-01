@@ -6,17 +6,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let BlogCategoryService: typeof import("../../src/services/admin/blog-category.service").BlogCategoryService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog-category.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog-category.service", () => ({
       BlogCategoryService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("POST /admin/blog-categories", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a blog category record", async () => {
-    const createMock = jest.mocked(BlogCategoryService.create);
+    const createMock = BlogCategoryService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
       name: "Blog Category Baru",
@@ -77,7 +77,7 @@ describe("POST /admin/blog-categories", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = jest.mocked(BlogCategoryService.create);
+    const createMock = BlogCategoryService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Validation error", {
         name: ["String must contain at least 1 character(s)"],

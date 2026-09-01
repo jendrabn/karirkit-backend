@@ -6,6 +6,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -14,11 +15,10 @@ let BlogService: typeof import("../../src/services/admin/blog.service").BlogServ
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/blog.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/blog.service", () => ({
       BlogService: {
-        delete: jest.fn(),
+        delete: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("DELETE /admin/blogs/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("deletes the admin blog resource", async () => {
-    const deleteMock = jest.mocked(BlogService.delete);
+    const deleteMock = BlogService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
@@ -67,7 +67,7 @@ describe("DELETE /admin/blogs/:id", () => {
   });
 
   it("returns 404 when the admin blog cannot be found", async () => {
-    const deleteMock = jest.mocked(BlogService.delete);
+    const deleteMock = BlogService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Blog tidak ditemukan")
     );

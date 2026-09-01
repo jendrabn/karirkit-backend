@@ -5,6 +5,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 let app: typeof import("../../src/index").default;
@@ -12,11 +13,10 @@ let PublicPortfolioService: typeof import("../../src/services/public-portfolio.s
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/public-portfolio.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/public-portfolio.service", () => ({
       PublicPortfolioService: {
-        getPortfolioDetail: jest.fn(),
+        getPortfolioDetail: mock(() => {}),
       },
     }));
   }
@@ -41,13 +41,13 @@ describe("GET /u/@:username/:id", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a public portfolio detail", async () => {
-    const getPortfolioDetailMock = jest.mocked(
+    const getPortfolioDetailMock = 
       PublicPortfolioService.getPortfolioDetail
-    );
+    ;
     getPortfolioDetailMock.mockResolvedValue({
       user: { username: "johndoe" },
       portfolio: {
@@ -73,9 +73,9 @@ describe("GET /u/@:username/:id", () => {
   });
 
   it("returns 404 when the resource is not found", async () => {
-    const getPortfolioDetailMock = jest.mocked(
+    const getPortfolioDetailMock = 
       PublicPortfolioService.getPortfolioDetail
-    );
+    ;
     getPortfolioDetailMock.mockRejectedValue(
       new ResponseErrorClass(404, "Portfolio tidak ditemukan"),
     );
@@ -88,9 +88,9 @@ describe("GET /u/@:username/:id", () => {
   });
 
   it("supports portfolio details that have empty collections", async () => {
-    const getPortfolioDetailMock = jest.mocked(
+    const getPortfolioDetailMock = 
       PublicPortfolioService.getPortfolioDetail
-    );
+    ;
     getPortfolioDetailMock.mockResolvedValue({
       user: { username: "johndoe" },
       portfolio: {

@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -17,16 +18,15 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        applicationLetter: { count: jest.fn() },
+        applicationLetter: { count: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/application-letter.service", () => ({
+    mock.module("../../src/services/application-letter.service", () => ({
       ApplicationLetterService: {
-        duplicate: jest.fn(),
+        duplicate: mock(() => {}),
       },
     }));
   }
@@ -53,16 +53,16 @@ describe("POST /application-letters/:id/duplicate", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      applicationLetter: { count: jest.Mock };
+      applicationLetter: { count: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     getPrisma().applicationLetter.count.mockResolvedValue(0);
   });
 
   it("duplicates the application letter record", async () => {
-    const duplicateMock = jest.mocked(ApplicationLetterService.duplicate);
+    const duplicateMock = ApplicationLetterService.duplicate;
     duplicateMock.mockResolvedValue({
       id: "660e8400-e29b-41d4-a716-446655440000",
       name: "Application Letter Salinan",
@@ -91,7 +91,7 @@ describe("POST /application-letters/:id/duplicate", () => {
   });
 
   it("returns 404 when the application letter cannot be duplicated", async () => {
-    const duplicateMock = jest.mocked(ApplicationLetterService.duplicate);
+    const duplicateMock = ApplicationLetterService.duplicate;
     duplicateMock.mockRejectedValue(
       new ResponseErrorClass(404, "Surat lamaran tidak ditemukan")
     );
@@ -106,7 +106,7 @@ describe("POST /application-letters/:id/duplicate", () => {
   });
 
   it("allows duplication for free users", async () => {
-    const duplicateMock = jest.mocked(ApplicationLetterService.duplicate);
+    const duplicateMock = ApplicationLetterService.duplicate;
     duplicateMock.mockResolvedValue({
       id: "660e8400-e29b-41d4-a716-446655440000",
       name: "Application Letter Salinan",

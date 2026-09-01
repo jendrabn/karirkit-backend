@@ -5,18 +5,18 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let OtpService: typeof import("../../src/services/otp.service").OtpService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
-let enqueueEmailMock: jest.MockedFunction<any>;
+let enqueueEmailMock: Mock;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/otp.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/otp.service", () => ({
       OtpService: {
-        resendOtp: jest.fn(),
+        resendOtp: mock(() => {}),
       },
     }));
   }
@@ -26,8 +26,8 @@ beforeAll(async () => {
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
   ));
-  enqueueEmailMock = jest.mocked(
-    (await import("../../src/queues/email.queue")).enqueueEmail
+  enqueueEmailMock = 
+    (await import("../../src/queues/email.queue").enqueueEmail
   );
 });
 
@@ -42,11 +42,11 @@ describe("POST /auth/resend-otp", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("resends the OTP and returns resend metadata", async () => {
-    const resendOtpMock = jest.mocked(OtpService.resendOtp);
+    const resendOtpMock = OtpService.resendOtp;
     resendOtpMock.mockResolvedValue({
       message: "OTP berhasil dikirim ulang",
       expires_in: 300,
@@ -67,7 +67,7 @@ describe("POST /auth/resend-otp", () => {
   });
 
   it("returns validation errors when the resend request is invalid", async () => {
-    const resendOtpMock = jest.mocked(OtpService.resendOtp);
+    const resendOtpMock = OtpService.resendOtp;
     resendOtpMock.mockRejectedValue(
       new ResponseErrorClass(400, "Permintaan OTP tidak valid")
     );
@@ -82,7 +82,7 @@ describe("POST /auth/resend-otp", () => {
   });
 
   it("returns cooldown information when resend is attempted too early", async () => {
-    const resendOtpMock = jest.mocked(OtpService.resendOtp);
+    const resendOtpMock = OtpService.resendOtp;
     resendOtpMock.mockRejectedValue(
       new ResponseErrorClass(
         429,
@@ -113,7 +113,7 @@ describe("POST /auth/resend-otp", () => {
   afterEach(async () => {
     await deleteUsersByEmail(...trackedEmails);
     trackedEmails.clear();
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("resends the OTP and returns resend metadata", async () => {

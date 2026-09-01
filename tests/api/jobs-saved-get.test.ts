@@ -8,16 +8,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        listSavedJobs: jest.fn(),
+        listSavedJobs: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /jobs/saved", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns saved jobs for authenticated users", async () => {
-    const listSavedJobsMock = jest.mocked(JobService.listSavedJobs);
+    const listSavedJobsMock = JobService.listSavedJobs;
     listSavedJobsMock.mockResolvedValue({
       items: [{ id: "saved-1", slug: "backend-engineer" }],
       meta: { page: 1, per_page: 10, total: 1 },

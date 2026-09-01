@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -16,11 +17,10 @@ let CvService: typeof import("../../src/services/cv.service").CvService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/cv.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        updateSlugVisibility: jest.fn(),
+        updateSlugVisibility: mock(() => {}),
       },
     }));
   }
@@ -43,11 +43,11 @@ describe("PATCH /cvs/:id/visibility", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("updates cv visibility", async () => {
-    const updateSlugVisibilityMock = jest.mocked(CvService.updateSlugVisibility);
+    const updateSlugVisibilityMock = CvService.updateSlugVisibility;
     updateSlugVisibilityMock.mockResolvedValue({
       id: validId,
       visibility: "public",
@@ -83,7 +83,7 @@ describe("PATCH /cvs/:id/visibility", () => {
   });
 
   it("returns validation errors for invalid patch payloads", async () => {
-    const updateSlugVisibilityMock = jest.mocked(CvService.updateSlugVisibility);
+    const updateSlugVisibilityMock = CvService.updateSlugVisibility;
     updateSlugVisibilityMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );

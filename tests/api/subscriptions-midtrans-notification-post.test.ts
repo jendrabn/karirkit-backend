@@ -1,13 +1,12 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      handleMidtransNotification: jest.fn(),
+      handleMidtransNotification: mock(() => {}),
     },
   }));
 
@@ -19,13 +18,13 @@ beforeAll(async () => {
 
 describe("POST /subscriptions/midtrans/notification", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("accepts Midtrans notification without authentication", async () => {
-    const notificationMock = jest.mocked(
+    const notificationMock = 
       SubscriptionService.handleMidtransNotification
-    );
+    ;
     notificationMock.mockResolvedValue(undefined);
 
     const response = await request(app)

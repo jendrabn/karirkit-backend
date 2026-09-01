@@ -1,14 +1,13 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      createSubscriptionOrder: jest.fn(),
+      createSubscriptionOrder: mock(() => {}),
     },
   }));
 
@@ -23,11 +22,11 @@ beforeAll(async () => {
 
 describe("POST /subscriptions/order", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a subscription order", async () => {
-    const createOrderMock = jest.mocked(SubscriptionService.createSubscriptionOrder);
+    const createOrderMock = SubscriptionService.createSubscriptionOrder;
     createOrderMock.mockResolvedValue({
       subscriptionId: "sub-1",
       orderId: "SUB-user-1-123",
@@ -56,7 +55,7 @@ describe("POST /subscriptions/order", () => {
   });
 
   it("returns existing pending order data when the same plan is still pending", async () => {
-    const createOrderMock = jest.mocked(SubscriptionService.createSubscriptionOrder);
+    const createOrderMock = SubscriptionService.createSubscriptionOrder;
     createOrderMock.mockResolvedValue({
       subscriptionId: "sub-pending-1",
       orderId: "SUB-PRO-ABC123",
@@ -85,9 +84,9 @@ describe("POST /subscriptions/order", () => {
   });
 
   it("returns a manual order without Snap data", async () => {
-    const createOrderMock = jest.mocked(
+    const createOrderMock = 
       SubscriptionService.createSubscriptionOrder
-    );
+    ;
     createOrderMock.mockResolvedValue({
       subscriptionId: "sub-manual-1",
       orderId: "MANUAL-MAX-ABC123",
@@ -116,7 +115,7 @@ describe("POST /subscriptions/order", () => {
   });
 
   it("propagates order creation errors", async () => {
-    const createOrderMock = jest.mocked(SubscriptionService.createSubscriptionOrder);
+    const createOrderMock = SubscriptionService.createSubscriptionOrder;
     createOrderMock.mockRejectedValue(
       new ResponseErrorClass(400, "Plan Free tidak memerlukan pembayaran")
     );

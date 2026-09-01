@@ -5,6 +5,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let mockGooglePayload:
   | {
@@ -17,7 +18,7 @@ let mockGooglePayload:
   | null = null;
 let mockGoogleVerifyError: Error | null = null;
 
-const verifyIdTokenMock = jest.fn(async () => {
+const verifyIdTokenMock = mock(async () => {
   if (mockGoogleVerifyError) {
     throw mockGoogleVerifyError;
   }
@@ -31,16 +32,15 @@ let AuthService: typeof import("../../src/services/auth.service").AuthService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/auth.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/auth.service", () => ({
       AuthService: {
-        loginWithGoogle: jest.fn(),
+        loginWithGoogle: mock(() => {}),
       },
     }));
   } else {
-    jest.doMock("google-auth-library", () => ({
-      OAuth2Client: jest.fn().mockImplementation(() => ({
+    mock.module("google-auth-library", () => ({
+      OAuth2Client: mock(() => {}).mockImplementation(() => ({
         verifyIdToken: verifyIdTokenMock,
       })),
     }));
@@ -64,11 +64,11 @@ describe("POST /auth/google", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("logs in the user with Google and sets the session cookie", async () => {
-    const loginWithGoogleMock = jest.mocked(AuthService.loginWithGoogle);
+    const loginWithGoogleMock = AuthService.loginWithGoogle;
     loginWithGoogleMock.mockResolvedValue({
       token: "google-token",
       expires_at: Date.now() + 120_000,
@@ -94,7 +94,7 @@ describe("POST /auth/google", () => {
   });
 
   it("returns validation errors when the Google token is invalid", async () => {
-    const loginWithGoogleMock = jest.mocked(AuthService.loginWithGoogle);
+    const loginWithGoogleMock = AuthService.loginWithGoogle;
     loginWithGoogleMock.mockRejectedValue(
       new ResponseErrorClass(400, "Token Google tidak valid")
     );
@@ -109,7 +109,7 @@ describe("POST /auth/google", () => {
   });
 
   it("preserves important user data returned by the Google auth flow", async () => {
-    const loginWithGoogleMock = jest.mocked(AuthService.loginWithGoogle);
+    const loginWithGoogleMock = AuthService.loginWithGoogle;
     loginWithGoogleMock.mockResolvedValue({
       token: "google-token",
       expires_at: Date.now() + 120_000,
@@ -137,7 +137,7 @@ describe("POST /auth/google", () => {
   const trackedEmails = new Set<string>();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     mockGooglePayload = null;
     mockGoogleVerifyError = null;
   });

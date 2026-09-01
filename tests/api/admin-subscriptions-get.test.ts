@@ -1,13 +1,12 @@
 import request from "supertest";
-
+import { beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 let app: typeof import("../../src/index").default;
 let SubscriptionService: typeof import("../../src/services/subscription.service").SubscriptionService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/services/subscription.service", () => ({
+    mock.module("../../src/services/subscription.service", () => ({
     SubscriptionService: {
-      listAdminSubscriptions: jest.fn(),
+      listAdminSubscriptions: mock(() => {}),
     },
   }));
 
@@ -19,11 +18,11 @@ beforeAll(async () => {
 
 describe("GET /admin/subscriptions", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("lists subscriptions for admins", async () => {
-    const listMock = jest.mocked(SubscriptionService.listAdminSubscriptions);
+    const listMock = SubscriptionService.listAdminSubscriptions;
     listMock.mockResolvedValue({
       items: [
         {

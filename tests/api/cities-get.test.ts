@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        listCities: jest.fn(),
+        listCities: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("GET /cities", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns public city options", async () => {
-    const listCitiesMock = jest.mocked(JobService.listCities);
+    const listCitiesMock = JobService.listCities;
     listCitiesMock.mockResolvedValue([
       { id: "3171", name: "Jakarta Selatan" },
     ] as never);
@@ -58,7 +58,7 @@ describe("GET /cities", () => {
   });
 
   it("returns service errors when cities cannot be loaded", async () => {
-    const listCitiesMock = jest.mocked(JobService.listCities);
+    const listCitiesMock = JobService.listCities;
     listCitiesMock.mockRejectedValue(
       new ResponseErrorClass(500, "Daftar kota gagal dimuat"),
     );
@@ -70,7 +70,7 @@ describe("GET /cities", () => {
   });
 
   it("passes the has_jobs and province_id filters to the service", async () => {
-    const listCitiesMock = jest.mocked(JobService.listCities);
+    const listCitiesMock = JobService.listCities;
     listCitiesMock.mockResolvedValue([] as never);
 
     const response = await request(app).get(

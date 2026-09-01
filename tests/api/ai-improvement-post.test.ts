@@ -3,36 +3,36 @@ import {
   buildApplicationLetterPayload,
   buildCvPayload,
 } from "./real-mode";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let env: typeof import("../../src/config/env.config").default;
 let AiService: typeof import("../../src/services/ai.service").AiService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  jest.doMock("../../src/config/prisma.config", () => ({
+    mock.module("../../src/config/prisma.config", () => ({
     prisma: {
       usageLog: {
-        count: jest.fn().mockResolvedValue(0),
-        create: jest.fn(),
+        count: mock(() => {}).mockResolvedValue(0),
+        create: mock(() => {}),
       },
       user: {
-        findUnique: jest.fn().mockResolvedValue({
+        findUnique: mock(() => {}).mockResolvedValue({
           id: "user-1",
           subscriptionPlan: "free",
           createdAt: new Date("2026-01-01"),
         }),
       },
       subscription: {
-        findFirst: jest.fn().mockResolvedValue(null),
+        findFirst: mock(() => {}).mockResolvedValue(null),
       },
     },
   }));
-  jest.doMock("../../src/services/ai.service", () => ({
+  mock.module("../../src/services/ai.service", () => ({
     AiService: {
-      improveCv: jest.fn(),
-      improveApplicationLetter: jest.fn(),
-      logAiUsage: jest.fn(),
+      improveCv: mock(() => {}),
+      improveApplicationLetter: mock(() => {}),
+      logAiUsage: mock(() => {}),
     },
   }));
 
@@ -47,7 +47,7 @@ afterAll(() => {
 
 describe("POST /cvs/ai-improve", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     env.ai.enabled = true;
   });
 
@@ -64,8 +64,8 @@ describe("POST /cvs/ai-improve", () => {
       headline: "Backend Engineer | TypeScript API Specialist",
     };
 
-    jest.mocked(AiService.improveCv).mockResolvedValue(improved as never);
-    jest.mocked(AiService.logAiUsage).mockResolvedValue(undefined);
+    AiService.improveCv.mockResolvedValue(improved as never);
+    AiService.logAiUsage.mockResolvedValue(undefined);
 
     const response = await request(app)
       .post("/cvs/ai-improve")
@@ -124,7 +124,7 @@ describe("POST /cvs/ai-improve", () => {
 
 describe("POST /application-letters/ai-improve", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     env.ai.enabled = true;
   });
 
@@ -140,10 +140,9 @@ describe("POST /application-letters/ai-improve", () => {
       subject: "Application for Backend Engineer Position",
     };
 
-    jest
-      .mocked(AiService.improveApplicationLetter)
+    AiService.improveApplicationLetter
       .mockResolvedValue(improved as never);
-    jest.mocked(AiService.logAiUsage).mockResolvedValue(undefined);
+    AiService.logAiUsage.mockResolvedValue(undefined);
 
     const response = await request(app)
       .post("/application-letters/ai-improve")

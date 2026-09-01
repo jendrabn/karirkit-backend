@@ -5,6 +5,7 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const tinyPngBuffer = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XGN0AAAAASUVORK5CYII=",
@@ -15,11 +16,10 @@ let app: typeof import("../../src/index").default;
 let UploadService: typeof import("../../src/services/upload.service").UploadService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/upload.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/upload.service", () => ({
       UploadService: {
-        uploadFile: jest.fn(),
+        uploadFile: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /admin/blogs/uploads", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("uploads a blog image for admin users", async () => {
-    const uploadFileMock = jest.mocked(UploadService.uploadFile);
+    const uploadFileMock = UploadService.uploadFile;
     uploadFileMock.mockResolvedValue({
       path: "/uploads/blogs/hero.webp",
       original_name: "hero.png",

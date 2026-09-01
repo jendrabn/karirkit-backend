@@ -8,6 +8,7 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -17,16 +18,15 @@ let ResponseErrorClass: typeof import("../../src/utils/response-error.util").Res
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/config/prisma.config", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        cv: { count: jest.fn() },
+        cv: { count: mock(() => {}) },
       },
     }));
-    jest.doMock("../../src/services/cv.service", () => ({
+    mock.module("../../src/services/cv.service", () => ({
       CvService: {
-        duplicate: jest.fn(),
+        duplicate: mock(() => {}),
       },
     }));
   }
@@ -51,16 +51,16 @@ describe("POST /cvs/:id/duplicate", () => {
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      cv: { count: jest.Mock };
+      cv: { count: Mock };
     };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
     getPrisma().cv.count.mockResolvedValue(0);
   });
 
   it("duplicates the cv record", async () => {
-    const duplicateMock = jest.mocked(CvService.duplicate);
+    const duplicateMock = CvService.duplicate;
     duplicateMock.mockResolvedValue({
       id: "660e8400-e29b-41d4-a716-446655440000",
       name: "CV Salinan",
@@ -87,7 +87,7 @@ describe("POST /cvs/:id/duplicate", () => {
   });
 
   it("returns 404 when the cv cannot be duplicated", async () => {
-    const duplicateMock = jest.mocked(CvService.duplicate);
+    const duplicateMock = CvService.duplicate;
     duplicateMock.mockRejectedValue(new ResponseErrorClass(404, "CV tidak ditemukan"));
 
     const response = await request(app)
@@ -100,7 +100,7 @@ describe("POST /cvs/:id/duplicate", () => {
   });
 
   it("allows duplication for free users", async () => {
-    const duplicateMock = jest.mocked(CvService.duplicate);
+    const duplicateMock = CvService.duplicate;
     duplicateMock.mockResolvedValue({
       id: "660e8400-e29b-41d4-a716-446655440000",
       name: "CV Salinan",

@@ -6,16 +6,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let AdminCompanyService: typeof import("../../src/services/admin/company.service").AdminCompanyService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/admin/company.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/admin/company.service", () => ({
       AdminCompanyService: {
-        create: jest.fn(),
+        create: mock(() => {}),
       },
     }));
   }
@@ -37,11 +37,11 @@ describe("POST /admin/companies", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("creates a company for admin users", async () => {
-    const createMock = jest.mocked(AdminCompanyService.create);
+    const createMock = AdminCompanyService.create;
     createMock.mockResolvedValue({
       id: "company-1",
       name: "PT Example",

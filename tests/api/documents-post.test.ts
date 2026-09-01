@@ -7,17 +7,55 @@ import {
   deleteUsersByEmail,
   disconnectPrisma,
 } from "./real-mode";
+import { ResponseError } from "../../src/utils/response-error.util";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let DocumentService: typeof import("../../src/services/document.service").DocumentService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/document.service", () => ({
+  if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/middleware/auth.middleware", () => ({
+      authMiddleware: (req: any, _res: unknown, next: (err?: any) => void) => {
+        const auth = req.headers?.authorization;
+        if (!auth) {
+          next(new ResponseError(401, "Unauthenticated"));
+          return;
+        }
+        req.user = { id: "user-1", subscriptionPlan: "pro" };
+        next();
+      },
+      default: (req: any, _res: unknown, next: (err?: any) => void) => {
+        const auth = req.headers?.authorization;
+        if (!auth) {
+          next(new ResponseError(401, "Unauthenticated"));
+          return;
+        }
+        req.user = { id: "user-1", subscriptionPlan: "pro" };
+        next();
+      },
+    }));
+    mock.module("../../src/middleware/rate-limit.middleware", () => ({
+      globalRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      loginRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+      passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/middleware/plan-limit.middleware", () => ({
+      checkApplicationLetterLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkAiImprovementAccess: (_req: any, _res: unknown, next: () => void) => next(),
+      checkApplicationTrackerLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkCvLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkCvAiImproveLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkCvDownloadLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkLetterAiImproveLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkLetterDownloadLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkPremiumTemplate: (_req: any, _res: unknown, next: () => void) => next(),
+      checkStorageLimit: (_req: any, _res: unknown, next: () => void) => next(),
+    }));
+    mock.module("../../src/services/document.service", () => ({
       DocumentService: {
-        create: jest.fn(),
-        createMany: jest.fn(),
+        create: mock(() => {}),
+        createMany: mock(() => {}),
       },
     }));
   }
@@ -38,11 +76,11 @@ describe("POST /documents", () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("uploads a single document for the authenticated user", async () => {
-    const createMock = jest.mocked(DocumentService.create);
+    const createMock = DocumentService.create;
     createMock.mockResolvedValue({
       id: "document-1",
       file_name: "resume.pdf",
@@ -72,7 +110,7 @@ describe("POST /documents", () => {
   });
 
   it("uploads multiple documents from file[] fields", async () => {
-    const createManyMock = jest.mocked(DocumentService.createMany);
+    const createManyMock = DocumentService.createMany;
     createManyMock.mockResolvedValue([
       {
         id: "document-1",
@@ -144,7 +182,7 @@ describe("POST /documents", () => {
   });
 
   it("allows free users to upload documents", async () => {
-    const createMock = jest.mocked(DocumentService.create);
+    const createMock = DocumentService.create;
     createMock.mockResolvedValue({
       id: "document-free",
       file_name: "resume.pdf",

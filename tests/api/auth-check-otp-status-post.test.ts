@@ -5,17 +5,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let OtpService: typeof import("../../src/services/otp.service").OtpService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/otp.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/otp.service", () => ({
       OtpService: {
-        checkOtpStatus: jest.fn(),
+        checkOtpStatus: mock(() => {}),
       },
     }));
   }
@@ -38,11 +38,11 @@ describe("POST /auth/check-otp-status", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns the current OTP status for the login flow", async () => {
-    const checkOtpStatusMock = jest.mocked(OtpService.checkOtpStatus);
+    const checkOtpStatusMock = OtpService.checkOtpStatus;
     checkOtpStatusMock.mockResolvedValue({
       has_active_otp: true,
       expires_in: 120,
@@ -63,7 +63,7 @@ describe("POST /auth/check-otp-status", () => {
   });
 
   it("returns validation errors when the OTP status request is invalid", async () => {
-    const checkOtpStatusMock = jest.mocked(OtpService.checkOtpStatus);
+    const checkOtpStatusMock = OtpService.checkOtpStatus;
     checkOtpStatusMock.mockRejectedValue(
       new ResponseErrorClass(400, "Permintaan status OTP tidak valid")
     );
@@ -80,7 +80,7 @@ describe("POST /auth/check-otp-status", () => {
   });
 
   it("supports flows that no longer require OTP", async () => {
-    const checkOtpStatusMock = jest.mocked(OtpService.checkOtpStatus);
+    const checkOtpStatusMock = OtpService.checkOtpStatus;
     checkOtpStatusMock.mockResolvedValue({
       has_active_otp: false,
     } as never);

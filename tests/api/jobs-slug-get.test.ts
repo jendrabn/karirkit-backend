@@ -8,17 +8,17 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        getBySlug: jest.fn(),
+        getBySlug: mock(() => {}),
       },
     }));
   }
@@ -41,11 +41,11 @@ describe("GET /jobs/:slug", () => {
     return;
   }
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("returns a public job detail payload", async () => {
-    const getBySlugMock = jest.mocked(JobService.getBySlug);
+    const getBySlugMock = JobService.getBySlug;
     getBySlugMock.mockResolvedValue({
       slug: "backend-engineer",
       title: "Backend Engineer",
@@ -62,7 +62,7 @@ describe("GET /jobs/:slug", () => {
   });
 
   it("returns 404 when the job cannot be found", async () => {
-    const getBySlugMock = jest.mocked(JobService.getBySlug);
+    const getBySlugMock = JobService.getBySlug;
     getBySlugMock.mockRejectedValue(
       new ResponseErrorClass(404, "Lowongan tidak ditemukan"),
     );
@@ -74,7 +74,7 @@ describe("GET /jobs/:slug", () => {
   });
 
   it("supports personalized responses for authenticated visitors", async () => {
-    const getBySlugMock = jest.mocked(JobService.getBySlug);
+    const getBySlugMock = JobService.getBySlug;
     getBySlugMock.mockResolvedValue({
       slug: "backend-engineer",
       title: "Backend Engineer",

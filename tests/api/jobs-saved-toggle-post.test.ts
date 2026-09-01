@@ -8,16 +8,16 @@ import {
   disconnectPrisma,
   loadPrisma,
 } from "./real-mode";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
 let JobService: typeof import("../../src/services/job.service").JobService;
 
 beforeAll(async () => {
-  jest.resetModules();
-  if (!process.env.RUN_REAL_API_TESTS) {
-    jest.doMock("../../src/services/job.service", () => ({
+if (process.env.RUN_REAL_API_TESTS !== "true") {
+    mock.module("../../src/services/job.service", () => ({
       JobService: {
-        toggleSavedJob: jest.fn(),
+        toggleSavedJob: mock(() => {}),
       },
     }));
   }
@@ -39,11 +39,11 @@ describe("POST /jobs/saved/toggle", () => {
   const validId = "550e8400-e29b-41d4-a716-446655440000";
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   it("toggles a saved job for the authenticated user", async () => {
-    const toggleSavedJobMock = jest.mocked(JobService.toggleSavedJob);
+    const toggleSavedJobMock = JobService.toggleSavedJob;
     toggleSavedJobMock.mockResolvedValue({
       id: validId,
       saved: true,
