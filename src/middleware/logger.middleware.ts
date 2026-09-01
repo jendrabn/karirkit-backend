@@ -1,75 +1,83 @@
-import fs from "fs";
+import pino from "pino";
+import pinoHttp from "pino-http";
 import path from "path";
-import expressWinston from "express-winston";
-import winston from "winston";
+import fs from "fs";
 import env from "../config/env.config";
-
-const { combine, timestamp, errors, printf, colorize } = winston.format;
-
-const formatLogMessage = printf(
-  ({ level, message, timestamp: time, stack, ...meta }) => {
-    const metaString = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
-    return stack
-      ? `[${time}] ${level}: ${message}\n${stack}${metaString}`
-      : `[${time}] ${level}: ${message}${metaString}`;
-  }
-);
 
 const logFilePath = path.resolve(process.cwd(), env.logFile);
 fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
 
-const consoleFormat = combine(
-  colorize({ all: true }),
-  timestamp(),
-  errors({ stack: true }),
-  formatLogMessage
-);
-
-const fileFormat = combine(timestamp(), errors({ stack: true }), formatLogMessage);
-
-export const appLogger = winston.createLogger({
-  level: env.logLevel,
-  transports: [
-    new winston.transports.Console({
-      format: consoleFormat,
-    }),
-    new winston.transports.File({
-      filename: logFilePath,
-      format: fileFormat,
-    }),
-  ],
-});
-
-export const requestLogger = expressWinston.logger({
-  winstonInstance: appLogger,
-  meta: true,
-  msg: "HTTP {{req.method}} {{req.url}} {{res.statusCode}} {{res.responseTime}}ms",
-  expressFormat: false,
-  colorize: false,
-  requestWhitelist: ["url", "headers", "method", "httpVersion", "originalUrl", "query"],
-  responseWhitelist: ["statusCode"],
-  requestFilter: (req, prop) => {
-    if (prop === "headers") {
-      const headers = { ...req.headers };
-      delete headers.authorization;
-      delete headers.cookie;
-      return headers;
-    }
-
-    return req[prop as keyof typeof req];
+export const appLogger = pino({
+  level: env.logLevel || "info",
+  transport: {
+    targets: [
+      {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:standard",
+          ignore: "pid,hostname",
+        },
+      },
+      {
+        target: "pino/file",
+        options: {
+          destination: logFilePath,
+          mkdir: true,
+        },
+      },
+    ],
   },
 });
 
-export const errorLogger = expressWinston.errorLogger({
-  winstonInstance: appLogger,
-  msg: "HTTP {{req.method}} {{req.url}} failed with {{res.statusCode}}",
-  dynamicMeta: (req, res, err) => ({
-    path: req.originalUrl,
-    method: req.method,
-    statusCode: res.statusCode,
-    errorName: err.name,
-    errorMessage: err.message,
-  }),
+export const requestLogger = pinoHttp({
+  logger: appLogger,
+  customSuccessMessage: (req, res, responseTime) => {
+    return `HTTP ${req.method} ${req.url} ${res.statusCode} ${responseTime}ms`;
+  },
+  customErrorMessage: (req, res, err) => {
+    return `HTTP ${req.method} ${req.url} failed with ${res.statusCode}`;
+  },
+  serializers: {
+    req: (req) => {
+      const headers = { ...req.headers };
+      delete headers.authorization;
+      delete headers.cookie;
+
+      return {
+        method: req.method,
+        url: req.url,
+        query: req.query,
+        headers,
+      };
+    },
+    res: (res) => ({
+      statusCode: res.statusCode,
+    }),
+    err: pino.stdSerializers.err,
+  },
 });
+
+import type { Request, Response, NextFunction } from "express";
+
+export const errorLogger = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  appLogger.error(
+    {
+      path: req.originalUrl,
+      method: req.method,
+      statusCode: res.statusCode,
+      errorName: err.name,
+      errorMessage: err.message,
+      err: err,
+    },
+    `HTTP ${req.method} ${req.originalUrl} failed with ${res.statusCode}`,
+  );
+  next(err);
+};
 
 export default requestLogger;
