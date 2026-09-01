@@ -1,6 +1,6 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express from "express";
+import express, { type Express } from "express";
 import path from "path";
 import env from "./config/env.config";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
@@ -8,9 +8,7 @@ import { UploadProxyController } from "./controllers/upload-proxy.controller";
 import requestLogger, { errorLogger } from "./middleware/logger.middleware";
 import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import bigIntMiddleware from "./middleware/bigint.middleware";
-import {
-  maintenanceModeMiddleware,
-} from "./middleware/system-guard.middleware";
+import { maintenanceModeMiddleware } from "./middleware/system-guard.middleware";
 import routes from "./routes/api.routes";
 import {
   errorHandler,
@@ -22,7 +20,7 @@ import "./queues/subscription-expiry.queue";
 import csrfProtectionMiddleware from "./middleware/csrf-protection.middleware";
 import { StorageService } from "./services/storage.service";
 
-const app = express();
+const app: Express = express();
 
 app.use(
   cors({
@@ -30,7 +28,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  })
+  }),
 );
 app.use(requestLogger);
 app.use(globalRateLimiter);
@@ -54,7 +52,7 @@ app.use(
     setHeaders: (res) => {
       res.setHeader("X-Content-Type-Options", "nosniff");
     },
-  })
+  }),
 );
 
 app.use("/docs", docsMiddleware, renderDocs);

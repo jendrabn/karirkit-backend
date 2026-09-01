@@ -2,9 +2,7 @@ import type { Language } from "../generated/prisma/client";
 import { UsageFeature } from "../generated/prisma/client";
 import { prisma } from "../config/prisma.config";
 import env from "../config/env.config";
-import {
-  type AiImprovementKind,
-} from "../config/subscription-plans.config";
+import type { AiImprovementKind } from "../config/subscription-plans.config";
 import { ResponseError } from "../utils/response-error.util";
 import { appLogger } from "../middleware/logger.middleware";
 import {
@@ -12,28 +10,14 @@ import {
   type ApplicationLetterAiImprovementDataInput,
   type CvAiImprovementDataInput,
 } from "../validations/ai-improvement.validation";
-import { createAiCompletion } from "./ai-provider";
+import { resolveLanguageModel } from "./ai-provider";
 import {
   buildApplicationLetterImprovementPrompt,
   buildCvImprovementPrompt,
   type AiPromptBundle,
 } from "./ai-prompts";
-
-const extractJsonObject = (content: string): unknown => {
-  const withoutFence = content
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-  const start = withoutFence.indexOf("{");
-  const end = withoutFence.lastIndexOf("}");
-
-  if (start < 0 || end < start) {
-    throw new Error("AI response does not contain a JSON object");
-  }
-
-  return JSON.parse(withoutFence.slice(start, end + 1));
-};
+import { generateObject, TypeValidationError, JSONParseError, APICallError } from "ai";
+import type { z } from "zod";
 
 const getErrorSummary = (error: unknown): Record<string, unknown> => {
   const candidate =
@@ -44,6 +28,7 @@ const getErrorSummary = (error: unknown): Record<string, unknown> => {
           status?: unknown;
           code?: unknown;
           stack?: unknown;
+          statusCode?: unknown;
         })
       : null;
 
@@ -52,6 +37,7 @@ const getErrorSummary = (error: unknown): Record<string, unknown> => {
       name: error.name,
       message: error.message,
       status: candidate?.status,
+      statusCode: candidate?.statusCode,
       code: candidate?.code,
       stack: error.stack,
     };
@@ -62,6 +48,7 @@ const getErrorSummary = (error: unknown): Record<string, unknown> => {
       name: candidate.name,
       message: candidate.message,
       status: candidate.status,
+      statusCode: candidate.statusCode,
       code: candidate.code,
     };
   }
@@ -70,13 +57,21 @@ const getErrorSummary = (error: unknown): Record<string, unknown> => {
 };
 
 const getErrorStatus = (error: unknown): number | undefined => {
+  if (error instanceof APICallError && typeof error.statusCode === "number") {
+    return error.statusCode;
+  }
+
   if (typeof error !== "object" || error === null) {
     return undefined;
   }
 
-  const candidate = error as { status?: unknown; code?: unknown };
+  const candidate = error as { status?: unknown; code?: unknown; statusCode?: unknown };
   if (typeof candidate.status === "number") {
     return candidate.status;
+  }
+
+  if (typeof candidate.statusCode === "number") {
+    return candidate.statusCode;
   }
 
   if (typeof candidate.code === "number") {
@@ -89,6 +84,15 @@ const getErrorStatus = (error: unknown): number | undefined => {
 };
 
 const buildAiProcessingError = (error: unknown): ResponseError => {
+  if (error instanceof TypeValidationError || error instanceof JSONParseError) {
+    return new ResponseError(
+      500,
+      "AI mengembalikan format data yang tidak valid",
+      undefined,
+      { code: "AI_PROCESSING_ERROR" }
+    );
+  }
+
   const status = getErrorStatus(error);
 
   if (status === 401 || status === 403) {
@@ -126,16 +130,22 @@ const buildAiProcessingError = (error: unknown): ResponseError => {
   );
 };
 
-const runPrompt = async (prompt: AiPromptBundle): Promise<unknown> => {
+const runPrompt = async <T>(
+  prompt: AiPromptBundle,
+  schema: z.ZodSchema<T>
+): Promise<T> => {
   try {
-    const response = await createAiCompletion({
-      systemPrompt: prompt.systemPrompt,
-      userPrompt: prompt.userPrompt,
-      maxTokens: env.ai.maxOutputTokens,
+    const model = resolveLanguageModel();
+    
+    const { object } = await generateObject({
+      model,
+      schema,
+      system: prompt.systemPrompt,
+      prompt: prompt.userPrompt,
       temperature: env.ai.temperature,
     });
 
-    return extractJsonObject(response.content);
+    return object;
   } catch (error) {
     if (error instanceof ResponseError) {
       throw error;
@@ -158,26 +168,14 @@ export class AiService {
     targetPosition?: string,
     jobDescription?: string
   ): Promise<CvAiImprovementDataInput> {
-    const parsed = await runPrompt(
-      buildCvImprovementPrompt({
-        data,
-        language,
-        targetPosition,
-        jobDescription,
-      })
-    );
+    const prompt = buildCvImprovementPrompt({
+      data,
+      language,
+      targetPosition,
+      jobDescription,
+    });
 
-    const result = AiImprovementValidation.CV_DATA.safeParse(parsed);
-    if (!result.success) {
-      throw new ResponseError(
-        500,
-        "AI mengembalikan format CV yang tidak valid",
-        undefined,
-        { code: "AI_PROCESSING_ERROR" }
-      );
-    }
-
-    return result.data;
+    return runPrompt(prompt, AiImprovementValidation.CV_DATA);
   }
 
   static async improveApplicationLetter(
@@ -186,27 +184,14 @@ export class AiService {
     targetPosition?: string,
     jobDescription?: string
   ): Promise<ApplicationLetterAiImprovementDataInput> {
-    const parsed = await runPrompt(
-      buildApplicationLetterImprovementPrompt({
-        data,
-        language,
-        targetPosition,
-        jobDescription,
-      })
-    );
+    const prompt = buildApplicationLetterImprovementPrompt({
+      data,
+      language,
+      targetPosition,
+      jobDescription,
+    });
 
-    const result =
-      AiImprovementValidation.APPLICATION_LETTER_DATA.safeParse(parsed);
-    if (!result.success) {
-      throw new ResponseError(
-        500,
-        "AI mengembalikan format surat lamaran yang tidak valid",
-        undefined,
-        { code: "AI_PROCESSING_ERROR" }
-      );
-    }
-
-    return result.data;
+    return runPrompt(prompt, AiImprovementValidation.APPLICATION_LETTER_DATA);
   }
 
   static async logAiUsage(

@@ -222,9 +222,9 @@ const env = {
   },
   ai: {
     enabled: parseBoolean(process.env.AI_ENABLED, false),
-    provider: (process.env.AI_PROVIDER ?? "gemini") as AiProvider,
+    provider: (process.env.AI_PROVIDER ?? "deepseek") as AiProvider,
     apiKey: resolveOptional(process.env.AI_API_KEY) ?? "",
-    model: process.env.AI_MODEL ?? "gemini-2.0-flash",
+    model: process.env.AI_MODEL ?? "deepseek-chat",
     baseUrl: resolveOptional(process.env.AI_BASE_URL ?? undefined),
     maxOutputTokens: parseNumber(process.env.AI_MAX_OUTPUT_TOKENS, 8192),
     temperature: parseFloatValue(process.env.AI_TEMPERATURE, 0.7),

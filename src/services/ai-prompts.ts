@@ -40,9 +40,6 @@ const buildUserPrompt = ({
   }
 
   sections.push(`DATA TO IMPROVE:\n${JSON.stringify(data, null, 2)}`);
-  sections.push(
-    "Respond with ONLY the improved JSON object. No explanations, no markdown, no code fences."
-  );
 
   return sections.join("\n\n");
 };
@@ -65,7 +62,6 @@ Improve and optimize the provided CV data to:
 6. Make the headline concise, impactful, and keyword-rich
 
 STRICT RULES:
-- Output MUST be valid JSON matching the exact structure of the input
 - Do NOT add, remove, or rename any fields; keep the schema identical
 - Do NOT fabricate data; only improve the narrative and descriptions
 - Preserve all factual data such as names, dates, institutions, locations, email, phone, URLs, and company names exactly as provided
@@ -104,7 +100,6 @@ Improve and optimize the provided application letter data to:
 6. Create a concise, attention-grabbing subject line
 
 STRICT RULES:
-- Output MUST be valid JSON matching the exact structure of the input
 - Do NOT add, remove, or rename any fields; keep the schema identical
 - Do NOT fabricate data; only improve the narrative and paragraphs
 - Preserve all factual data such as names, dates, company names, cities, addresses, email, and phone exactly as provided
