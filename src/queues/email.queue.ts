@@ -38,9 +38,7 @@ const emailQueue = new Queue<EmailJobData>(queueName, {
 });
 
 emailQueue.on("error", (error) => {
-  appLogger.error("Email queue connection error", {
-    error: error.message,
-  });
+  appLogger.error({ error: error.message }, "Email queue connection error");
 });
 
 const processEmailJob = async (job: Job<EmailJobData>): Promise<void> => {
@@ -65,32 +63,19 @@ const emailWorker = new Worker<EmailJobData>(queueName, processEmailJob, {
 });
 
 emailWorker.on("error", (error) => {
-  appLogger.error("Email worker connection error", {
-    error: error.message,
-  });
+  appLogger.error({ error: error.message }, "Email worker connection error");
 });
 
 emailWorker.on("stalled", (jobId) => {
-  appLogger.warn("Email job stalled", {
-    jobId,
-  });
+  appLogger.warn({ jobId }, "Email job stalled");
 });
 
 emailWorker.on("completed", (job) => {
-  appLogger.info("Email job completed", {
-    jobId: job.id,
-    to: job.data.to,
-    subject: job.data.subject,
-  });
+  appLogger.info({ jobId: job.id, to: job.data.to, subject: job.data.subject }, "Email job completed");
 });
 
 emailWorker.on("failed", (job, error) => {
-  appLogger.error("Email job failed", {
-    jobId: job?.id,
-    error: error.message,
-    to: job?.data.to,
-    subject: job?.data.subject,
-  });
+  appLogger.error({ jobId: job?.id, error: error.message, to: job?.data.to, subject: job?.data.subject }, "Email job failed");
 });
 
 export const enqueueEmail = async (data: EmailJobData): Promise<void> => {

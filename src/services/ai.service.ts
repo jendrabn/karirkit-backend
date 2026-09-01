@@ -151,11 +151,7 @@ const runPrompt = async <T>(
       throw error;
     }
 
-    appLogger.error("AI improvement processing failed", {
-      provider: env.ai.provider,
-      model: env.ai.model,
-      error: getErrorSummary(error),
-    });
+    appLogger.error({ provider: env.ai.provider, model: env.ai.model, error: getErrorSummary(error) }, "AI improvement processing failed");
 
     throw buildAiProcessingError(error);
   }

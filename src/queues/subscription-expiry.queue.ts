@@ -15,46 +15,43 @@ const connection = {
   maxRetriesPerRequest: null,
 };
 
-const subscriptionExpiryQueue = new Queue<SubscriptionExpiryJobData>(queueName, {
-  connection,
-});
+const subscriptionExpiryQueue = new Queue<SubscriptionExpiryJobData>(
+  queueName,
+  {
+    connection,
+  },
+);
 
 subscriptionExpiryQueue.on("error", (error) => {
-  appLogger.error("Subscription expiry queue connection error", {
-    error: error.message,
-  });
+  appLogger.error({ error: error.message }, "Subscription expiry queue connection error");
 });
 
-const subscriptionExpiryWorker = new Worker<SubscriptionExpiryJobData>(queueName, async () => {
-  const result = await SubscriptionService.expireSubscriptions();
+const subscriptionExpiryWorker = new Worker<SubscriptionExpiryJobData>(
+  queueName,
+  async () => {
+    const result = await SubscriptionService.expireSubscriptions();
 
-  if (result.expired_count > 0) {
-    appLogger.info("Expired subscriptions processed", result);
-  }
+    if (result.expired_count > 0) {
+      appLogger.info(result, "Expired subscriptions processed");
+    }
 
-  return result;
-}, {
-  connection,
-});
+    return result;
+  },
+  {
+    connection,
+  },
+);
 
 subscriptionExpiryWorker.on("error", (error) => {
-  appLogger.error("Subscription expiry worker connection error", {
-    error: error.message,
-  });
+  appLogger.error({ error: error.message }, "Subscription expiry worker connection error");
 });
 
 subscriptionExpiryWorker.on("completed", (job, result) => {
-  appLogger.info("Subscription expiry job completed", {
-    jobId: job.id,
-    result,
-  });
+  appLogger.info({ jobId: job.id, result }, "Subscription expiry job completed");
 });
 
 subscriptionExpiryWorker.on("failed", (job, error) => {
-  appLogger.error("Subscription expiry job failed", {
-    jobId: job?.id,
-    error: error.message,
-  });
+  appLogger.error({ jobId: job?.id, error: error.message }, "Subscription expiry job failed");
 });
 
 void subscriptionExpiryQueue
@@ -68,12 +65,10 @@ void subscriptionExpiryQueue
       },
       removeOnComplete: true,
       removeOnFail: false,
-    }
+    },
   )
   .catch((error) => {
-    appLogger.error("Failed to schedule subscription expiry job", {
-      error: error.message,
-    });
+    appLogger.error({ error: error.message }, "Failed to schedule subscription expiry job");
   });
 
 export default subscriptionExpiryQueue;

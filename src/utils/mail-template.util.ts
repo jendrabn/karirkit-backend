@@ -19,10 +19,7 @@ export const renderMailTemplate = async <T extends MailTemplateContext>(
       async: true,
     });
   } catch (error) {
-    appLogger.error("Failed to render mail template", {
-      template: templateName,
-      error: (error as Error).message,
-    });
+    appLogger.error({ template: templateName, error: (error as Error).message }, "Failed to render mail template");
     throw error;
   }
 };
