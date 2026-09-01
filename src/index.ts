@@ -52,6 +52,7 @@ app.use(
     setHeaders: (res) => {
       res.setHeader("X-Content-Type-Options", "nosniff");
     },
+    dotfiles: 'allow' /* Express 5: preserve v4 behavior */
   }),
 );
 
