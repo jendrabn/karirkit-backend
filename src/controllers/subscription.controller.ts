@@ -127,7 +127,7 @@ export class SubscriptionController {
 
   static async cancel(req: Request, res: Response, next: NextFunction) {
     try {
-      await SubscriptionService.cancelSubscription(req.user!.id, req.params.id);
+      await SubscriptionService.cancelSubscription(req.user!.id, req.params.id as string);
       sendSuccess(res, { message: "Subscription cancelled" });
     } catch (error) {
       next(error);

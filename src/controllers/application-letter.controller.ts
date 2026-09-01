@@ -21,7 +21,7 @@ export class ApplicationLetterController {
     try {
       const letter = await ApplicationLetterService.get(
         req.user!.id,
-        req.params.id
+        req.params.id as string
       );
       sendSuccess(res, letter);
     } catch (error) {
@@ -45,7 +45,7 @@ export class ApplicationLetterController {
     try {
       const letter = await ApplicationLetterService.update(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         req.body
       );
       sendSuccess(res, letter);
@@ -56,7 +56,7 @@ export class ApplicationLetterController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await ApplicationLetterService.delete(req.user!.id, req.params.id);
+      await ApplicationLetterService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -67,7 +67,7 @@ export class ApplicationLetterController {
     try {
       const letter = await ApplicationLetterService.duplicate(
         req.user!.id,
-        req.params.id
+        req.params.id as string
       );
       sendSuccess(res, letter, 201);
     } catch (error) {
@@ -86,14 +86,14 @@ export class ApplicationLetterController {
 
       const document = await ApplicationLetterService.download(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         format
       );
 
       await DownloadLogService.logDownload(
         req.user!.id,
         "application_letter",
-        req.params.id,
+        req.params.id as string,
         document.fileName,
         format
       );

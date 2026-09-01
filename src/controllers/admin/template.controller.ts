@@ -14,7 +14,7 @@ export class TemplateController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const template = await TemplateService.get(req.params.id);
+      const template = await TemplateService.get(req.params.id as string);
       sendSuccess(res, template);
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export class TemplateController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const template = await TemplateService.update(req.params.id, req.body);
+      const template = await TemplateService.update(req.params.id as string, req.body);
       sendSuccess(res, template);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export class TemplateController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await TemplateService.delete(req.params.id);
+      await TemplateService.delete(req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);

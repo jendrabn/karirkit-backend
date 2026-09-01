@@ -66,7 +66,7 @@ export class DocumentController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await DocumentService.delete(req.user!.id, req.params.id);
+      await DocumentService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -86,7 +86,7 @@ export class DocumentController {
     try {
       const document = await DocumentService.download(
         req.user!.id,
-        req.params.id
+        req.params.id as string
       );
 
       res.setHeader("Content-Type", document.mimeType);

@@ -14,7 +14,7 @@ export class BlogController {
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
     try {
-      const blog = await BlogService.getBySlug(req.params.slug);
+      const blog = await BlogService.getBySlug(req.params.slug as string);
       sendSuccess(res, blog);
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export class BlogController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const blog = await BlogService.get(req.user!.id, req.params.id);
+      const blog = await BlogService.get(req.user!.id, req.params.id as string);
       sendSuccess(res, blog);
     } catch (error) {
       next(error);
@@ -43,7 +43,7 @@ export class BlogController {
     try {
       const blog = await BlogService.update(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         req.body
       );
       sendSuccess(res, blog);
@@ -54,7 +54,7 @@ export class BlogController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await BlogService.delete(req.user!.id, req.params.id);
+      await BlogService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -111,7 +111,7 @@ export class BlogController {
     next: NextFunction
   ) {
     try {
-      const { slug } = req.params;
+      const { slug } = req.params as { slug: string };
       const limit = parseInt(req.query.limit as string) || 4;
 
       const blogs = await BlogService.getRelatedBlogs(slug, limit);

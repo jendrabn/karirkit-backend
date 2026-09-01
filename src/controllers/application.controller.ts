@@ -28,7 +28,7 @@ export class ApplicationController {
     try {
       const application = await ApplicationService.get(
         req.user!.id,
-        req.params.id
+        req.params.id as string
       );
       sendSuccess(res, application);
     } catch (error) {
@@ -40,7 +40,7 @@ export class ApplicationController {
     try {
       const application = await ApplicationService.update(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         req.body
       );
       sendSuccess(res, application);
@@ -51,7 +51,7 @@ export class ApplicationController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await ApplicationService.delete(req.user!.id, req.params.id);
+      await ApplicationService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -62,7 +62,7 @@ export class ApplicationController {
     try {
       const application = await ApplicationService.duplicate(
         req.user!.id,
-        req.params.id
+        req.params.id as string
       );
       sendSuccess(res, application, 201);
     } catch (error) {

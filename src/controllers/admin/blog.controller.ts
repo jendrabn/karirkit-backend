@@ -14,7 +14,7 @@ export class BlogController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const blog = await BlogService.get(req.params.id);
+      const blog = await BlogService.get(req.params.id as string);
       sendSuccess(res, blog);
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export class BlogController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const blog = await BlogService.update(req.params.id, req.body);
+      const blog = await BlogService.update(req.params.id as string, req.body);
       sendSuccess(res, blog);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export class BlogController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await BlogService.delete(req.params.id);
+      await BlogService.delete(req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);

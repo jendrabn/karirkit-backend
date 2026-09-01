@@ -14,7 +14,7 @@ export class UserController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await UserService.get(req.params.id);
+      const user = await UserService.get(req.params.id as string);
       sendSuccess(res, user);
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export class UserController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await UserService.update(req.params.id, req.body);
+      const user = await UserService.update(req.params.id as string, req.body);
       sendSuccess(res, user);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export class UserController {
 
   static async updateStatus(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await UserService.updateStatus(req.params.id, req.body);
+      const user = await UserService.updateStatus(req.params.id as string, req.body);
       sendSuccess(res, user);
     } catch (error) {
       next(error);
@@ -50,7 +50,7 @@ export class UserController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await UserService.delete(req.params.id);
+      await UserService.delete(req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);

@@ -16,7 +16,7 @@ export class CvController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const cv = await CvService.get(req.user!.id, req.params.id);
+      const cv = await CvService.get(req.user!.id, req.params.id as string);
       sendSuccess(res, cv);
     } catch (error) {
       next(error);
@@ -29,7 +29,7 @@ export class CvController {
     next: NextFunction
   ) {
     try {
-      const cv = await CvService.getPublicBySlug(req.params.slug);
+      const cv = await CvService.getPublicBySlug(req.params.slug as string);
       sendSuccess(res, cv);
     } catch (error) {
       next(error);
@@ -47,7 +47,7 @@ export class CvController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const cv = await CvService.update(req.user!.id, req.params.id, req.body);
+      const cv = await CvService.update(req.user!.id, req.params.id as string, req.body);
       sendSuccess(res, cv);
     } catch (error) {
       next(error);
@@ -62,7 +62,7 @@ export class CvController {
     try {
       const cv = await CvService.updateSlugVisibility(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         req.body
       );
       sendSuccess(res, cv);
@@ -73,7 +73,7 @@ export class CvController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await CvService.delete(req.user!.id, req.params.id);
+      await CvService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -91,7 +91,7 @@ export class CvController {
 
   static async duplicate(req: Request, res: Response, next: NextFunction) {
     try {
-      const cv = await CvService.duplicate(req.user!.id, req.params.id);
+      const cv = await CvService.duplicate(req.user!.id, req.params.id as string);
       sendSuccess(res, cv, 201);
     } catch (error) {
       next(error);
@@ -109,14 +109,14 @@ export class CvController {
 
       const document = await CvService.download(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         format
       );
 
       await DownloadLogService.logDownload(
         req.user!.id,
         "cv",
-        req.params.id,
+        req.params.id as string,
         document.fileName,
         format
       );

@@ -14,7 +14,7 @@ export class BlogTagController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const tag = await BlogTagService.get(req.params.id);
+      const tag = await BlogTagService.get(req.params.id as string);
       sendSuccess(res, tag);
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export class BlogTagController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const tag = await BlogTagService.update(req.params.id, req.body);
+      const tag = await BlogTagService.update(req.params.id as string, req.body);
       sendSuccess(res, tag);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export class BlogTagController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await BlogTagService.delete(req.params.id);
+      await BlogTagService.delete(req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);

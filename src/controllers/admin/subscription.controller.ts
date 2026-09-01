@@ -40,7 +40,7 @@ export class SubscriptionController {
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await SubscriptionService.getAdminSubscription(
-        req.params.id
+        req.params.id as string
       );
       sendSuccess(res, toAdminSubscriptionResponse(result));
     } catch (error) {
@@ -54,7 +54,7 @@ export class SubscriptionController {
     next: NextFunction
   ) {
     try {
-      await SubscriptionService.manualApprove(req.params.id);
+      await SubscriptionService.manualApprove(req.params.id as string);
       sendSuccess(res, { message: "Subscription approved" });
     } catch (error) {
       next(error);
@@ -67,7 +67,7 @@ export class SubscriptionController {
     next: NextFunction
   ) {
     try {
-      await SubscriptionService.manualCancel(req.params.id);
+      await SubscriptionService.manualCancel(req.params.id as string);
       sendSuccess(res, { message: "Subscription cancelled" });
     } catch (error) {
       next(error);
@@ -76,7 +76,7 @@ export class SubscriptionController {
 
   static async markFailed(req: Request, res: Response, next: NextFunction) {
     try {
-      await SubscriptionService.markFailed(req.params.id);
+      await SubscriptionService.markFailed(req.params.id as string);
       sendSuccess(res, { message: "Subscription marked as failed" });
     } catch (error) {
       next(error);
@@ -89,7 +89,7 @@ export class SubscriptionController {
     next: NextFunction
   ) {
     try {
-      await SubscriptionService.forceDowngradeToFree(req.params.userId);
+      await SubscriptionService.forceDowngradeToFree(req.params.userId as string);
       sendSuccess(res, { message: "User downgraded to Free" });
     } catch (error) {
       next(error);

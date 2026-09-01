@@ -9,11 +9,11 @@ export class PublicController {
   static async getPortfolioListing(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const result = await PublicPortfolioService.listByUsername(
-        req.params.username
+        req.params.username as string,
       );
       sendSuccess(res, result);
     } catch (error) {
@@ -24,12 +24,12 @@ export class PublicController {
   static async getPortfolioDetail(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const result = await PublicPortfolioService.getPortfolioDetail(
-        req.params.username,
-        req.params.id
+        req.params.username as string,
+        req.params.id as string,
       );
       sendSuccess(res, result);
     } catch (error) {

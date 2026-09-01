@@ -14,7 +14,7 @@ export class PortfolioController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const portfolio = await PortfolioService.get(req.user!.id, req.params.id);
+      const portfolio = await PortfolioService.get(req.user!.id, req.params.id as string);
       sendSuccess(res, portfolio);
     } catch (error) {
       next(error);
@@ -34,7 +34,7 @@ export class PortfolioController {
     try {
       const portfolio = await PortfolioService.update(
         req.user!.id,
-        req.params.id,
+        req.params.id as string,
         req.body
       );
       sendSuccess(res, portfolio);
@@ -45,7 +45,7 @@ export class PortfolioController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await PortfolioService.delete(req.user!.id, req.params.id);
+      await PortfolioService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);

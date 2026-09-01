@@ -14,7 +14,7 @@ export class BlogCategoryController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const category = await BlogCategoryService.get(req.params.id);
+      const category = await BlogCategoryService.get(req.params.id as string);
       sendSuccess(res, category);
     } catch (error) {
       next(error);
@@ -33,8 +33,8 @@ export class BlogCategoryController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       const category = await BlogCategoryService.update(
-        req.params.id,
-        req.body
+        req.params.id as string,
+        req.body,
       );
       sendSuccess(res, category);
     } catch (error) {
@@ -44,7 +44,7 @@ export class BlogCategoryController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await BlogCategoryService.delete(req.params.id);
+      await BlogCategoryService.delete(req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
