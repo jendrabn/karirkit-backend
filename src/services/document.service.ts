@@ -500,13 +500,15 @@ export class DocumentService {
       MIME_TYPE_TO_EXTENSION[mimeType] ?? path.extname(file.originalname);
     const filename = DocumentService.buildFilename(extension);
     const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
+    // `file.size` is the size of the multipart payload before processing.
+    // Persist the exact byte count of the buffer that is actually written.
+    const finalSize = buffer.byteLength;
     await StorageService.write(publicPath, buffer, mimeType);
 
     return {
       path: publicPath,
       original_name: file.originalname,
-      // Always the size actually written to disk, i.e. after compression.
-      size: buffer.length,
+      size: finalSize,
       mime_type: mimeType,
     };
   }
