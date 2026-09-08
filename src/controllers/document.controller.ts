@@ -1,13 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { DocumentCompressionLevel, DocumentService } from "../services/document.service";
+import {
+  DOCUMENT_COMPRESSION_LEVELS,
+  DocumentCompressionLevel,
+  DocumentService,
+} from "../services/document.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { ResponseError } from "../utils/response-error.util";
-
-const COMPRESSION_OPTIONS: DocumentCompressionLevel[] = [
-  "light",
-  "medium",
-  "strong",
-];
 
 export class DocumentController {
   static async list(req: Request, res: Response, next: NextFunction) {
@@ -21,41 +19,22 @@ export class DocumentController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const groupedFiles = Array.isArray(req.files)
-        ? undefined
-        : (req.files as Record<string, Express.Multer.File[]> | undefined);
-      const filesFromFileField = groupedFiles?.file ?? [];
-      const filesFromBracketedFileField = groupedFiles?.["file[]"] ?? [];
-      const files: Express.Multer.File[] = [];
-      if (Array.isArray(filesFromFileField)) {
-        files.push(...filesFromFileField);
-      }
-      if (Array.isArray(filesFromBracketedFileField)) {
-        files.push(...filesFromBracketedFileField);
-      }
-      if (req.file) {
-        files.push(req.file as Express.Multer.File);
-      }
+      const files = DocumentController.extractFiles(req);
       if (files.length === 0) {
         throw new ResponseError(400, "File diperlukan");
       }
 
       const compression = DocumentController.parseCompression(
-        req.query.compression
+        req.query.compression,
       );
 
       const document = await (files.length > 1
-        ? DocumentService.createMany(
-            req.user!.id,
-            req.body,
-            files,
-            compression
-          )
+        ? DocumentService.createMany(req.user!.id, req.body, files, compression)
         : DocumentService.create(
             req.user!.id,
             req.body,
             files[0],
-            compression
+            compression,
           ));
 
       sendSuccess(res, document as any, 201);
@@ -86,13 +65,13 @@ export class DocumentController {
     try {
       const document = await DocumentService.download(
         req.user!.id,
-        req.params.id as string
+        req.params.id as string,
       );
 
       res.setHeader("Content-Type", document.mimeType);
       res.setHeader(
         "Content-Disposition",
-        DocumentController.buildContentDisposition(document.fileName)
+        DocumentController.buildContentDisposition(document.fileName),
       );
       res.send(document.buffer);
     } catch (error) {
@@ -100,15 +79,29 @@ export class DocumentController {
     }
   }
 
+  /** Supports a single `req.file`, `req.files` as an array, or grouped `file` / `file[]` fields. */
+  private static extractFiles(req: Request): Express.Multer.File[] {
+    if (req.file) {
+      return [req.file as Express.Multer.File];
+    }
+    if (Array.isArray(req.files)) {
+      return req.files as Express.Multer.File[];
+    }
+
+    const grouped = req.files as
+      | Record<string, Express.Multer.File[]>
+      | undefined;
+    return [...(grouped?.file ?? []), ...(grouped?.["file[]"] ?? [])];
+  }
+
   private static parseCompression(
-    value: unknown
+    value: unknown,
   ): DocumentCompressionLevel | undefined {
     if (value === undefined || value === null) {
       return undefined;
     }
 
-    const raw =
-      Array.isArray(value) && value.length > 0 ? value[0] : value;
+    const raw = Array.isArray(value) && value.length > 0 ? value[0] : value;
 
     if (typeof raw !== "string") {
       throw new ResponseError(400, "Opsi kompresi tidak valid");
@@ -119,12 +112,16 @@ export class DocumentController {
     if (!normalized) {
       return undefined;
     }
-    if (!COMPRESSION_OPTIONS.includes(normalized as DocumentCompressionLevel)) {
+    if (
+      !DOCUMENT_COMPRESSION_LEVELS.includes(
+        normalized as DocumentCompressionLevel,
+      )
+    ) {
       throw new ResponseError(
         400,
-        `Opsi kompresi tidak dikenal. Pilihan: ${COMPRESSION_OPTIONS.join(
-          ", "
-        )}`
+        `Opsi kompresi tidak dikenal. Pilihan: ${DOCUMENT_COMPRESSION_LEVELS.join(
+          ", ",
+        )}`,
       );
     }
 

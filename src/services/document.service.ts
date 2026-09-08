@@ -24,102 +24,15 @@ import {
 } from "../validations/document.validation";
 import { ResponseError } from "../utils/response-error.util";
 import {
-  VERIFIED_UPLOAD_MIME_TYPES,
+  MIME_TYPE_TO_EXTENSION,
   applyVerifiedMimeType,
+  getFileCategory,
+  isMimeTypeAllowed,
 } from "../utils/file-signature.util";
-import {
-  getPlan,
-  resolvePlanId,
-} from "../config/subscription-plans.config";
+import { getPlan, resolvePlanId } from "../config/subscription-plans.config";
 import { StorageService } from "./storage.service";
 
 const DOCUMENT_DIRECTORY = "uploads/documents";
-
-const COMPRESSION_QUALITY_MAP = {
-  light: 85,
-  medium: 70,
-  strong: 55,
-} as const;
-
-const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
-  "audio/aac": ".aac",
-  "audio/flac": ".flac",
-  "audio/m4a": ".m4a",
-  "audio/mp4": ".m4a",
-  "audio/mpeg": ".mp3",
-  "audio/ogg": ".ogg",
-  "audio/opus": ".opus",
-  "audio/wav": ".wav",
-  "audio/webm": ".webm",
-  "audio/x-m4a": ".m4a",
-  "audio/x-wav": ".wav",
-  "audio/amr": ".amr",
-  "image/avif": ".avif",
-  "image/bmp": ".bmp",
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/gif": ".gif",
-  "image/heic": ".heic",
-  "image/heif": ".heif",
-  "image/svg+xml": ".svg",
-  "image/tiff": ".tiff",
-  "image/x-icon": ".ico",
-  "image/vnd.microsoft.icon": ".ico",
-  "image/webp": ".webp",
-  "video/3gpp": ".3gp",
-  "video/mp4": ".mp4",
-  "video/mpeg": ".mpeg",
-  "video/quicktime": ".mov",
-  "video/webm": ".webm",
-  "video/x-msvideo": ".avi",
-  "video/x-matroska": ".mkv",
-  "application/pdf": ".pdf",
-  "application/msword": ".doc",
-  "application/vnd.ms-word.document.macroenabled.12": ".docm",
-  "application/vnd.ms-word.template.macroenabled.12": ".dotm",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    ".docx",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.template":
-    ".dotx",
-  "application/vnd.ms-excel": ".xls",
-  "application/vnd.ms-excel.sheet.binary.macroenabled.12": ".xlsb",
-  "application/vnd.ms-excel.sheet.macroenabled.12": ".xlsm",
-  "application/vnd.ms-excel.template.macroenabled.12": ".xltm",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.template":
-    ".xltx",
-  "application/vnd.ms-powerpoint": ".ppt",
-  "application/vnd.ms-powerpoint.addin.macroenabled.12": ".ppam",
-  "application/vnd.ms-powerpoint.presentation.macroenabled.12": ".pptm",
-  "application/vnd.ms-powerpoint.slideshow.macroenabled.12": ".ppsm",
-  "application/vnd.ms-powerpoint.template.macroenabled.12": ".potm",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-    ".pptx",
-  "application/vnd.openxmlformats-officedocument.presentationml.slideshow":
-    ".ppsx",
-  "application/vnd.openxmlformats-officedocument.presentationml.template":
-    ".potx",
-  "application/vnd.ms-access": ".accdb",
-  "application/vnd.ms-publisher": ".pub",
-  "application/vnd.ms-visio.drawing": ".vsd",
-  "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml":
-    ".vsdx",
-  "application/onenote": ".one",
-  "text/csv": ".csv",
-  "text/plain": ".txt",
-  "application/rtf": ".rtf",
-};
-
-const IMAGE_MIME_TYPES = new Set([
-  "image/avif",
-  "image/jpeg",
-  "image/png",
-  "image/tiff",
-  "image/webp",
-]);
-
-const VIDEO_MIME_TYPES = new Set(VERIFIED_UPLOAD_MIME_TYPES.video);
-const AUDIO_MIME_TYPES = new Set(VERIFIED_UPLOAD_MIME_TYPES.audio);
 
 const DOCUMENT_TYPES = new Set([
   "ktp",
@@ -168,51 +81,39 @@ const DOCUMENT_TYPES = new Set([
   "lainnya",
 ]);
 
-const DEFAULT_PDF_PRESET = {
-  settings: env.ghostscriptPdfSettings,
-  resolution: env.ghostscriptColorResolution,
-  jpegQuality: env.ghostscriptJpegQuality,
-};
+/**
+ * Single source of truth for compression behaviour per level.
+ * Compression is opt-in via `?compression=` and only ever applies to
+ * images, videos, audio, and PDFs - any other document type (docx,
+ * xlsx, pptx, doc, xls, ppt) simply ignores the query param.
+ */
+const COMPRESSION_PRESETS = {
+  light: {
+    image: { quality: 82, maxDimension: 2560 },
+    video: { crf: 23, maxHeight: 1080, audioBitrate: "160k" },
+    audio: { bitrate: "160k" },
+    pdf: { settings: "/printer", resolution: 150, jpegQuality: 80 },
+  },
+  medium: {
+    image: { quality: 68, maxDimension: 1920 },
+    video: { crf: 28, maxHeight: 720, audioBitrate: "128k" },
+    audio: { bitrate: "128k" },
+    pdf: { settings: "/ebook", resolution: 120, jpegQuality: 60 },
+  },
+  strong: {
+    image: { quality: 50, maxDimension: 1280 },
+    video: { crf: 32, maxHeight: 480, audioBitrate: "96k" },
+    audio: { bitrate: "96k" },
+    pdf: { settings: "/screen", resolution: 72, jpegQuality: 40 },
+  },
+} as const;
 
-const PDF_COMPRESSION_PRESETS: Record<
-  DocumentCompressionLevel,
-  { settings: string; resolution: number; jpegQuality: number }
-> = {
-  light: { settings: "/printer", resolution: 150, jpegQuality: 80 },
-  medium: { settings: "/ebook", resolution: 120, jpegQuality: 60 },
-  strong: { settings: "/screen", resolution: 72, jpegQuality: 40 },
-};
+export type DocumentCompressionLevel = keyof typeof COMPRESSION_PRESETS;
 
-export type DocumentCompressionLevel = keyof typeof COMPRESSION_QUALITY_MAP;
-
-const VIDEO_COMPRESSION_PRESETS: Record<
-  DocumentCompressionLevel,
-  { crf: number; maxHeight: number; audioBitrate: string }
-> = {
-  light: { crf: 26, maxHeight: 1080, audioBitrate: "160k" },
-  medium: { crf: 30, maxHeight: 720, audioBitrate: "128k" },
-  strong: { crf: 34, maxHeight: 480, audioBitrate: "96k" },
-};
-
-const AUDIO_COMPRESSION_PRESETS: Record<
-  DocumentCompressionLevel,
-  { audioBitrate: string }
-> = {
-  light: { audioBitrate: "160k" },
-  medium: { audioBitrate: "128k" },
-  strong: { audioBitrate: "96k" },
-};
-
-type UploadOptions = {
-  quality?: number;
-  maxSize?: number;
-  compressImage?: boolean;
-  compressPdf?: boolean;
-  compression?: DocumentCompressionLevel;
-  ghostscriptSettings?: string;
-  ghostscriptColorResolution?: number;
-  ghostscriptJpegQuality?: number;
-};
+/** Runtime list derived from the presets above - controller uses this instead of hardcoding its own copy. */
+export const DOCUMENT_COMPRESSION_LEVELS = Object.keys(
+  COMPRESSION_PRESETS,
+) as DocumentCompressionLevel[];
 
 type UploadResult = {
   path: string;
@@ -267,7 +168,7 @@ export class DocumentService {
 
     const used = usage._sum.size ?? 0;
     const limit = getPlan(
-      resolvePlanId(user.subscriptionPlan)
+      resolvePlanId(user.subscriptionPlan),
     ).maxDocumentStorageBytes;
     return {
       limit,
@@ -275,13 +176,14 @@ export class DocumentService {
       remaining: Math.max(0, limit - used),
     };
   }
+
   static async list(
     userId: string,
-    query: unknown
+    query: unknown,
   ): Promise<DocumentListResult> {
     const filters: DocumentListQuery = validate(
       DocumentValidation.LIST_QUERY,
-      query
+      query,
     );
 
     const where: DocumentFindManyWhere = {
@@ -310,12 +212,12 @@ export class DocumentService {
       where.createdAt = {};
       if (filters.created_at_from) {
         where.createdAt.gte = new Date(
-          `${filters.created_at_from}T00:00:00.000Z`
+          `${filters.created_at_from}T00:00:00.000Z`,
         );
       }
       if (filters.created_at_to) {
         where.createdAt.lte = new Date(
-          `${filters.created_at_to}T23:59:59.999Z`
+          `${filters.created_at_to}T23:59:59.999Z`,
         );
       }
     }
@@ -376,17 +278,16 @@ export class DocumentService {
     userId: string,
     request: unknown,
     file: Express.Multer.File,
-    compression?: DocumentCompressionLevel
+    compression?: DocumentCompressionLevel,
   ): Promise<DocumentSchema> {
     if (!file) {
       throw new ResponseError(400, "File diperlukan");
     }
 
     const payload = DocumentService.validateUploadPayload(request);
-    const uploadResult = await DocumentService.handleSingleFile(
-      userId,
+    const uploadResult = await DocumentService.processAndStoreFile(
       file,
-      compression
+      compression,
     );
 
     try {
@@ -394,7 +295,7 @@ export class DocumentService {
         userId,
         payload,
         uploadResult,
-        payload.name
+        payload.name,
       );
     } catch (error) {
       await DocumentService.removeFile(uploadResult.path);
@@ -406,7 +307,7 @@ export class DocumentService {
     userId: string,
     request: unknown,
     files: Express.Multer.File[],
-    compression?: DocumentCompressionLevel
+    compression?: DocumentCompressionLevel,
   ): Promise<DocumentSchema[]> {
     if (!files || files.length === 0) {
       throw new ResponseError(400, "Minimal satu file diperlukan");
@@ -416,10 +317,9 @@ export class DocumentService {
     const documents: DocumentSchema[] = [];
     try {
       for (const file of files) {
-        const uploadResult = await DocumentService.handleSingleFile(
-          userId,
+        const uploadResult = await DocumentService.processAndStoreFile(
           file,
-          compression
+          compression,
         );
 
         try {
@@ -428,8 +328,8 @@ export class DocumentService {
               userId,
               payload,
               uploadResult,
-              payload.name
-            )
+              payload.name,
+            ),
           );
         } catch (error) {
           await DocumentService.removeFile(uploadResult.path);
@@ -454,7 +354,7 @@ export class DocumentService {
           },
         });
         await Promise.all(
-          documentPaths.map((filePath) => DocumentService.removeFile(filePath))
+          documentPaths.map((filePath) => DocumentService.removeFile(filePath)),
         );
       }
       throw error;
@@ -469,11 +369,11 @@ export class DocumentService {
 
   static async massDelete(
     userId: string,
-    request: unknown
+    request: unknown,
   ): Promise<{ message: string; deleted_count: number }> {
     const payload: MassDeleteInput = validate(
       DocumentValidation.MASS_DELETE,
-      request
+      request,
     );
 
     const documents = await prisma.document.findMany({
@@ -484,7 +384,7 @@ export class DocumentService {
     if (documents.length !== payload.ids.length) {
       throw new ResponseError(
         404,
-        "Beberapa dokumen tidak ditemukan atau bukan milik Anda"
+        "Beberapa dokumen tidak ditemukan atau bukan milik Anda",
       );
     }
 
@@ -493,7 +393,9 @@ export class DocumentService {
     });
 
     await Promise.all(
-      documents.map((doc: { path: string }) => DocumentService.removeFile(doc.path))
+      documents.map((doc: { path: string }) =>
+        DocumentService.removeFile(doc.path),
+      ),
     );
 
     return {
@@ -504,7 +406,7 @@ export class DocumentService {
 
   static async download(
     userId: string,
-    id: string
+    id: string,
   ): Promise<DocumentDownloadResult> {
     const document = await DocumentService.findOwnedDocument(userId, id);
     if (!document.path) {
@@ -526,270 +428,248 @@ export class DocumentService {
     };
   }
 
-  /* ---------- Private helpers ---------- */
+  /* ---------- Upload pipeline ---------- */
+
   private static validateUploadPayload(
-    request: unknown
+    request: unknown,
   ): DocumentUploadPayload {
     return validate(DocumentValidation.UPLOAD, request);
   }
 
-  private static buildUploadOptions(
-    mimetype: string,
-    compression?: DocumentCompressionLevel
-  ): UploadOptions {
-    const pdfPreset = DocumentService.resolvePdfPreset(compression);
-
-    const options: UploadOptions = {
-      maxSize: env.documentUploadMaxSizeBytes,
-      compression,
-      compressImage: compression !== undefined,
-      compressPdf: compression !== undefined,
-      ghostscriptSettings: pdfPreset.settings,
-      ghostscriptColorResolution: pdfPreset.resolution,
-      ghostscriptJpegQuality: pdfPreset.jpegQuality,
-    };
-
-    if (DocumentService.isImageMimeType(mimetype) && compression) {
-      options.quality = COMPRESSION_QUALITY_MAP[compression];
-    }
-
-    return options;
-  }
-
-  private static resolvePdfPreset(compression?: DocumentCompressionLevel): {
-    settings: string;
-    resolution: number;
-    jpegQuality: number;
-  } {
-    if (!compression) {
-      return DEFAULT_PDF_PRESET;
-    }
-    return PDF_COMPRESSION_PRESETS[compression];
-  }
-
-  private static async handleSingleFile(
-    userId: string,
-    file: Express.Multer.File,
-    compression?: DocumentCompressionLevel
-  ): Promise<UploadResult> {
-    const uploadOptions = DocumentService.buildUploadOptions(
-      file.mimetype,
-      compression
-    );
-    return DocumentService.processAndStoreFile(userId, file, uploadOptions);
-  }
-
+  /**
+   * Validates, (optionally) compresses, and stores a single uploaded file.
+   * Compression only ever runs for images, video, audio, and PDFs (see
+   * COMPRESSION_PRESETS) - any other document type quietly ignores the
+   * `compression` query param, as intended.
+   */
   private static async processAndStoreFile(
-    userId: string,
     file: Express.Multer.File,
-    options: UploadOptions
+    compression?: DocumentCompressionLevel,
   ): Promise<UploadResult> {
-    const maxSize = options.maxSize ?? env.documentUploadMaxSizeBytes;
-    if (file.size > maxSize) {
+    if (file.size > env.documentUploadMaxSizeBytes) {
       throw new ResponseError(
         400,
         `Ukuran file tidak boleh lebih dari ${Math.floor(
-          maxSize / (1024 * 1024)
-        )}MB`
+          env.documentUploadMaxSizeBytes / (1024 * 1024),
+        )}MB`,
       );
     }
 
     const detectedMimeType = applyVerifiedMimeType(file);
-    if (
-      !detectedMimeType ||
-      ![
-        ...VERIFIED_UPLOAD_MIME_TYPES.image,
-        ...VERIFIED_UPLOAD_MIME_TYPES.document,
-        ...VERIFIED_UPLOAD_MIME_TYPES.video,
-        ...VERIFIED_UPLOAD_MIME_TYPES.audio,
-      ].includes(detectedMimeType as any)
-    ) {
+    if (!detectedMimeType || !isMimeTypeAllowed(detectedMimeType)) {
       throw new ResponseError(400, "Jenis file dokumen tidak valid");
     }
 
-    const normalizedMime = detectedMimeType.toLowerCase();
-    let processedBuffer = file.buffer;
-    let finalMimeType = detectedMimeType;
-    let extension =
-      MIME_TYPE_TO_EXTENSION[normalizedMime] || path.extname(file.originalname);
+    let buffer = file.buffer;
+    let mimeType = detectedMimeType;
 
-    const shouldCompressImage =
-      options.compressImage !== false && IMAGE_MIME_TYPES.has(normalizedMime);
+    if (compression) {
+      const preset = COMPRESSION_PRESETS[compression];
+      const category = getFileCategory(mimeType);
 
-    if (shouldCompressImage) {
-      processedBuffer = await DocumentService.maybeCompressImage(
-        processedBuffer,
-        normalizedMime,
-        options.quality
-      );
-    }
-
-    const isPdf = normalizedMime === "application/pdf";
-    if (isPdf && options.compressPdf) {
-      processedBuffer = await DocumentService.maybeCompressPdf(
-        processedBuffer,
-        options
-      );
-      finalMimeType = "application/pdf";
-      extension = ".pdf";
-    }
-
-    if (options.compression && VIDEO_MIME_TYPES.has(normalizedMime as any)) {
-      const compressedVideo = await DocumentService.maybeCompressVideo(
-        processedBuffer,
-        options.compression
-      );
-      if (compressedVideo.compressed) {
-        processedBuffer = compressedVideo.buffer;
-        finalMimeType = "video/mp4";
-        extension = ".mp4";
+      if (category === "image") {
+        buffer = await DocumentService.compressImage(
+          buffer,
+          mimeType,
+          preset.image,
+        );
+      } else if (mimeType === "application/pdf") {
+        buffer = await DocumentService.compressPdf(buffer, preset.pdf);
+      } else if (category === "video") {
+        const result = await DocumentService.compressVideo(
+          buffer,
+          preset.video,
+        );
+        if (result.compressed) {
+          buffer = result.buffer;
+          mimeType = "video/mp4";
+        }
+      } else if (category === "audio") {
+        const result = await DocumentService.compressAudio(
+          buffer,
+          preset.audio,
+        );
+        if (result.compressed) {
+          buffer = result.buffer;
+          mimeType = "audio/mp4";
+        }
       }
     }
 
-    if (options.compression && AUDIO_MIME_TYPES.has(normalizedMime as any)) {
-      const compressedAudio = await DocumentService.maybeCompressAudio(
-        processedBuffer,
-        options.compression
-      );
-      if (compressedAudio.compressed) {
-        processedBuffer = compressedAudio.buffer;
-        finalMimeType = "audio/mp4";
-        extension = ".m4a";
-      }
-    }
-
+    const extension =
+      MIME_TYPE_TO_EXTENSION[mimeType] ?? path.extname(file.originalname);
     const filename = DocumentService.buildFilename(extension);
     const publicPath = path.posix.join("/", DOCUMENT_DIRECTORY, filename);
-    await StorageService.write(publicPath, processedBuffer, finalMimeType);
+    await StorageService.write(publicPath, buffer, mimeType);
 
     return {
       path: publicPath,
       original_name: file.originalname,
-      size: file.buffer.length,
-      mime_type: finalMimeType,
+      // Always the size actually written to disk, i.e. after compression.
+      size: buffer.length,
+      mime_type: mimeType,
     };
   }
 
-  private static async maybeCompressImage(
+  private static async compressImage(
     buffer: Buffer,
-    mimetype: string,
-    quality?: number
+    mimeType: string,
+    preset: { quality: number; maxDimension: number },
   ): Promise<Buffer> {
     try {
-      const clamped = quality ?? 80;
-      if (mimetype === "image/jpeg" || mimetype === "image/jpg") {
-        return sharp(buffer).jpeg({ quality: clamped }).toBuffer();
-      }
-      if (mimetype === "image/png") {
-        const pngQuality = Math.min(100, Math.max(1, clamped));
-        return sharp(buffer).png({ quality: pngQuality }).toBuffer();
-      }
-      if (mimetype === "image/webp") {
-        return sharp(buffer).webp({ quality: clamped }).toBuffer();
-      }
-      if (mimetype === "image/avif") {
-        return sharp(buffer).avif({ quality: clamped }).toBuffer();
-      }
-      if (mimetype === "image/tiff") {
-        return sharp(buffer).tiff({ quality: clamped }).toBuffer();
-      }
-    } catch (error) {
-      console.error("Error processing image:", error);
-    }
-    return buffer;
-  }
+      const image = sharp(buffer)
+        .rotate() // auto-orient from EXIF, then strip metadata on output
+        .resize({
+          width: preset.maxDimension,
+          height: preset.maxDimension,
+          fit: "inside",
+          withoutEnlargement: true,
+        });
 
-  private static async maybeCompressPdf(
-    buffer: Buffer,
-    options: UploadOptions
-  ): Promise<Buffer> {
-    try {
-      return await DocumentService.compressPdfBufferWithGhostscript(
-        buffer,
-        options.ghostscriptSettings ?? env.ghostscriptPdfSettings,
-        options.ghostscriptColorResolution ?? env.ghostscriptColorResolution,
-        options.ghostscriptJpegQuality ?? env.ghostscriptJpegQuality
-      );
+      if (mimeType === "image/png") {
+        return await image
+          .png({ quality: preset.quality, compressionLevel: 9, palette: true })
+          .toBuffer();
+      }
+      if (mimeType === "image/webp") {
+        return await image.webp({ quality: preset.quality }).toBuffer();
+      }
+      return await image
+        .jpeg({ quality: preset.quality, mozjpeg: true })
+        .toBuffer();
     } catch (error) {
-      console.error("Error compressing PDF:", error);
+      console.error("Gagal mengompres gambar:", error);
       return buffer;
     }
   }
 
-  private static async maybeCompressVideo(
+  private static async compressPdf(
     buffer: Buffer,
-    compression: DocumentCompressionLevel
+    preset: { settings: string; resolution: number; jpegQuality: number },
+  ): Promise<Buffer> {
+    const uuid = crypto.randomUUID();
+    const inputPath = path.join(os.tmpdir(), `pdf-${uuid}-in.pdf`);
+    const outputPath = path.join(os.tmpdir(), `pdf-${uuid}-out.pdf`);
+    await fs.writeFile(inputPath, buffer);
+
+    try {
+      await execFileAsync(
+        env.ghostscriptCommand,
+        [
+          "-sDEVICE=pdfwrite",
+          "-dCompatibilityLevel=1.4",
+          `-dPDFSETTINGS=${preset.settings}`,
+          "-dNOPAUSE",
+          "-dBATCH",
+          "-dQUIET",
+          `-dColorImageResolution=${preset.resolution}`,
+          `-dGrayImageResolution=${preset.resolution}`,
+          `-dMonoImageResolution=${preset.resolution}`,
+          "-dDownsampleColorImages=true",
+          "-dDownsampleGrayImages=true",
+          "-dDownsampleMonoImages=true",
+          "-dAutoFilterColorImages=false",
+          "-dAutoFilterGrayImages=false",
+          "-dColorImageFilter=/DCTEncode",
+          "-dGrayImageFilter=/DCTEncode",
+          `-dJPEGQ=${preset.jpegQuality}`,
+          `-sOutputFile=${outputPath}`,
+          inputPath,
+        ],
+        { timeout: 120_000 },
+      );
+
+      const compressed = await fs.readFile(outputPath);
+      // Ghostscript occasionally bloats an already-optimized PDF; never regress.
+      return compressed.length < buffer.length ? compressed : buffer;
+    } catch (error) {
+      console.error("Gagal mengompres PDF:", error);
+      return buffer;
+    } finally {
+      await DocumentService.cleanupTempFiles([inputPath, outputPath]);
+    }
+  }
+
+  private static async compressVideo(
+    buffer: Buffer,
+    preset: { crf: number; maxHeight: number; audioBitrate: string },
   ): Promise<{ buffer: Buffer; compressed: boolean }> {
     const uuid = crypto.randomUUID();
-    const inputPath = path.join(os.tmpdir(), `video-input-${uuid}`);
-    const outputPath = path.join(os.tmpdir(), `video-output-${uuid}.mp4`);
-    const preset = VIDEO_COMPRESSION_PRESETS[compression];
+    const inputPath = path.join(os.tmpdir(), `video-${uuid}-in`);
+    const outputPath = path.join(os.tmpdir(), `video-${uuid}-out.mp4`);
 
     await fs.writeFile(inputPath, buffer);
     try {
-      const args = [
-        "-y",
-        "-i",
-        inputPath,
-        "-vf",
-        `scale='min(iw,${Math.round((preset.maxHeight * 16) / 9)})':` +
-          `'min(ih,${preset.maxHeight})':force_original_aspect_ratio=decrease`,
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        String(preset.crf),
-        "-c:a",
-        "aac",
-        "-b:a",
-        preset.audioBitrate,
-        "-movflags",
-        "+faststart",
-        outputPath,
-      ];
-      await execFileAsync(env.ffmpegCommand, args, { timeout: 180_000 });
-      return {
-        buffer: await fs.readFile(outputPath),
-        compressed: true,
-      };
+      await execFileAsync(
+        env.ffmpegCommand,
+        [
+          "-y",
+          "-i",
+          inputPath,
+          "-vf",
+          `scale='min(iw,${Math.round((preset.maxHeight * 16) / 9)})':` +
+            `'min(ih,${preset.maxHeight})':force_original_aspect_ratio=decrease`,
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-crf",
+          String(preset.crf),
+          "-c:a",
+          "aac",
+          "-b:a",
+          preset.audioBitrate,
+          "-map_metadata",
+          "-1",
+          "-threads",
+          "0",
+          "-movflags",
+          "+faststart",
+          outputPath,
+        ],
+        { timeout: 180_000 },
+      );
+      return { buffer: await fs.readFile(outputPath), compressed: true };
     } catch (error) {
-      console.error("Error compressing video:", error);
+      console.error("Gagal mengompres video:", error);
       return { buffer, compressed: false };
     } finally {
       await DocumentService.cleanupTempFiles([inputPath, outputPath]);
     }
   }
 
-  private static async maybeCompressAudio(
+  private static async compressAudio(
     buffer: Buffer,
-    compression: DocumentCompressionLevel
+    preset: { bitrate: string },
   ): Promise<{ buffer: Buffer; compressed: boolean }> {
     const uuid = crypto.randomUUID();
-    const inputPath = path.join(os.tmpdir(), `audio-input-${uuid}`);
-    const outputPath = path.join(os.tmpdir(), `audio-output-${uuid}.m4a`);
-    const preset = AUDIO_COMPRESSION_PRESETS[compression];
+    const inputPath = path.join(os.tmpdir(), `audio-${uuid}-in`);
+    const outputPath = path.join(os.tmpdir(), `audio-${uuid}-out.m4a`);
 
     await fs.writeFile(inputPath, buffer);
     try {
-      const args = [
-        "-y",
-        "-i",
-        inputPath,
-        "-vn",
-        "-c:a",
-        "aac",
-        "-b:a",
-        preset.audioBitrate,
-        outputPath,
-      ];
-      await execFileAsync(env.ffmpegCommand, args, { timeout: 120_000 });
-      return {
-        buffer: await fs.readFile(outputPath),
-        compressed: true,
-      };
+      await execFileAsync(
+        env.ffmpegCommand,
+        [
+          "-y",
+          "-i",
+          inputPath,
+          "-vn",
+          "-c:a",
+          "aac",
+          "-b:a",
+          preset.bitrate,
+          "-map_metadata",
+          "-1",
+          "-threads",
+          "0",
+          outputPath,
+        ],
+        { timeout: 120_000 },
+      );
+      return { buffer: await fs.readFile(outputPath), compressed: true };
     } catch (error) {
-      console.error("Error compressing audio:", error);
+      console.error("Gagal mengompres audio:", error);
       return { buffer, compressed: false };
     } finally {
       await DocumentService.cleanupTempFiles([inputPath, outputPath]);
@@ -802,54 +682,13 @@ export class DocumentService {
     return `${timestamp}-${uuid}${extension}`;
   }
 
-  private static async compressPdfBufferWithGhostscript(
-    buffer: Buffer,
-    settings: string,
-    colorResolution: number,
-    jpegQuality?: number
-  ): Promise<Buffer> {
-    const uuid = crypto.randomUUID();
-    const inputPath = path.join(os.tmpdir(), `pdf-input-${uuid}.pdf`);
-    const outputPath = path.join(os.tmpdir(), `pdf-output-${uuid}.pdf`);
-
-    await fs.writeFile(inputPath, buffer);
-
-    const args = [
-      "-sDEVICE=pdfwrite",
-      "-dCompatibilityLevel=1.4",
-      `-dPDFSETTINGS=${settings}`,
-      "-dNOPAUSE",
-      "-dBATCH",
-      `-dColorImageResolution=${colorResolution}`,
-      `-dGrayImageResolution=${colorResolution}`,
-      `-dMonoImageResolution=${colorResolution}`,
-      "-dDownsampleColorImages=true",
-      "-dDownsampleGrayImages=true",
-      "-dDownsampleMonoImages=true",
-      "-dAutoFilterColorImages=false",
-      "-dAutoFilterGrayImages=false",
-      "-dColorImageFilter=/DCTEncode",
-      "-dGrayImageFilter=/DCTEncode",
-      ...(jpegQuality ? [`-dJPEGQ=${jpegQuality}`] : []),
-      `-sOutputFile=${outputPath}`,
-      inputPath,
-    ];
-
-    try {
-      await execFileAsync(env.ghostscriptCommand, args, { timeout: 120_000 });
-      return await fs.readFile(outputPath);
-    } finally {
-      await DocumentService.cleanupTempFiles([inputPath, outputPath]);
-    }
-  }
-
   private static async cleanupTempFiles(paths: string[]): Promise<void> {
     await Promise.all(
       paths.map((tmpPath) =>
         fs.rm(tmpPath, { force: true }).catch(() => {
           // ignore cleanup errors
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -871,7 +710,7 @@ export class DocumentService {
     userId: string,
     payload: DocumentUploadPayload,
     upload: UploadResult,
-    customName?: string | null
+    customName?: string | null,
   ): Promise<DocumentSchema> {
     const now = new Date();
     const originalName =
@@ -897,7 +736,7 @@ export class DocumentService {
 
   private static async findOwnedDocument(
     userId: string,
-    id: string
+    id: string,
   ): Promise<PrismaDocument> {
     const document = await prisma.document.findFirst({
       where: { id, userId },
@@ -906,10 +745,6 @@ export class DocumentService {
       throw new ResponseError(404, "Dokumen tidak ditemukan");
     }
     return document;
-  }
-
-  private static isImageMimeType(mimetype: string): boolean {
-    return mimetype.toLowerCase().startsWith("image/");
   }
 
   private static async removeFile(publicPath: string): Promise<void> {

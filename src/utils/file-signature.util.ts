@@ -1,445 +1,227 @@
 import path from "path";
 
+export type FileCategory = "image" | "video" | "audio" | "document";
+
+export interface FileTypeSpec {
+  mimeType: string;
+  category: FileCategory;
+  /** extensions[0] is canonical - used as the stored file's extension */
+  extensions: string[];
+}
+
+/**
+ * Single source of truth for every file type KarirKit accepts.
+ *
+ * The allowed mime type list, the mime -> extension map, and the
+ * mime -> category lookup are all *derived* from this array below,
+ * so a format only ever needs to be added/removed in one place.
+ *
+ * Kept deliberately short: only the formats people actually produce
+ * day-to-day from a phone or laptop when applying for a job.
+ */
+export const FILE_TYPES: FileTypeSpec[] = [
+  // Images
+  { mimeType: "image/jpeg", category: "image", extensions: [".jpg", ".jpeg"] },
+  { mimeType: "image/png", category: "image", extensions: [".png"] },
+  { mimeType: "image/webp", category: "image", extensions: [".webp"] },
+
+  // Videos
+  { mimeType: "video/mp4", category: "video", extensions: [".mp4"] },
+  { mimeType: "video/quicktime", category: "video", extensions: [".mov"] },
+  { mimeType: "video/webm", category: "video", extensions: [".webm"] },
+
+  // Audio
+  { mimeType: "audio/mpeg", category: "audio", extensions: [".mp3"] },
+  { mimeType: "audio/mp4", category: "audio", extensions: [".m4a"] },
+  { mimeType: "audio/wav", category: "audio", extensions: [".wav"] },
+  { mimeType: "audio/ogg", category: "audio", extensions: [".ogg"] },
+
+  // Documents - the ones people actually attach to a job application
+  { mimeType: "application/pdf", category: "document", extensions: [".pdf"] },
+  {
+    mimeType: "application/msword",
+    category: "document",
+    extensions: [".doc"],
+  },
+  {
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    category: "document",
+    extensions: [".docx"],
+  },
+  {
+    mimeType: "application/vnd.ms-excel",
+    category: "document",
+    extensions: [".xls"],
+  },
+  {
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    category: "document",
+    extensions: [".xlsx"],
+  },
+  {
+    mimeType: "application/vnd.ms-powerpoint",
+    category: "document",
+    extensions: [".ppt"],
+  },
+  {
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    category: "document",
+    extensions: [".pptx"],
+  },
+];
+
+const byExtension = new Map<string, FileTypeSpec>(
+  FILE_TYPES.flatMap((spec) =>
+    spec.extensions.map((ext) => [ext, spec] as const),
+  ),
+);
+
+export const ALLOWED_MIME_TYPES = new Set(
+  FILE_TYPES.map((spec) => spec.mimeType),
+);
+
+export const ALL_VERIFIED_UPLOAD_MIME_TYPES = FILE_TYPES.map(
+  (spec) => spec.mimeType,
+);
+
+export const MIME_TYPE_TO_EXTENSION: Record<string, string> =
+  Object.fromEntries(
+    FILE_TYPES.map((spec) => [spec.mimeType, spec.extensions[0]]),
+  );
+
+/** Grouped by category, for call sites that whitelist mime types per group (e.g. multer filters). */
 export const VERIFIED_UPLOAD_MIME_TYPES = {
-  image: [
-    "image/avif",
-    "image/bmp",
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/heic",
-    "image/heif",
-    "image/svg+xml",
-    "image/tiff",
-    "image/x-icon",
-    "image/vnd.microsoft.icon",
-    "image/webp",
-  ],
-  video: [
-    "video/3gpp",
-    "video/mp4",
-    "video/mpeg",
-    "video/quicktime",
-    "video/webm",
-    "video/x-msvideo",
-    "video/x-matroska",
-  ],
-  audio: [
-    "audio/aac",
-    "audio/flac",
-    "audio/m4a",
-    "audio/mp4",
-    "audio/mpeg",
-    "audio/ogg",
-    "audio/opus",
-    "audio/wav",
-    "audio/webm",
-    "audio/x-m4a",
-    "audio/x-wav",
-    "audio/amr",
-  ],
-  document: [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.ms-word.document.macroenabled.12",
-    "application/vnd.ms-word.template.macroenabled.12",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.ms-excel.sheet.binary.macroenabled.12",
-    "application/vnd.ms-excel.sheet.macroenabled.12",
-    "application/vnd.ms-excel.template.macroenabled.12",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.ms-powerpoint.addin.macroenabled.12",
-    "application/vnd.ms-powerpoint.presentation.macroenabled.12",
-    "application/vnd.ms-powerpoint.slideshow.macroenabled.12",
-    "application/vnd.ms-powerpoint.template.macroenabled.12",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
-    "application/vnd.openxmlformats-officedocument.presentationml.template",
-    "application/vnd.ms-access",
-    "application/vnd.ms-publisher",
-    "application/vnd.ms-visio.drawing",
-    "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml",
-    "application/onenote",
-    "text/csv",
-    "text/plain",
-    "application/rtf",
-  ],
+  image: FILE_TYPES.filter((s) => s.category === "image").map(
+    (s) => s.mimeType,
+  ),
+  video: FILE_TYPES.filter((s) => s.category === "video").map(
+    (s) => s.mimeType,
+  ),
+  audio: FILE_TYPES.filter((s) => s.category === "audio").map(
+    (s) => s.mimeType,
+  ),
+  document: FILE_TYPES.filter((s) => s.category === "document").map(
+    (s) => s.mimeType,
+  ),
 } as const;
 
+export const isMimeTypeAllowed = (mimeType: string): boolean =>
+  ALLOWED_MIME_TYPES.has(mimeType.toLowerCase());
+
+export const getFileCategory = (mimeType: string): FileCategory | null => {
+  const spec = FILE_TYPES.find((s) => s.mimeType === mimeType.toLowerCase());
+  return spec?.category ?? null;
+};
+
+/* ---------- Magic-byte (content sniffing) detection ---------- */
+
+const startsWith = (buffer: Buffer, signature: Buffer | string): boolean => {
+  const bytes = Buffer.isBuffer(signature)
+    ? signature
+    : Buffer.from(signature, "ascii");
+  return (
+    buffer.length >= bytes.length &&
+    buffer.subarray(0, bytes.length).equals(bytes)
+  );
+};
+
+const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 const OLE_SIGNATURE = Buffer.from([
   0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
 ]);
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
-const JPEG_SIGNATURE_PREFIX = Buffer.from([0xff, 0xd8, 0xff]);
-const GIF87A_SIGNATURE = Buffer.from("GIF87a", "ascii");
-const GIF89A_SIGNATURE = Buffer.from("GIF89a", "ascii");
-const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
 const EBML_SIGNATURE = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
-const FLAC_SIGNATURE = Buffer.from("fLaC", "ascii");
-const ID3_SIGNATURE = Buffer.from("ID3", "ascii");
 
-const OFFICE_MIME_BY_EXTENSION: Record<string, string> = {
-  ".accdb": "application/vnd.ms-access",
-  ".csv": "text/csv",
-  ".doc": "application/msword",
-  ".docm": "application/vnd.ms-word.document.macroenabled.12",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".dot": "application/msword",
-  ".dotm": "application/vnd.ms-word.template.macroenabled.12",
-  ".dotx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
-  ".mdb": "application/vnd.ms-access",
-  ".one": "application/onenote",
-  ".pot": "application/vnd.ms-powerpoint",
-  ".potm": "application/vnd.ms-powerpoint.template.macroenabled.12",
-  ".potx":
-    "application/vnd.openxmlformats-officedocument.presentationml.template",
-  ".pps": "application/vnd.ms-powerpoint",
-  ".ppsm": "application/vnd.ms-powerpoint.slideshow.macroenabled.12",
-  ".ppsx":
-    "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
-  ".ppt": "application/vnd.ms-powerpoint",
-  ".pptm": "application/vnd.ms-powerpoint.presentation.macroenabled.12",
-  ".pptx":
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ".pub": "application/vnd.ms-publisher",
-  ".rtf": "application/rtf",
-  ".vsd": "application/vnd.ms-visio.drawing",
-  ".vsdx": "application/vnd.ms-visio.drawing",
-  ".xls": "application/vnd.ms-excel",
-  ".xlsb": "application/vnd.ms-excel.sheet.binary.macroenabled.12",
-  ".xlsm": "application/vnd.ms-excel.sheet.macroenabled.12",
-  ".xlsx":
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".xlt": "application/vnd.ms-excel",
-  ".xltm": "application/vnd.ms-excel.template.macroenabled.12",
-  ".xltx":
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
-};
-
-const DECLARED_MIME_BY_EXTENSION: Record<string, string> = {
-  ".3gp": "video/3gpp",
-  ".aac": "audio/aac",
-  ".amr": "audio/amr",
-  ".avif": "image/avif",
-  ".bmp": "image/bmp",
-  ".flac": "audio/flac",
-  ".heic": "image/heic",
-  ".heif": "image/heif",
-  ".ico": "image/x-icon",
-  ".m4a": "audio/mp4",
-  ".mp3": "audio/mpeg",
-  ".mpg": "video/mpeg",
-  ".mpeg": "video/mpeg",
-  ".oga": "audio/ogg",
-  ".ogg": "audio/ogg",
-  ".opus": "audio/opus",
-  ".svg": "image/svg+xml",
-  ".tif": "image/tiff",
-  ".tiff": "image/tiff",
-  ".wav": "audio/wav",
-  ".webm": "video/webm",
-  ...OFFICE_MIME_BY_EXTENSION,
-};
-
-export const ALL_VERIFIED_UPLOAD_MIME_TYPES = [
-  ...VERIFIED_UPLOAD_MIME_TYPES.image,
-  ...VERIFIED_UPLOAD_MIME_TYPES.video,
-  ...VERIFIED_UPLOAD_MIME_TYPES.audio,
-  ...VERIFIED_UPLOAD_MIME_TYPES.document,
-];
-
-const startsWith = (buffer: Buffer, signature: Buffer): boolean => {
-  if (buffer.length < signature.length) {
-    return false;
-  }
-  return buffer.subarray(0, signature.length).equals(signature);
-};
+const isRiffOfType = (buffer: Buffer, riffType: string): boolean =>
+  buffer.length >= 12 &&
+  buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+  buffer.subarray(8, 12).toString("ascii") === riffType;
 
 const detectMp4FamilyMime = (
   buffer: Buffer,
-  originalName: string
+  extension: string,
 ): string | null => {
-  if (buffer.length < 12) {
+  if (
+    buffer.length < 12 ||
+    buffer.subarray(4, 8).toString("ascii") !== "ftyp"
+  ) {
     return null;
   }
-
-  const boxType = buffer.subarray(4, 8).toString("ascii");
-  if (boxType !== "ftyp") {
-    return null;
-  }
-
   const brand = buffer.subarray(8, 12).toString("ascii").toLowerCase();
-  const extension = path.extname(originalName).toLowerCase();
-  if (brand.startsWith("qt")) {
-    return "video/quicktime";
-  }
-  if (["avif", "avis"].includes(brand)) {
-    return "image/avif";
-  }
-  if (["heic", "heix", "hevc", "hevx", "mif1", "msf1"].includes(brand)) {
-    return extension === ".heif" ? "image/heif" : "image/heic";
-  }
-  if (extension === ".m4a") {
-    return "audio/mp4";
-  }
-  if (extension === ".3gp") {
-    return "video/3gpp";
-  }
-
+  if (brand.startsWith("qt")) return "video/quicktime";
+  if (extension === ".m4a") return "audio/mp4";
   return "video/mp4";
 };
 
-const detectZipOfficeMime = (
-  buffer: Buffer,
-  originalName: string
-): string | null => {
-  if (!startsWith(buffer, ZIP_SIGNATURE)) {
-    return null;
-  }
+/**
+ * .docx/.xlsx/.pptx are zip containers and .doc/.xls/.ppt are OLE containers -
+ * the container signature is shared across the whole Office family, so it can
+ * only confirm "this is a zip/OLE file". The extension (already checked
+ * against FILE_TYPES) is what resolves it to the exact mime type.
+ */
+const detectOfficeMime = (buffer: Buffer, extension: string): string | null => {
+  const spec = byExtension.get(extension);
+  if (!spec || spec.category !== "document") return null;
 
-  const extension = path.extname(originalName).toLowerCase();
-  const preview = buffer.toString("latin1");
-  if (preview.includes("word/")) {
-    return (
-      OFFICE_MIME_BY_EXTENSION[extension] ??
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
+  if (startsWith(buffer, ZIP_SIGNATURE)) {
+    return [".docx", ".xlsx", ".pptx"].includes(extension)
+      ? spec.mimeType
+      : null;
   }
-  if (preview.includes("xl/")) {
-    return (
-      OFFICE_MIME_BY_EXTENSION[extension] ??
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+  if (startsWith(buffer, OLE_SIGNATURE)) {
+    return [".doc", ".xls", ".ppt"].includes(extension) ? spec.mimeType : null;
   }
-  if (preview.includes("ppt/")) {
-    return (
-      OFFICE_MIME_BY_EXTENSION[extension] ??
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    );
-  }
-  if (extension === ".vsdx") {
-    return OFFICE_MIME_BY_EXTENSION[extension];
-  }
-
   return null;
 };
 
-const detectOleOfficeMime = (buffer: Buffer, originalName: string): string | null => {
-  if (!startsWith(buffer, OLE_SIGNATURE)) {
-    return null;
-  }
-
-  const extension = path.extname(originalName).toLowerCase();
-  if (extension === ".doc") {
-    return "application/msword";
-  }
-  if (extension === ".xls") {
-    return "application/vnd.ms-excel";
-  }
-  if (extension === ".ppt") {
-    return "application/vnd.ms-powerpoint";
-  }
-  if (OFFICE_MIME_BY_EXTENSION[extension]) {
-    return OFFICE_MIME_BY_EXTENSION[extension];
-  }
-
-  return null;
-};
-
-const looksLikePlainText = (buffer: Buffer): boolean => {
-  if (buffer.length === 0) {
-    return false;
-  }
-
-  let printable = 0;
-  for (const byte of buffer.subarray(0, Math.min(buffer.length, 512))) {
-    if (byte === 0) {
-      return false;
-    }
-
-    if (
-      byte === 0x09 ||
-      byte === 0x0a ||
-      byte === 0x0d ||
-      (byte >= 0x20 && byte <= 0x7e)
-    ) {
-      printable += 1;
-    }
-  }
-
-  return printable > 0;
-};
-
-const detectDeclaredAllowedMime = (
-  file: Pick<Express.Multer.File, "mimetype" | "originalname">
-): string | null => {
-  const extension = path.extname(file.originalname).toLowerCase();
-  const extensionMime = DECLARED_MIME_BY_EXTENSION[extension];
-  const declaredMime = file.mimetype?.toLowerCase();
-  if (!extensionMime || !declaredMime) {
-    return null;
-  }
-
-  if (declaredMime === extensionMime) {
-    return extensionMime;
-  }
-  if (
-    extension === ".webm" &&
-    (declaredMime === "video/webm" || declaredMime === "audio/webm")
-  ) {
-    return declaredMime;
-  }
-  if (extensionMime.startsWith("image/") && declaredMime.startsWith("image/")) {
-    return extensionMime;
-  }
-  if (extensionMime.startsWith("audio/") && declaredMime.startsWith("audio/")) {
-    return extensionMime;
-  }
-  if (extensionMime.startsWith("video/") && declaredMime.startsWith("video/")) {
-    return extensionMime;
-  }
-
-  return null;
-};
-
+/**
+ * Sniffs the *real* mime type of an uploaded file from its bytes instead of
+ * trusting the Content-Type header the client sent. Returns null when the
+ * content doesn't match any format KarirKit accepts.
+ */
 export const detectFileMimeType = (
-  file: Pick<Express.Multer.File, "buffer" | "originalname" | "mimetype">
+  file: Pick<Express.Multer.File, "buffer" | "originalname">,
 ): string | null => {
-  const buffer = file.buffer;
-  if (!buffer || buffer.length === 0) {
-    return null;
-  }
+  const { buffer, originalname } = file;
+  if (!buffer || buffer.length === 0) return null;
 
-  if (startsWith(buffer, JPEG_SIGNATURE_PREFIX)) {
-    return "image/jpeg";
-  }
-  if (startsWith(buffer, PNG_SIGNATURE)) {
-    return "image/png";
-  }
-  if (
-    startsWith(buffer, GIF87A_SIGNATURE) ||
-    startsWith(buffer, GIF89A_SIGNATURE)
-  ) {
-    return "image/gif";
-  }
-  if (startsWith(buffer, Buffer.from("BM", "ascii"))) {
-    return "image/bmp";
-  }
-  if (
-    startsWith(buffer, Buffer.from([0x49, 0x49, 0x2a, 0x00])) ||
-    startsWith(buffer, Buffer.from([0x4d, 0x4d, 0x00, 0x2a]))
-  ) {
-    return "image/tiff";
-  }
-  if (startsWith(buffer, Buffer.from([0x00, 0x00, 0x01, 0x00]))) {
-    return "image/x-icon";
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buffer.subarray(8, 12).toString("ascii") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  if (buffer.subarray(0, 5).toString("ascii") === "%PDF-") {
+  const extension = path.extname(originalname).toLowerCase();
+
+  if (startsWith(buffer, JPEG_SIGNATURE)) return "image/jpeg";
+  if (startsWith(buffer, PNG_SIGNATURE)) return "image/png";
+  if (isRiffOfType(buffer, "WEBP")) return "image/webp";
+  if (buffer.subarray(0, 5).toString("ascii") === "%PDF-")
     return "application/pdf";
-  }
 
-  const mp4FamilyMime = detectMp4FamilyMime(buffer, file.originalname);
-  if (mp4FamilyMime) {
-    return mp4FamilyMime;
-  }
+  const mp4Mime = detectMp4FamilyMime(buffer, extension);
+  if (mp4Mime) return mp4Mime;
 
+  if (isRiffOfType(buffer, "WAVE")) return "audio/wav";
+  if (startsWith(buffer, "OggS")) return "audio/ogg";
   if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buffer.subarray(8, 12).toString("ascii") === "AVI "
-  ) {
-    return "video/x-msvideo";
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buffer.subarray(8, 12).toString("ascii") === "WAVE"
-  ) {
-    return "audio/wav";
-  }
-
-  if (startsWith(buffer, EBML_SIGNATURE)) {
-    const extension = path.extname(file.originalname).toLowerCase();
-    if (extension === ".webm") {
-      return file.mimetype?.toLowerCase() === "audio/webm"
-        ? "audio/webm"
-        : "video/webm";
-    }
-    return "video/x-matroska";
-  }
-
-  if (
-    startsWith(buffer, ID3_SIGNATURE) ||
+    startsWith(buffer, "ID3") ||
     (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0)
   ) {
     return "audio/mpeg";
   }
-  if (startsWith(buffer, FLAC_SIGNATURE)) {
-    return "audio/flac";
-  }
-  if (startsWith(buffer, Buffer.from("OggS", "ascii"))) {
-    const extension = path.extname(file.originalname).toLowerCase();
-    return extension === ".opus" ? "audio/opus" : "audio/ogg";
-  }
-  if (buffer[0] === 0xff && (buffer[1] & 0xf6) === 0xf0) {
-    return "audio/aac";
-  }
-  if (startsWith(buffer, Buffer.from("#!AMR", "ascii"))) {
-    return "audio/amr";
-  }
+  if (startsWith(buffer, EBML_SIGNATURE)) return "video/webm";
 
-  const zipOfficeMime = detectZipOfficeMime(buffer, file.originalname);
-  if (zipOfficeMime) {
-    return zipOfficeMime;
-  }
-
-  const oleOfficeMime = detectOleOfficeMime(buffer, file.originalname);
-  if (oleOfficeMime) {
-    return oleOfficeMime;
-  }
-
-  const textPreview = buffer
-    .subarray(0, Math.min(buffer.length, 256))
-    .toString("utf8")
-    .trimStart()
-    .toLowerCase();
-  if (textPreview.startsWith("{\\rtf")) {
-    return "application/rtf";
-  }
-  if (path.extname(file.originalname).toLowerCase() === ".csv") {
-    return "text/csv";
-  }
-  if (textPreview.startsWith("<svg")) {
-    return "image/svg+xml";
-  }
-  if (looksLikePlainText(buffer)) {
-    return "text/plain";
-  }
-
-  return detectDeclaredAllowedMime(file);
+  return detectOfficeMime(buffer, extension);
 };
 
+/** Detects and overwrites `file.mimetype` with the sniffed value, if any. */
 export const applyVerifiedMimeType = (
-  file: Express.Multer.File
+  file: Express.Multer.File,
 ): string | null => {
-  const detectedMimeType = detectFileMimeType(file);
-  if (detectedMimeType) {
-    file.mimetype = detectedMimeType;
+  const detected = detectFileMimeType(file);
+  if (detected) {
+    file.mimetype = detected;
   }
-  return detectedMimeType;
+  return detected;
 };
