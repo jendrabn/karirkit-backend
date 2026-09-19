@@ -1,7 +1,7 @@
 import request from "supertest";
 import {
-  buildApplicationLetterPayload,
-  createRealApplicationLetterFixture,
+  buildCoverLetterPayload,
+  createRealCoverLetterFixture,
   createRealTemplateFixture,
   createRealUser,
   createSessionToken,
@@ -14,21 +14,21 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
 let app: typeof import("../../src/index").default;
-let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
+let CoverLetterService: typeof import("../../src/services/cover-letter.service").CoverLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
 if (process.env.RUN_REAL_API_TESTS !== "true") {
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {
         update: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
-  ({ ApplicationLetterService } = await import(
-    "../../src/services/application-letter.service"
+  ({ CoverLetterService } = await import(
+    "../../src/services/cover-letter.service"
   ));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
@@ -41,7 +41,7 @@ afterAll(async () => {
   }
 });
 
-describe("PUT /application-letters/:id", () => {
+describe("PUT /cover-letters/:id", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
@@ -49,31 +49,31 @@ describe("PUT /application-letters/:id", () => {
     mock.clearAllMocks();
   });
 
-  it("updates an application letter record", async () => {
-    const updateMock = ApplicationLetterService.update;
+  it("updates a cover letter record", async () => {
+    const updateMock = CoverLetterService.update;
     updateMock.mockResolvedValue({
       id: validId,
-      name: "Application Letter Diperbarui",
+      name: "Cover Letter Diperbarui",
     } as never);
 
     const response = await request(app)
-      .put(`/application-letters/${validId}`)
+      .put(`/cover-letters/${validId}`)
       .set("Authorization", "Bearer user-token")
-      .send({ name: "Application Letter Diperbarui" });
+      .send({ name: "Cover Letter Diperbarui" });
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("data");
     expect(response.body.data).toMatchObject({
       id: validId,
-      name: "Application Letter Diperbarui",
+      name: "Cover Letter Diperbarui",
     });
     expect(typeof response.body.data.name).toBe("string");
   });
 
   it("returns 401 when authentication is missing", async () => {
     const response = await request(app)
-      .put(`/application-letters/${validId}`)
-      .send({ name: "Application Letter Diperbarui" });
+      .put(`/cover-letters/${validId}`)
+      .send({ name: "Cover Letter Diperbarui" });
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
@@ -81,13 +81,13 @@ describe("PUT /application-letters/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const updateMock = ApplicationLetterService.update;
+    const updateMock = CoverLetterService.update;
     updateMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );
 
     const response = await request(app)
-      .put(`/application-letters/${validId}`)
+      .put(`/cover-letters/${validId}`)
       .set("Authorization", "Bearer user-token")
       .send({ name: "" });
 
@@ -97,7 +97,7 @@ describe("PUT /application-letters/:id", () => {
   });
 });
 
-describe("PUT /application-letters/:id", () => {
+describe("PUT /cover-letters/:id", () => {
   if (process.env.RUN_REAL_API_TESTS !== "true") {
     return;
   }
@@ -108,7 +108,7 @@ describe("PUT /application-letters/:id", () => {
   afterEach(async () => {
     const prisma = await loadPrisma();
     if (trackedLetterIds.size > 0) {
-      await prisma.applicationLetter.deleteMany({
+      await prisma.coverLetter.deleteMany({
         where: { id: { in: [...trackedLetterIds] } },
       });
     }
@@ -123,24 +123,24 @@ describe("PUT /application-letters/:id", () => {
     trackedLetterIds.clear();
   });
 
-  it("updates an application letter record", async () => {
-    const { user } = await createRealUser("application-letter-update");
+  it("updates a cover letter record", async () => {
+    const { user } = await createRealUser("cover-letter-update");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-update"
     );
     trackedTemplateIds.add(template.id);
-    const letter = await createRealApplicationLetterFixture(user.id, template.id);
+    const letter = await createRealCoverLetterFixture(user.id, template.id);
     trackedLetterIds.add(letter.id);
 
     const response = await request(app)
-      .put(`/application-letters/${letter.id}`)
+      .put(`/cover-letters/${letter.id}`)
       .set("Authorization", `Bearer ${token}`)
       .send(
-        buildApplicationLetterPayload(template.id, {
-          name: "Application Letter Diperbarui",
+        buildCoverLetterPayload(template.id, {
+          name: "Cover Letter Diperbarui",
           company_name: "PT Karirkit Updated",
           email: user.email,
         })
@@ -150,7 +150,7 @@ describe("PUT /application-letters/:id", () => {
     expect(response.body).toHaveProperty("data");
     expect(response.body.data).toMatchObject({
       id: letter.id,
-      name: "Application Letter Diperbarui",
+      name: "Cover Letter Diperbarui",
       company_name: "PT Karirkit Updated",
       template_id: template.id,
     });
@@ -158,8 +158,8 @@ describe("PUT /application-letters/:id", () => {
 
   it("returns 401 when authentication is missing", async () => {
     const response = await request(app)
-      .put(`/application-letters/${validId}`)
-      .send({ name: "Application Letter Diperbarui" });
+      .put(`/cover-letters/${validId}`)
+      .send({ name: "Cover Letter Diperbarui" });
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
@@ -167,22 +167,22 @@ describe("PUT /application-letters/:id", () => {
   });
 
   it("returns validation errors for invalid updates", async () => {
-    const { user } = await createRealUser("application-letter-update-invalid");
+    const { user } = await createRealUser("cover-letter-update-invalid");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-update-invalid"
     );
     trackedTemplateIds.add(template.id);
-    const letter = await createRealApplicationLetterFixture(user.id, template.id);
+    const letter = await createRealCoverLetterFixture(user.id, template.id);
     trackedLetterIds.add(letter.id);
 
     const response = await request(app)
-      .put(`/application-letters/${letter.id}`)
+      .put(`/cover-letters/${letter.id}`)
       .set("Authorization", `Bearer ${token}`)
       .send(
-        buildApplicationLetterPayload(template.id, {
+        buildCoverLetterPayload(template.id, {
           name: "",
           email: "invalid-email",
         })

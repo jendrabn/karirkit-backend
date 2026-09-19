@@ -4,7 +4,7 @@ import { buildAiImprovementSummary } from "../utils/ai-improvement-summary.util"
 import { validate } from "../utils/validate.util";
 import {
   AiImprovementValidation,
-  type ApplicationLetterAiImprovementInput,
+  type CoverLetterAiImprovementInput,
   type CvAiImprovementInput,
 } from "../validations/ai-improvement.validation";
 
@@ -39,24 +39,24 @@ export class AiImprovementController {
     }
   }
 
-  static async improveApplicationLetter(
+  static async improveCoverLetter(
     req: Request,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const payload: ApplicationLetterAiImprovementInput = validate(
-        AiImprovementValidation.APPLICATION_LETTER,
+      const payload: CoverLetterAiImprovementInput = validate(
+        AiImprovementValidation.COVER_LETTER,
         req.body
       );
 
-      const improvedData = await AiService.improveApplicationLetter(
+      const improvedData = await AiService.improveCoverLetter(
         payload.data,
         payload.data.language,
         payload.target_position,
         payload.job_description
       );
-      await AiService.logAiUsage(req.user!.id, "application_letter");
+      await AiService.logAiUsage(req.user!.id, "cover_letter");
 
       res.status(200).json({
         data: improvedData,

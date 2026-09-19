@@ -7,7 +7,7 @@ import {
 } from "../config/subscription-plans.config";
 import { getPeriodStart } from "../utils/subscription-period.util";
 
-type DownloadKind = "cv" | "application_letter";
+type DownloadKind = "cv" | "cover_letter";
 type DownloadFormat = "pdf" | "docx";
 
 export interface DownloadStatsBucket {
@@ -19,14 +19,14 @@ export interface DownloadStatsBucket {
 
 export interface DownloadStats {
   cv: DownloadStatsBucket;
-  application_letter: DownloadStatsBucket;
+  cover_letter: DownloadStatsBucket;
 }
 
 const getPlanDownloadLimits = (planId: PlanId) => {
   const plan = getPlan(planId);
   return {
     cv: { pdf: plan.maxCvPdfDownloads, docx: plan.maxCvDocxDownloads },
-    application_letter: { pdf: plan.maxLetterPdfDownloads, docx: plan.maxLetterDocxDownloads },
+    cover_letter: { pdf: plan.maxLetterPdfDownloads, docx: plan.maxLetterDocxDownloads },
   };
 };
 
@@ -40,8 +40,8 @@ const kindToFeature = (
       : UsageFeature.cv_download_docx;
   }
   return format === "pdf"
-    ? UsageFeature.app_letter_download_pdf
-    : UsageFeature.app_letter_download_docx;
+    ? UsageFeature.cover_letter_download_pdf
+    : UsageFeature.cover_letter_download_docx;
 };
 
 export class DownloadLogService {
@@ -98,7 +98,7 @@ export class DownloadLogService {
 
     return {
       cv: await buildBucket("cv", "pdf"),
-      application_letter: await buildBucket("application_letter", "pdf"),
+      cover_letter: await buildBucket("cover_letter", "pdf"),
     };
   }
 
@@ -115,8 +115,8 @@ export class DownloadLogService {
     const downloadFeatures: UsageFeature[] = [
       UsageFeature.cv_download_pdf,
       UsageFeature.cv_download_docx,
-      UsageFeature.app_letter_download_pdf,
-      UsageFeature.app_letter_download_docx,
+      UsageFeature.cover_letter_download_pdf,
+      UsageFeature.cover_letter_download_docx,
     ];
 
     const where: {

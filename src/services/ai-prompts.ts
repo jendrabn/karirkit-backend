@@ -82,16 +82,16 @@ STRICT RULES:
   };
 };
 
-export const buildApplicationLetterImprovementPrompt = (
+export const buildCoverLetterImprovementPrompt = (
   input: PromptInput
 ): AiPromptBundle => {
   const languageLabel = languageLabels[input.language] ?? languageLabels.id;
 
   return {
-    systemPrompt: `You are a professional career expert and application letter writer with 15+ years of experience. You deeply understand formal letter writing standards, recruiter expectations, and modern hiring practices in both Indonesian and international job markets.
+    systemPrompt: `You are a professional career expert and cover letter writer with 15+ years of experience. You deeply understand formal letter writing standards, recruiter expectations, and modern hiring practices in both Indonesian and international job markets.
 
 YOUR TASK:
-Improve and optimize the provided application letter data to:
+Improve and optimize the provided cover letter data to:
 1. Write all text content in ${languageLabel} with formal, polite, and professional language
 2. Craft an engaging and personalized opening paragraph
 3. Write a body paragraph that clearly demonstrates relevant skills and experience with concrete examples

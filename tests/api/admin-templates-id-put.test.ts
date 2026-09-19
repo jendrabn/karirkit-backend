@@ -141,7 +141,7 @@ describe("PUT /admin/templates/:id", () => {
       .set("Authorization", `Bearer ${token}`)
       .send({
         name: "Template Diperbarui",
-        type: "application_letter",
+        type: "cover_letter",
         language: "id",
         is_premium: true,
       });
@@ -151,7 +151,7 @@ describe("PUT /admin/templates/:id", () => {
     expect(response.body.data).toMatchObject({
       id: template.id,
       name: "Template Diperbarui",
-      type: "application_letter",
+      type: "cover_letter",
       language: "id",
       is_premium: true,
     });

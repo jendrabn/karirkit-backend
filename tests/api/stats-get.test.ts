@@ -27,7 +27,7 @@ beforeAll(async () => {
       prisma: {
         user: { count: mock(() => {}) },
         cv: { count: mock(() => {}) },
-        applicationLetter: { count: mock(() => {}) },
+        coverLetter: { count: mock(() => {}) },
         application: { count: mock(() => {}) },
         template: { count: mock(() => {}) },
       },
@@ -55,7 +55,7 @@ describe("GET /stats", () => {
     prismaMock as unknown as {
       user: { count: Mock };
       cv: { count: Mock };
-      applicationLetter: { count: Mock };
+      coverLetter: { count: Mock };
       application: { count: Mock };
       template: { count: Mock };
     };
@@ -68,7 +68,7 @@ describe("GET /stats", () => {
     const prisma = getPrisma();
     prisma.user.count.mockResolvedValue(10);
     prisma.cv.count.mockResolvedValue(7);
-    prisma.applicationLetter.count.mockResolvedValue(4);
+    prisma.coverLetter.count.mockResolvedValue(4);
     prisma.application.count.mockResolvedValue(12);
     prisma.template.count.mockResolvedValueOnce(3).mockResolvedValueOnce(2);
 
@@ -79,10 +79,10 @@ describe("GET /stats", () => {
     expect(response.body.data).toMatchObject({
       total_users: 10,
       total_cvs: 7,
-      total_application_letters: 4,
+      total_cover_letters: 4,
       total_applications: 12,
       total_cv_templates: 3,
-      total_application_letter_templates: 2,
+      total_cover_letter_templates: 2,
     });
     expect(typeof response.body.data.total_users).toBe("number");
   });
@@ -104,7 +104,7 @@ describe("GET /stats", () => {
     const prisma = getPrisma();
     prisma.user.count.mockResolvedValue(0);
     prisma.cv.count.mockResolvedValue(0);
-    prisma.applicationLetter.count.mockResolvedValue(0);
+    prisma.coverLetter.count.mockResolvedValue(0);
     prisma.application.count.mockResolvedValue(0);
     prisma.template.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
 
@@ -139,13 +139,13 @@ describe("GET /stats", () => {
     expect(response.body.data).toMatchObject({
       total_users: await prisma.user.count({ where: { role: "user" } }),
       total_cvs: await prisma.cv.count(),
-      total_application_letters: await prisma.applicationLetter.count(),
+      total_cover_letters: await prisma.coverLetter.count(),
       total_applications: await prisma.application.count(),
       total_cv_templates: await prisma.template.count({
         where: { type: "cv" },
       }),
-      total_application_letter_templates: await prisma.template.count({
-        where: { type: "application_letter" },
+      total_cover_letter_templates: await prisma.template.count({
+        where: { type: "cover_letter" },
       }),
     });
   });

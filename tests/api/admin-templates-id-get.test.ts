@@ -124,7 +124,7 @@ describe("GET /admin/templates/:id", () => {
     const template = await prisma.template.create({
       data: {
         name: `Template Detail ${suffix}`,
-        type: "application_letter",
+        type: "cover_letter",
         language: "en",
         path: `/uploads/templates/template-detail-${suffix}.docx`,
         preview: `/uploads/templates/template-detail-${suffix}.png`,
@@ -144,7 +144,7 @@ describe("GET /admin/templates/:id", () => {
     expect(response.body.data).toMatchObject({
       id: template.id,
       name: template.name,
-      type: "application_letter",
+      type: "cover_letter",
       language: "en",
       is_premium: false,
     });

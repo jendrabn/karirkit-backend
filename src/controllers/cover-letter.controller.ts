@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from "express";
-import { ApplicationLetterService } from "../services/application-letter.service";
+import { CoverLetterService } from "../services/cover-letter.service";
 import { sendSuccess } from "../utils/response-builder.util";
 import { DownloadLogService } from "../services/download-log.service";
 import { ResponseError } from "../utils/response-error.util";
 
-export class ApplicationLetterController {
+export class CoverLetterController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await ApplicationLetterService.list(
+      const result = await CoverLetterService.list(
         req.user!.id,
         req.query
       );
@@ -19,7 +19,7 @@ export class ApplicationLetterController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const letter = await ApplicationLetterService.get(
+      const letter = await CoverLetterService.get(
         req.user!.id,
         req.params.id as string
       );
@@ -31,7 +31,7 @@ export class ApplicationLetterController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const letter = await ApplicationLetterService.create(
+      const letter = await CoverLetterService.create(
         req.user!.id,
         req.body
       );
@@ -43,7 +43,7 @@ export class ApplicationLetterController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const letter = await ApplicationLetterService.update(
+      const letter = await CoverLetterService.update(
         req.user!.id,
         req.params.id as string,
         req.body
@@ -56,7 +56,7 @@ export class ApplicationLetterController {
 
   static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await ApplicationLetterService.delete(req.user!.id, req.params.id as string);
+      await CoverLetterService.delete(req.user!.id, req.params.id as string);
       sendSuccess(res);
     } catch (error) {
       next(error);
@@ -65,7 +65,7 @@ export class ApplicationLetterController {
 
   static async duplicate(req: Request, res: Response, next: NextFunction) {
     try {
-      const letter = await ApplicationLetterService.duplicate(
+      const letter = await CoverLetterService.duplicate(
         req.user!.id,
         req.params.id as string
       );
@@ -80,11 +80,11 @@ export class ApplicationLetterController {
       const rawFormat = Array.isArray(req.query.format)
         ? req.query.format[0]
         : req.query.format;
-      const format = ApplicationLetterController.normalizeDownloadFormat(
+      const format = CoverLetterController.normalizeDownloadFormat(
         typeof rawFormat === "string" ? rawFormat : undefined
       );
 
-      const document = await ApplicationLetterService.download(
+      const document = await CoverLetterService.download(
         req.user!.id,
         req.params.id as string,
         format
@@ -92,7 +92,7 @@ export class ApplicationLetterController {
 
       await DownloadLogService.logDownload(
         req.user!.id,
-        "application_letter",
+        "cover_letter",
         req.params.id as string,
         document.fileName,
         format
@@ -101,7 +101,7 @@ export class ApplicationLetterController {
       res.setHeader("Content-Type", document.mimeType);
       res.setHeader(
         "Content-Disposition",
-        ApplicationLetterController.buildContentDisposition(document.fileName)
+        CoverLetterController.buildContentDisposition(document.fileName)
       );
       res.send(document.buffer);
     } catch (error) {
@@ -118,7 +118,7 @@ export class ApplicationLetterController {
       .replace(/[^\x20-\x7E]+/g, "")
       .replace(/[\s-]+/g, "_")
       .trim();
-    const safeName = asciiSafe || "application-letter";
+    const safeName = asciiSafe || "cover-letter";
     const encoded = encodeURIComponent(fileName);
 
     return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
@@ -135,7 +135,7 @@ export class ApplicationLetterController {
 
   static async massDelete(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await ApplicationLetterService.massDelete(
+      const result = await CoverLetterService.massDelete(
         req.user!.id,
         req.body
       );

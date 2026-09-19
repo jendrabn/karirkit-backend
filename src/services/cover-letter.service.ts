@@ -1,25 +1,25 @@
 import type {
-  ApplicationLetter as PrismaApplicationLetter,
+  CoverLetter as PrismaCoverLetter,
   Prisma,
 } from "../generated/prisma/client";
 import type {
-  ApplicationLetterOrderByWithRelationInput,
-  ApplicationLetterWhereInput,
-} from "../generated/prisma/models/ApplicationLetter";
+  CoverLetterOrderByWithRelationInput,
+  CoverLetterWhereInput,
+} from "../generated/prisma/models/CoverLetter";
 import crypto from "crypto";
 import path from "path";
 import createReport from "docx-templates";
 import type {
-  ApplicationLetter as ApplicationLetterResponse,
+  CoverLetter as CoverLetterResponse,
   Pagination,
 } from "../types/api-schemas";
 import { prisma } from "../config/prisma.config";
 import { validate } from "../utils/validate.util";
 import {
-  ApplicationLetterValidation,
-  type ApplicationLetterListQuery,
-  type ApplicationLetterPayloadInput,
-} from "../validations/application-letter.validation";
+  CoverLetterValidation,
+  type CoverLetterListQuery,
+  type CoverLetterPayloadInput,
+} from "../validations/cover-letter.validation";
 import { ResponseError } from "../utils/response-error.util";
 import { isHttpUrl } from "../utils/url.util";
 import { convertDocxToPdf } from "../utils/docx-to-pdf.util";
@@ -28,8 +28,8 @@ import { UploadService } from "./upload.service";
 import { StorageService } from "./storage.service";
 import { readCachedStorageFile } from "../utils/storage-read-cache.util";
 
-type ApplicationLetterListResult = {
-  items: ApplicationLetterResponse[];
+type CoverLetterListResult = {
+  items: CoverLetterResponse[];
   pagination: Pagination;
 };
 
@@ -40,12 +40,12 @@ type TemplateSummary = {
   type: string;
 };
 
-type ApplicationLetterWithTemplate = PrismaApplicationLetter & {
+type CoverLetterWithTemplate = PrismaCoverLetter & {
   template?: TemplateSummary | null;
 };
 
-type ApplicationLetterMutableFields = Pick<
-  Prisma.ApplicationLetterUncheckedCreateInput,
+type CoverLetterMutableFields = Pick<
+  Prisma.CoverLetterUncheckedCreateInput,
   | "name"
   | "birthPlaceDate"
   | "gender"
@@ -96,7 +96,7 @@ const sortFieldMap = {
   name: "name",
 } as const satisfies Record<
   string,
-  keyof ApplicationLetterOrderByWithRelationInput
+  keyof CoverLetterOrderByWithRelationInput
 >;
 
 const MAX_SIGNATURE_HEIGHT_CM = 2;
@@ -114,20 +114,20 @@ const letterInclude = {
   template: {
     select: templateSelect,
   },
-} satisfies Prisma.ApplicationLetterInclude;
+} satisfies Prisma.CoverLetterInclude;
 
-export class ApplicationLetterService {
+export class CoverLetterService {
   static async list(
     userId: string,
     query: unknown
-  ): Promise<ApplicationLetterListResult> {
-    const filters: ApplicationLetterListQuery = validate(
-      ApplicationLetterValidation.LIST_QUERY,
+  ): Promise<CoverLetterListResult> {
+    const filters: CoverLetterListQuery = validate(
+      CoverLetterValidation.LIST_QUERY,
       query
     );
-    const where = ApplicationLetterService.buildListWhere(userId, filters);
+    const where = CoverLetterService.buildListWhere(userId, filters);
     const orderByField = sortFieldMap[filters.sort_by] ?? "createdAt";
-    const orderBy: ApplicationLetterOrderByWithRelationInput = {
+    const orderBy: CoverLetterOrderByWithRelationInput = {
       [orderByField]: filters.sort_order,
     };
 
@@ -135,8 +135,8 @@ export class ApplicationLetterService {
     const perPage = filters.per_page;
 
     const [totalItems, records] = await Promise.all([
-      prisma.applicationLetter.count({ where }),
-      prisma.applicationLetter.findMany({
+      prisma.coverLetter.count({ where }),
+      prisma.coverLetter.findMany({
         where,
         orderBy,
         skip: (page - 1) * perPage,
@@ -150,7 +150,7 @@ export class ApplicationLetterService {
 
     return {
       items: records.map((record) =>
-        ApplicationLetterService.toResponse(record)
+        CoverLetterService.toResponse(record)
       ),
       pagination: {
         page,
@@ -164,24 +164,24 @@ export class ApplicationLetterService {
   static async create(
     userId: string,
     request: unknown
-  ): Promise<ApplicationLetterResponse> {
-    const payload: ApplicationLetterPayloadInput = validate(
-      ApplicationLetterValidation.PAYLOAD,
+  ): Promise<CoverLetterResponse> {
+    const payload: CoverLetterPayloadInput = validate(
+      CoverLetterValidation.PAYLOAD,
       request
     );
     const preparedSignature =
-      await ApplicationLetterService.prepareSignatureValue(
+      await CoverLetterService.prepareSignatureValue(
         userId,
         payload.signature
       );
-    const data = ApplicationLetterService.mapPayloadToData(
+    const data = CoverLetterService.mapPayloadToData(
       payload,
       preparedSignature.path
     );
     const now = new Date();
 
     try {
-      const letter = await prisma.applicationLetter.create({
+      const letter = await prisma.coverLetter.create({
         data: {
           ...data,
           userId,
@@ -191,10 +191,10 @@ export class ApplicationLetterService {
         include: letterInclude,
       });
 
-      return ApplicationLetterService.toResponse(letter);
+      return CoverLetterService.toResponse(letter);
     } catch (error) {
       if (preparedSignature.createdPath) {
-        await ApplicationLetterService.deleteSignatureFile(
+        await CoverLetterService.deleteSignatureFile(
           preparedSignature.createdPath
         );
       }
@@ -205,34 +205,34 @@ export class ApplicationLetterService {
   static async get(
     userId: string,
     id: string
-  ): Promise<ApplicationLetterResponse> {
-    const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
-    return ApplicationLetterService.toResponse(letter);
+  ): Promise<CoverLetterResponse> {
+    const letter = await CoverLetterService.findOwnedLetter(userId, id);
+    return CoverLetterService.toResponse(letter);
   }
 
   static async update(
     userId: string,
     id: string,
     request: unknown
-  ): Promise<ApplicationLetterResponse> {
-    const existing = await ApplicationLetterService.findOwnedLetter(userId, id);
-    const payload: ApplicationLetterPayloadInput = validate(
-      ApplicationLetterValidation.PAYLOAD,
+  ): Promise<CoverLetterResponse> {
+    const existing = await CoverLetterService.findOwnedLetter(userId, id);
+    const payload: CoverLetterPayloadInput = validate(
+      CoverLetterValidation.PAYLOAD,
       request
     );
     const preparedSignature =
-      await ApplicationLetterService.prepareSignatureValue(
+      await CoverLetterService.prepareSignatureValue(
         userId,
         payload.signature,
         existing.signature
       );
-    const data = ApplicationLetterService.mapPayloadToData(
+    const data = CoverLetterService.mapPayloadToData(
       payload,
       preparedSignature.path
     );
 
     try {
-      const letter = await prisma.applicationLetter.update({
+      const letter = await prisma.coverLetter.update({
         where: { id },
         data: {
           ...data,
@@ -242,16 +242,16 @@ export class ApplicationLetterService {
       });
 
       if (preparedSignature.path !== (existing.signature ?? "")) {
-        await ApplicationLetterService.deleteSignatureFile(existing.signature);
+        await CoverLetterService.deleteSignatureFile(existing.signature);
       }
 
-      return ApplicationLetterService.toResponse(letter);
+      return CoverLetterService.toResponse(letter);
     } catch (error) {
       if (
         preparedSignature.createdPath &&
         preparedSignature.createdPath !== existing.signature
       ) {
-        await ApplicationLetterService.deleteSignatureFile(
+        await CoverLetterService.deleteSignatureFile(
           preparedSignature.createdPath
         );
       }
@@ -260,29 +260,29 @@ export class ApplicationLetterService {
   }
 
   static async delete(userId: string, id: string): Promise<void> {
-    const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
-    await prisma.applicationLetter.delete({
+    const letter = await CoverLetterService.findOwnedLetter(userId, id);
+    await prisma.coverLetter.delete({
       where: { id },
     });
-    await ApplicationLetterService.deleteSignatureFile(letter.signature);
+    await CoverLetterService.deleteSignatureFile(letter.signature);
   }
 
   static async duplicate(
     userId: string,
     id: string
-  ): Promise<ApplicationLetterResponse> {
-    const source = await ApplicationLetterService.findOwnedLetter(userId, id);
+  ): Promise<CoverLetterResponse> {
+    const source = await CoverLetterService.findOwnedLetter(userId, id);
     const duplicatedSignature =
-      await ApplicationLetterService.duplicateSignatureIfManaged(
+      await CoverLetterService.duplicateSignatureIfManaged(
         source.signature
       );
     const now = new Date();
 
     try {
-      const duplicate = await prisma.applicationLetter.create({
+      const duplicate = await prisma.coverLetter.create({
         data: {
           userId,
-          ...ApplicationLetterService.mapDuplicateData(source),
+          ...CoverLetterService.mapDuplicateData(source),
           signature: duplicatedSignature,
           createdAt: now,
           updatedAt: now,
@@ -290,10 +290,10 @@ export class ApplicationLetterService {
         include: letterInclude,
       });
 
-      return ApplicationLetterService.toResponse(duplicate);
+      return CoverLetterService.toResponse(duplicate);
     } catch (error) {
       if (duplicatedSignature !== (source.signature ?? "")) {
-        await ApplicationLetterService.deleteSignatureFile(duplicatedSignature);
+        await CoverLetterService.deleteSignatureFile(duplicatedSignature);
       }
       throw error;
     }
@@ -304,7 +304,7 @@ export class ApplicationLetterService {
     id: string,
     format?: string
   ): Promise<GeneratedDocument> {
-    const normalized = ApplicationLetterService.normalizeDownloadFormat(format);
+    const normalized = CoverLetterService.normalizeDownloadFormat(format);
     if (normalized === "pdf" && !env.pdfDownloadEnabled) {
       throw new ResponseError(
         503,
@@ -312,9 +312,9 @@ export class ApplicationLetterService {
       );
     }
 
-    const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
-    const docxBuffer = await ApplicationLetterService.renderDocx(letter);
-    const baseName = ApplicationLetterService.buildFileName(letter);
+    const letter = await CoverLetterService.findOwnedLetter(userId, id);
+    const docxBuffer = await CoverLetterService.renderDocx(letter);
+    const baseName = CoverLetterService.buildFileName(letter);
 
     if (normalized === "pdf") {
       const pdfBuffer = await convertDocxToPdf(docxBuffer, baseName);
@@ -345,8 +345,8 @@ export class ApplicationLetterService {
   private static async findOwnedLetter(
     userId: string,
     id: string
-  ): Promise<ApplicationLetterWithTemplate> {
-    const letter = await prisma.applicationLetter.findFirst({
+  ): Promise<CoverLetterWithTemplate> {
+    const letter = await prisma.coverLetter.findFirst({
       where: {
         id,
         userId,
@@ -363,9 +363,9 @@ export class ApplicationLetterService {
 
   private static buildListWhere(
     userId: string,
-    filters: ApplicationLetterListQuery
-  ): ApplicationLetterWhereInput {
-    const where: ApplicationLetterWhereInput = { userId };
+    filters: CoverLetterListQuery
+  ): CoverLetterWhereInput {
+    const where: CoverLetterWhereInput = { userId };
 
     if (filters.q) {
       const search = filters.q;
@@ -421,7 +421,7 @@ export class ApplicationLetterService {
     }
 
     if (filters.created_at_from || filters.created_at_to) {
-      where.createdAt = ApplicationLetterService.buildDateRange(
+      where.createdAt = CoverLetterService.buildDateRange(
         filters.created_at_from,
         filters.created_at_to
       );
@@ -438,9 +438,9 @@ export class ApplicationLetterService {
   }
 
   private static mapPayloadToData(
-    payload: ApplicationLetterPayloadInput,
+    payload: CoverLetterPayloadInput,
     signaturePath: string
-  ): ApplicationLetterMutableFields {
+  ): CoverLetterMutableFields {
     return {
       name: payload.name,
       birthPlaceDate: payload.birth_place_date,
@@ -468,8 +468,8 @@ export class ApplicationLetterService {
   }
 
   private static mapDuplicateData(
-    source: PrismaApplicationLetter
-  ): ApplicationLetterMutableFields {
+    source: PrismaCoverLetter
+  ): CoverLetterMutableFields {
     return {
       name: source.name,
       birthPlaceDate: source.birthPlaceDate,
@@ -519,13 +519,13 @@ export class ApplicationLetterService {
     }
 
     const normalizedInput =
-      ApplicationLetterService.normalizeSignaturePublicPath(trimmed);
+      CoverLetterService.normalizeSignaturePublicPath(trimmed);
 
     if (normalizedInput) {
       return { path: normalizedInput };
     }
 
-    const promoted = await ApplicationLetterService.promoteTempSignature(
+    const promoted = await CoverLetterService.promoteTempSignature(
       userId,
       trimmed
     );
@@ -538,7 +538,7 @@ export class ApplicationLetterService {
   private static async duplicateSignatureIfManaged(
     signaturePath?: string | null
   ): Promise<string> {
-    const normalized = ApplicationLetterService.normalizeSignaturePublicPath(
+    const normalized = CoverLetterService.normalizeSignaturePublicPath(
       signaturePath
     );
 
@@ -567,7 +567,7 @@ export class ApplicationLetterService {
       );
     }
 
-    const extension = ApplicationLetterService.getSignatureFileExtension(
+    const extension = CoverLetterService.getSignatureFileExtension(
       normalizedTempPath
     );
     if (!extension) {
@@ -577,7 +577,7 @@ export class ApplicationLetterService {
       );
     }
 
-    const fileName = ApplicationLetterService.buildSignatureFileName(
+    const fileName = CoverLetterService.buildSignatureFileName(
       userId,
       extension
     );
@@ -628,7 +628,7 @@ export class ApplicationLetterService {
   }
 
   private static async renderDocx(
-    letter: ApplicationLetterWithTemplate
+    letter: CoverLetterWithTemplate
   ): Promise<Buffer> {
     if (!letter.templateId || !letter.template) {
       throw new ResponseError(400, "Template diperlukan");
@@ -638,11 +638,11 @@ export class ApplicationLetterService {
       await readCachedStorageFile(letter.template.path)
     ).buffer;
     const additionalJsContext =
-      ApplicationLetterService.buildAdditionalJsContext();
+      CoverLetterService.buildAdditionalJsContext();
 
     const rendered = await createReport({
       template: templateBinary,
-      data: ApplicationLetterService.buildTemplateContext(letter),
+      data: CoverLetterService.buildTemplateContext(letter),
       cmdDelimiter: ["{{", "}}"],
       additionalJsContext,
     });
@@ -653,7 +653,7 @@ export class ApplicationLetterService {
   }
 
   private static buildTemplateContext(
-    letter: PrismaApplicationLetter
+    letter: PrismaCoverLetter
   ): Record<string, unknown> {
     const signaturePath = letter.signature ?? "";
     return {
@@ -667,14 +667,14 @@ export class ApplicationLetterService {
       opening_paragraph: letter.openingParagraph ?? "",
       body_paragraph: letter.bodyParagraph ?? "",
       attachments: letter.attachments ?? "",
-      attachments_items: ApplicationLetterService.parseAttachmentItems(
+      attachments_items: CoverLetterService.parseAttachmentItems(
         letter.attachments
       ),
       closing_paragraph: letter.closingParagraph ?? "",
       name: letter.name ?? "",
       birth_place_date: letter.birthPlaceDate ?? "",
-      gender: ApplicationLetterService.toTitleCase(letter.gender ?? ""),
-      marital_status: ApplicationLetterService.toTitleCase(
+      gender: CoverLetterService.toTitleCase(letter.gender ?? ""),
+      marital_status: CoverLetterService.toTitleCase(
         letter.maritalStatus ?? ""
       ),
       education: letter.education ?? "",
@@ -687,7 +687,7 @@ export class ApplicationLetterService {
     };
   }
 
-  private static buildFileName(letter: PrismaApplicationLetter): string {
+  private static buildFileName(letter: PrismaCoverLetter): string {
     const raw = `${letter.name ?? "Pelamar"} - ${
       letter.subject ?? "Posisi"
     } - ${letter.companyName ?? "Perusahaan"}`;
@@ -723,7 +723,7 @@ export class ApplicationLetterService {
   private static buildAdditionalJsContext() {
     return {
       signatureImage: async (signaturePath?: string | null) =>
-        ApplicationLetterService.createSignatureImage(signaturePath),
+        CoverLetterService.createSignatureImage(signaturePath),
     };
   }
 
@@ -731,20 +731,20 @@ export class ApplicationLetterService {
     signaturePath?: string | null
   ): Promise<SignatureImageResult | null> {
     const resolvedPath =
-      ApplicationLetterService.resolveSignatureFilePath(signaturePath);
+      CoverLetterService.resolveSignatureFilePath(signaturePath);
     if (!resolvedPath) {
       return null;
     }
 
     const extension =
-      ApplicationLetterService.getSignatureFileExtension(resolvedPath);
+      CoverLetterService.getSignatureFileExtension(resolvedPath);
     if (!extension) {
       return null;
     }
 
     try {
       const buffer = (await readCachedStorageFile(resolvedPath)).buffer;
-      const dimensions = ApplicationLetterService.extractImageDimensions(
+      const dimensions = CoverLetterService.extractImageDimensions(
         buffer,
         extension
       );
@@ -795,10 +795,10 @@ export class ApplicationLetterService {
     extension: SignatureImageResult["extension"]
   ): { width: number; height: number } | null {
     if (extension === ".png") {
-      return ApplicationLetterService.extractPngDimensions(buffer);
+      return CoverLetterService.extractPngDimensions(buffer);
     }
 
-    return ApplicationLetterService.extractJpegDimensions(buffer);
+    return CoverLetterService.extractJpegDimensions(buffer);
   }
 
   private static extractPngDimensions(
@@ -849,7 +849,7 @@ export class ApplicationLetterService {
         break;
       }
 
-      if (ApplicationLetterService.isJpegSofMarker(marker)) {
+      if (CoverLetterService.isJpegSofMarker(marker)) {
         if (offset + 5 >= buffer.length) {
           break;
         }
@@ -874,8 +874,8 @@ export class ApplicationLetterService {
   }
 
   private static toResponse(
-    letter: ApplicationLetterWithTemplate
-  ): ApplicationLetterResponse {
+    letter: CoverLetterWithTemplate
+  ): CoverLetterResponse {
     return {
       id: letter.id,
       user_id: letter.userId,
@@ -918,10 +918,10 @@ export class ApplicationLetterService {
     userId: string,
     request: unknown
   ): Promise<{ message: string; deleted_count: number }> {
-    const { ids } = validate(ApplicationLetterValidation.MASS_DELETE, request);
+    const { ids } = validate(CoverLetterValidation.MASS_DELETE, request);
 
-    // Verify all application letters belong to the user
-    const letters = await prisma.applicationLetter.findMany({
+    // Verify all cover letters belong to the user
+    const letters = await prisma.coverLetter.findMany({
       where: {
         id: { in: ids },
         userId,
@@ -936,8 +936,8 @@ export class ApplicationLetterService {
       );
     }
 
-    // Delete all application letters
-    const result = await prisma.applicationLetter.deleteMany({
+    // Delete all cover letters
+    const result = await prisma.coverLetter.deleteMany({
       where: {
         id: { in: ids },
         userId,
@@ -946,7 +946,7 @@ export class ApplicationLetterService {
 
     await Promise.all(
       letters.map((letter) =>
-        ApplicationLetterService.deleteSignatureFile(letter.signature)
+        CoverLetterService.deleteSignatureFile(letter.signature)
       )
     );
 

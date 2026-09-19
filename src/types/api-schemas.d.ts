@@ -267,7 +267,7 @@ export interface ApplicationListResponse {
   };
 }
 
-export interface ApplicationLetter {
+export interface CoverLetter {
   id?: string;
   user_id?: string;
   name?: string;
@@ -302,7 +302,7 @@ export interface ApplicationLetter {
   updated_at?: string;
 }
 
-export interface ApplicationLetterPayload {
+export interface CoverLetterPayload {
   name: string;
   birth_place_date: string;
   gender: "male" | "female";
@@ -327,13 +327,13 @@ export interface ApplicationLetterPayload {
   language?: "en" | "id";
 }
 
-export interface ApplicationLetterResponse {
-  data?: ApplicationLetter;
+export interface CoverLetterResponse {
+  data?: CoverLetter;
 }
 
-export interface ApplicationLetterListResponse {
+export interface CoverLetterListResponse {
   data?: {
-    items?: ApplicationLetter[];
+    items?: CoverLetter[];
     pagination?: Pagination;
   };
 }

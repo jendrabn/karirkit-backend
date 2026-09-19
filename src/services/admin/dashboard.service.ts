@@ -43,7 +43,7 @@ type DashboardStats = {
   total_tags: number;
   total_templates: number;
   total_cv_templates: number;
-  total_application_letter_templates: number;
+  total_cover_letter_templates: number;
   total_jobs: number;
   total_published_jobs: number;
   total_draft_jobs: number;
@@ -97,7 +97,7 @@ export class DashboardService {
       totalTags,
       totalTemplates,
       totalCvTemplates,
-      totalApplicationLetterTemplates,
+      totalCoverLetterTemplates,
       totalCompanies,
       totalJobRoles,
       totalSubscriptionRevenue,
@@ -117,7 +117,7 @@ export class DashboardService {
         where: { type: "cv" },
       }),
       prisma.template.count({
-        where: { type: "application_letter" },
+        where: { type: "cover_letter" },
       }),
       prisma.company.count(),
       prisma.jobRole.count(),
@@ -270,7 +270,7 @@ export class DashboardService {
       total_tags: totalTags,
       total_templates: totalTemplates,
       total_cv_templates: totalCvTemplates,
-      total_application_letter_templates: totalApplicationLetterTemplates,
+      total_cover_letter_templates: totalCoverLetterTemplates,
       total_jobs:
         jobStatusCounts.draft +
         jobStatusCounts.published +

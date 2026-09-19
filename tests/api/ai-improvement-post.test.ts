@@ -1,6 +1,6 @@
 import request from "supertest";
 import {
-  buildApplicationLetterPayload,
+  buildCoverLetterPayload,
   buildCvPayload,
 } from "./real-mode";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
@@ -31,7 +31,7 @@ beforeAll(async () => {
   mock.module("../../src/services/ai.service", () => ({
     AiService: {
       improveCv: mock(() => {}),
-      improveApplicationLetter: mock(() => {}),
+      improveCoverLetter: mock(() => {}),
       logAiUsage: mock(() => {}),
     },
   }));
@@ -122,14 +122,14 @@ describe("POST /cvs/ai-improve", () => {
 
 });
 
-describe("POST /application-letters/ai-improve", () => {
+describe("POST /cover-letters/ai-improve", () => {
   beforeEach(() => {
     mock.clearAllMocks();
     env.ai.enabled = true;
   });
 
-  it("improves an application letter payload", async () => {
-    const payload = buildApplicationLetterPayload("template-basic");
+  it("improves a cover letter payload", async () => {
+    const payload = buildCoverLetterPayload("template-basic");
     const {
       signature: _signature,
       template_id: _templateId,
@@ -140,12 +140,12 @@ describe("POST /application-letters/ai-improve", () => {
       subject: "Application for Backend Engineer Position",
     };
 
-    AiService.improveApplicationLetter
+    AiService.improveCoverLetter
       .mockResolvedValue(improved as never);
     AiService.logAiUsage.mockResolvedValue(undefined);
 
     const response = await request(app)
-      .post("/application-letters/ai-improve")
+      .post("/cover-letters/ai-improve")
       .set("Authorization", "Bearer user-token")
       .send({
         data: payload,
@@ -167,7 +167,7 @@ describe("POST /application-letters/ai-improve", () => {
         },
       ],
     });
-    expect(AiService.improveApplicationLetter).toHaveBeenCalledWith(
+    expect(AiService.improveCoverLetter).toHaveBeenCalledWith(
       expect.not.objectContaining({
         signature: expect.anything(),
         template_id: expect.anything(),
@@ -178,7 +178,7 @@ describe("POST /application-letters/ai-improve", () => {
     );
     expect(AiService.logAiUsage).toHaveBeenCalledWith(
       "user-1",
-      "application_letter"
+      "cover_letter"
     );
   });
 });

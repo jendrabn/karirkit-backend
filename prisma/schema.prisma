@@ -8,45 +8,45 @@ datasource db {
 }
 
 model User {
-  id                    String                @id @default(uuid()) @db.VarChar(255)
-  name                  String                @db.VarChar(255)
-  username              String                @unique @db.VarChar(255)
-  email                 String                @unique @db.VarChar(255)
-  password              String                @db.VarChar(255)
-  role                  UserRole              @default(user)
-  phone                 String?               @db.VarChar(255)
-  headline              String?               @db.VarChar(255)
-  bio                   String?               @db.Text
-  location              String?               @db.VarChar(255)
-  gender                Gender?
-  birthDate             DateTime?             @map("birth_date") @db.Date
-  googleId              String?               @map("google_id") @db.VarChar(255)
-  facebookId            String?               @map("facebook_id") @db.VarChar(255)
-  appleId               String?               @map("apple_id") @db.VarChar(255)
-  avatar                String?               @db.VarChar(255)
-  passwordResetTokenId  String?               @map("password_reset_token_id") @db.VarChar(255)
-  sessionInvalidBefore  DateTime?             @map("session_invalid_before") @db.Timestamp(3)
-  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(0)
-  emailVerifiedAt       DateTime?             @map("email_verified_at") @db.Timestamp(0)
-  lastLoginAt           DateTime?             @map("last_login_at") @db.Timestamp(0)
-  status                UserStatus            @default(active)
-  statusReason          String?               @map("status_reason") @db.Text
-  suspendedUntil        DateTime?             @map("suspended_until") @db.Timestamp(0)
-  applicationLetters    ApplicationLetter[]
-  applications          Application[]
-  blogs                 Blog[]
-  cvs                   Cv[]
-  documents             Document[]
-  usageLogs             UsageLog[]
-  otps                  Otp[]
-  portfolios            Portfolio[]
-  savedJobs             SavedJob[]
-  socialLinks           UserSocialLink[]
-  subscriptions         Subscription[]
+  id                   String           @id @default(uuid()) @db.VarChar(255)
+  name                 String           @db.VarChar(255)
+  username             String           @unique @db.VarChar(255)
+  email                String           @unique @db.VarChar(255)
+  password             String           @db.VarChar(255)
+  role                 UserRole         @default(user)
+  phone                String?          @db.VarChar(255)
+  headline             String?          @db.VarChar(255)
+  bio                  String?          @db.Text
+  location             String?          @db.VarChar(255)
+  gender               Gender?
+  birthDate            DateTime?        @map("birth_date") @db.Date
+  googleId             String?          @map("google_id") @db.VarChar(255)
+  facebookId           String?          @map("facebook_id") @db.VarChar(255)
+  appleId              String?          @map("apple_id") @db.VarChar(255)
+  avatar               String?          @db.VarChar(255)
+  passwordResetTokenId String?          @map("password_reset_token_id") @db.VarChar(255)
+  sessionInvalidBefore DateTime?        @map("session_invalid_before") @db.Timestamp(3)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamp(0)
+  emailVerifiedAt      DateTime?        @map("email_verified_at") @db.Timestamp(0)
+  lastLoginAt          DateTime?        @map("last_login_at") @db.Timestamp(0)
+  status               UserStatus       @default(active)
+  statusReason         String?          @map("status_reason") @db.Text
+  suspendedUntil       DateTime?        @map("suspended_until") @db.Timestamp(0)
+  coverLetters         CoverLetter[]
+  applications         Application[]
+  blogs                Blog[]
+  cvs                  Cv[]
+  documents            Document[]
+  usageLogs            UsageLog[]
+  otps                 Otp[]
+  portfolios           Portfolio[]
+  savedJobs            SavedJob[]
+  socialLinks          UserSocialLink[]
+  subscriptions        Subscription[]
 
-  subscriptionPlan      PlanId                @default(free) @map("subscription_plan")
-  subscriptionExpiresAt DateTime?             @map("subscription_expires_at") @db.Timestamp(0)
+  subscriptionPlan      PlanId    @default(free) @map("subscription_plan")
+  subscriptionExpiresAt DateTime? @map("subscription_expires_at") @db.Timestamp(0)
 
   @@index([googleId], map: "idx_users_google_id")
   @@index([facebookId], map: "idx_users_facebook_id")
@@ -144,7 +144,7 @@ model Application {
   @@map("applications")
 }
 
-model ApplicationLetter {
+model CoverLetter {
   id               String        @id @default(uuid()) @db.VarChar(255)
   userId           String        @map("user_id") @db.VarChar(255)
   templateId       String?       @map("template_id") @db.VarChar(255)
@@ -174,9 +174,9 @@ model ApplicationLetter {
   template         Template?     @relation(fields: [templateId], references: [id])
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "idx_application_letters_user_id")
-  @@index([templateId], map: "application_letters_template_id_fkey")
-  @@map("application_letters")
+  @@index([userId], map: "idx_cover_letters_user_id")
+  @@index([templateId], map: "cover_letters_template_id_fkey")
+  @@map("cover_letters")
 }
 
 model CvEducation {
@@ -411,17 +411,17 @@ model BlogTagRelation {
 }
 
 model Template {
-  id                 String              @id @default(uuid()) @db.VarChar(255)
-  name               String              @db.VarChar(255)
-  type               TemplateType
-  language           Language            @default(en)
-  path               String              @db.VarChar(255)
-  preview            String?             @db.VarChar(255)
-  isPremium          Boolean             @default(false) @map("is_premium")
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamp(0)
-  applicationLetters ApplicationLetter[]
-  cvs                Cv[]
+  id           String        @id @default(uuid()) @db.VarChar(255)
+  name         String        @db.VarChar(255)
+  type         TemplateType
+  language     Language      @default(en)
+  path         String        @db.VarChar(255)
+  preview      String?       @db.VarChar(255)
+  isPremium    Boolean       @default(false) @map("is_premium")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
+  coverLetters CoverLetter[]
+  cvs          Cv[]
 
   @@map("templates")
 }
@@ -914,7 +914,7 @@ enum BlogStatus {
 
 enum TemplateType {
   cv
-  application_letter
+  cover_letter
 }
 
 enum OtpPurpose {
@@ -924,10 +924,10 @@ enum OtpPurpose {
 enum UsageFeature {
   cv_download_pdf
   cv_download_docx
-  app_letter_download_pdf
-  app_letter_download_docx
+  cover_letter_download_pdf
+  cover_letter_download_docx
   ai_improve_cv
-  ai_improve_app_letter
+  ai_improve_cover_letter
 }
 
 enum DocumentType {

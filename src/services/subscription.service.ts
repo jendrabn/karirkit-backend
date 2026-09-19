@@ -77,18 +77,18 @@ type CurrentSubscriptionResult = {
   currentLimits: {
     maxCvs: number;
     maxApplications: number;
-    maxApplicationLetters: number;
+    maxCoverLetters: number;
     maxDocumentStorageBytes: number;
     maxCvPdfDownloads: number;
     maxCvDocxDownloads: number;
     maxLetterPdfDownloads: number;
     maxLetterDocxDownloads: number;
     maxCvAiImprovements: number;
-    maxApplicationLetterAiImprovements: number;
+    maxCoverLetterAiImprovements: number;
   };
   currentFeatures: {
     canUsePremiumCvTemplates: boolean;
-    canUsePremiumApplicationLetterTemplates: boolean;
+    canUsePremiumCoverLetterTemplates: boolean;
   };
 };
 
@@ -237,19 +237,19 @@ export class SubscriptionService {
       currentLimits: {
         maxCvs: plan.maxCvs,
         maxApplications: plan.maxApplications,
-        maxApplicationLetters: plan.maxApplicationLetters,
+        maxCoverLetters: plan.maxCoverLetters,
         maxDocumentStorageBytes: plan.maxDocumentStorageBytes,
         maxCvPdfDownloads: plan.maxCvPdfDownloads,
         maxCvDocxDownloads: plan.maxCvDocxDownloads,
         maxLetterPdfDownloads: plan.maxLetterPdfDownloads,
         maxLetterDocxDownloads: plan.maxLetterDocxDownloads,
         maxCvAiImprovements: plan.maxCvAiImprovements,
-        maxApplicationLetterAiImprovements: plan.maxApplicationLetterAiImprovements,
+        maxCoverLetterAiImprovements: plan.maxCoverLetterAiImprovements,
       },
       currentFeatures: {
         canUsePremiumCvTemplates: plan.canUsePremiumCvTemplates,
-        canUsePremiumApplicationLetterTemplates:
-          plan.canUsePremiumApplicationLetterTemplates,
+        canUsePremiumCoverLetterTemplates:
+          plan.canUsePremiumCoverLetterTemplates,
       },
     };
   }

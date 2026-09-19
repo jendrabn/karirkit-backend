@@ -19,7 +19,7 @@ import {
 
 type AdminUsage = {
   max_cvs: number;
-  max_application_letters: number;
+  max_cover_letters: number;
   max_applications: number;
   max_document_storage_bytes: number;
   max_cv_pdf_downloads: number;
@@ -27,7 +27,7 @@ type AdminUsage = {
   max_letter_pdf_downloads: number;
   max_letter_docx_downloads: number;
   max_cv_ai_improvements: number;
-  max_application_letter_ai_improvements: number;
+  max_cover_letter_ai_improvements: number;
 };
 
 type SafeUser = UserProfile & {
@@ -114,7 +114,7 @@ type RawUserRecord = {
 
 const toAdminUsage = (stats: UsageStats): AdminUsage => ({
   max_cvs: stats.max_cvs.used,
-  max_application_letters: stats.max_application_letters.used,
+  max_cover_letters: stats.max_cover_letters.used,
   max_applications: stats.max_applications.used,
   max_document_storage_bytes: stats.max_document_storage_bytes.used,
   max_cv_pdf_downloads: stats.max_cv_pdf_downloads.used,
@@ -122,7 +122,7 @@ const toAdminUsage = (stats: UsageStats): AdminUsage => ({
   max_letter_pdf_downloads: stats.max_letter_pdf_downloads.used,
   max_letter_docx_downloads: stats.max_letter_docx_downloads.used,
   max_cv_ai_improvements: stats.max_cv_ai_improvements.used,
-  max_application_letter_ai_improvements: stats.max_application_letter_ai_improvements.used,
+  max_cover_letter_ai_improvements: stats.max_cover_letter_ai_improvements.used,
 });
 
 const toAdminUserProfile = (
@@ -164,7 +164,7 @@ const toAdminUserProfile = (
 
 const getEmptyUsage = (_planId: string): AdminUsage => ({
   max_cvs: 0,
-  max_application_letters: 0,
+  max_cover_letters: 0,
   max_applications: 0,
   max_document_storage_bytes: 0,
   max_cv_pdf_downloads: 0,
@@ -172,7 +172,7 @@ const getEmptyUsage = (_planId: string): AdminUsage => ({
   max_letter_pdf_downloads: 0,
   max_letter_docx_downloads: 0,
   max_cv_ai_improvements: 0,
-  max_application_letter_ai_improvements: 0,
+  max_cover_letter_ai_improvements: 0,
 });
 
 const normalizeNullableString = (
@@ -201,7 +201,7 @@ const normalizeNullableDate = (value?: string | null): Date | null | undefined =
 
 const USAGE_SORT_FIELDS = [
   "max_cvs",
-  "max_application_letters",
+  "max_cover_letters",
   "max_applications",
   "max_document_storage_bytes",
   "max_cv_pdf_downloads",
@@ -209,7 +209,7 @@ const USAGE_SORT_FIELDS = [
   "max_letter_pdf_downloads",
   "max_letter_docx_downloads",
   "max_cv_ai_improvements",
-  "max_application_letter_ai_improvements",
+  "max_cover_letter_ai_improvements",
 ] as const;
 
 const sortFieldMap = {
@@ -329,7 +329,7 @@ export class UserService {
 
     const usageFilterKeys = [
       "max_cvs",
-      "max_application_letters",
+      "max_cover_letters",
       "max_applications",
       "max_document_storage_bytes",
       "max_cv_pdf_downloads",
@@ -337,7 +337,7 @@ export class UserService {
       "max_letter_pdf_downloads",
       "max_letter_docx_downloads",
       "max_cv_ai_improvements",
-      "max_application_letter_ai_improvements",
+      "max_cover_letter_ai_improvements",
     ] as const;
 
     const needsDerivedData = (["_from", "_to"] as const).some((suffix) =>

@@ -1,6 +1,6 @@
 export type PlanId = 'free' | 'pro' | 'max';
 
-export type AiImprovementKind = "cv" | "application_letter";
+export type AiImprovementKind = "cv" | "cover_letter";
 
 export interface SubscriptionPlan {
   id: PlanId;
@@ -8,7 +8,7 @@ export interface SubscriptionPlan {
   price: number;
   durationDays: number;
   maxCvs: number;
-  maxApplicationLetters: number;
+  maxCoverLetters: number;
   maxApplications: number;
   maxDocumentStorageBytes: number;
   maxCvPdfDownloads: number;
@@ -16,9 +16,9 @@ export interface SubscriptionPlan {
   maxLetterPdfDownloads: number;
   maxLetterDocxDownloads: number;
   maxCvAiImprovements: number;
-  maxApplicationLetterAiImprovements: number;
+  maxCoverLetterAiImprovements: number;
   canUsePremiumCvTemplates: boolean;
-  canUsePremiumApplicationLetterTemplates: boolean;
+  canUsePremiumCoverLetterTemplates: boolean;
 }
 
 export interface UserSubscriptionState {
@@ -33,7 +33,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     price: 0,
     durationDays: 0,
     maxCvs: 10,
-    maxApplicationLetters: 20,
+    maxCoverLetters: 20,
     maxApplications: 100,
     maxDocumentStorageBytes: 52428800,
     maxCvPdfDownloads: 10,
@@ -41,9 +41,9 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxLetterPdfDownloads: 10,
     maxLetterDocxDownloads: 3,
     maxCvAiImprovements: 10,
-    maxApplicationLetterAiImprovements: 20,
+    maxCoverLetterAiImprovements: 20,
     canUsePremiumCvTemplates: false,
-    canUsePremiumApplicationLetterTemplates: false,
+    canUsePremiumCoverLetterTemplates: false,
   },
   pro: {
     id: 'pro',
@@ -51,7 +51,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     price: 25000,
     durationDays: 30,
     maxCvs: 30,
-    maxApplicationLetters: 60,
+    maxCoverLetters: 60,
     maxApplications: 500,
     maxDocumentStorageBytes: 209715200,
     maxCvPdfDownloads: 30,
@@ -59,9 +59,9 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxLetterPdfDownloads: 30,
     maxLetterDocxDownloads: 10,
     maxCvAiImprovements: 50,
-    maxApplicationLetterAiImprovements: 100,
+    maxCoverLetterAiImprovements: 100,
     canUsePremiumCvTemplates: true,
-    canUsePremiumApplicationLetterTemplates: true,
+    canUsePremiumCoverLetterTemplates: true,
   },
   max: {
     id: 'max',
@@ -69,7 +69,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     price: 50000,
     durationDays: 30,
     maxCvs: 75,
-    maxApplicationLetters: 150,
+    maxCoverLetters: 150,
     maxApplications: 1250,
     maxDocumentStorageBytes: 524288000,
     maxCvPdfDownloads: 75,
@@ -77,9 +77,9 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
     maxLetterPdfDownloads: 75,
     maxLetterDocxDownloads: 25,
     maxCvAiImprovements: 200,
-    maxApplicationLetterAiImprovements: 300,
+    maxCoverLetterAiImprovements: 300,
     canUsePremiumCvTemplates: true,
-    canUsePremiumApplicationLetterTemplates: true,
+    canUsePremiumCoverLetterTemplates: true,
   },
 };
 

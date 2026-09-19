@@ -7,12 +7,12 @@ import { ResponseError } from "../utils/response-error.util";
 import { appLogger } from "../middleware/logger.middleware";
 import {
   AiImprovementValidation,
-  type ApplicationLetterAiImprovementDataInput,
+  type CoverLetterAiImprovementDataInput,
   type CvAiImprovementDataInput,
 } from "../validations/ai-improvement.validation";
 import { resolveLanguageModel } from "./ai-provider";
 import {
-  buildApplicationLetterImprovementPrompt,
+  buildCoverLetterImprovementPrompt,
   buildCvImprovementPrompt,
   type AiPromptBundle,
 } from "./ai-prompts";
@@ -174,20 +174,20 @@ export class AiService {
     return runPrompt(prompt, AiImprovementValidation.CV_DATA);
   }
 
-  static async improveApplicationLetter(
-    data: ApplicationLetterAiImprovementDataInput,
+  static async improveCoverLetter(
+    data: CoverLetterAiImprovementDataInput,
     language: Language,
     targetPosition?: string,
     jobDescription?: string
-  ): Promise<ApplicationLetterAiImprovementDataInput> {
-    const prompt = buildApplicationLetterImprovementPrompt({
+  ): Promise<CoverLetterAiImprovementDataInput> {
+    const prompt = buildCoverLetterImprovementPrompt({
       data,
       language,
       targetPosition,
       jobDescription,
     });
 
-    return runPrompt(prompt, AiImprovementValidation.APPLICATION_LETTER_DATA);
+    return runPrompt(prompt, AiImprovementValidation.COVER_LETTER_DATA);
   }
 
   static async logAiUsage(
@@ -197,7 +197,7 @@ export class AiService {
     const feature =
       type === "cv"
         ? UsageFeature.ai_improve_cv
-        : UsageFeature.ai_improve_app_letter;
+        : UsageFeature.ai_improve_cover_letter;
 
     await prisma.usageLog.create({
       data: {

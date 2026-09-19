@@ -79,7 +79,7 @@ export class UserValidation {
           "role",
           "status",
           "max_cvs",
-          "max_application_letters",
+          "max_cover_letters",
           "max_applications",
           "max_document_storage_bytes",
           "max_cv_pdf_downloads",
@@ -87,7 +87,7 @@ export class UserValidation {
           "max_letter_pdf_downloads",
           "max_letter_docx_downloads",
           "max_cv_ai_improvements",
-          "max_application_letter_ai_improvements",
+          "max_cover_letter_ai_improvements",
         ])
         .default("created_at"),
       sort_order: z.enum(["asc", "desc"]).default("desc"),
@@ -100,8 +100,8 @@ export class UserValidation {
       created_at_to: optionalDateSchema(dateOnlySchema),
       max_cvs_from: optionalNumberSchema(z.number().int().nonnegative()),
       max_cvs_to: optionalNumberSchema(z.number().int().nonnegative()),
-      max_application_letters_from: optionalNumberSchema(z.number().int().nonnegative()),
-      max_application_letters_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cover_letters_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cover_letters_to: optionalNumberSchema(z.number().int().nonnegative()),
       max_applications_from: optionalNumberSchema(z.number().int().nonnegative()),
       max_applications_to: optionalNumberSchema(z.number().int().nonnegative()),
       max_document_storage_bytes_from: optionalNumberSchema(z.number().int().nonnegative()),
@@ -116,8 +116,8 @@ export class UserValidation {
       max_letter_docx_downloads_to: optionalNumberSchema(z.number().int().nonnegative()),
       max_cv_ai_improvements_from: optionalNumberSchema(z.number().int().nonnegative()),
       max_cv_ai_improvements_to: optionalNumberSchema(z.number().int().nonnegative()),
-      max_application_letter_ai_improvements_from: optionalNumberSchema(z.number().int().nonnegative()),
-      max_application_letter_ai_improvements_to: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cover_letter_ai_improvements_from: optionalNumberSchema(z.number().int().nonnegative()),
+      max_cover_letter_ai_improvements_to: optionalNumberSchema(z.number().int().nonnegative()),
     })
     .superRefine((data, ctx) => {
       if (

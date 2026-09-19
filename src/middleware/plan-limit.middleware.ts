@@ -70,25 +70,25 @@ export const checkCvLimit = async (
   }
 };
 
-export const checkApplicationLetterLimit = async (
+export const checkCoverLetterLimit = async (
   req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
     const user = getAuthenticatedUser(req);
-    const applicationLetterLimit = getUserPlan(req).maxApplicationLetters;
+    const coverLetterLimit = getUserPlan(req).maxCoverLetters;
 
-    const currentCount = await prisma.applicationLetter.count({
+    const currentCount = await prisma.coverLetter.count({
       where: { userId: user.id },
     });
 
-    if (currentCount >= applicationLetterLimit) {
+    if (currentCount >= coverLetterLimit) {
       throw new ResponseError(
         403,
         "Batas maksimum surat lamaran telah tercapai",
         undefined,
-        { code: "APP_LETTER_LIMIT_REACHED" }
+        { code: "COVER_LETTER_LIMIT_REACHED" }
       );
     }
 
@@ -203,8 +203,8 @@ export const checkLetterDownloadLimit = async (
         : plan.maxLetterDocxDownloads;
     const feature =
       normalized === "pdf"
-        ? UsageFeature.app_letter_download_pdf
-        : UsageFeature.app_letter_download_docx;
+        ? UsageFeature.cover_letter_download_pdf
+        : UsageFeature.cover_letter_download_docx;
 
     const periodStart = await getPeriodStart(user.id);
     const usedCount = await getUsageCount(user.id, feature, periodStart);
@@ -267,14 +267,14 @@ export const checkLetterAiImproveLimit = async (
     const periodStart = await getPeriodStart(user.id);
     const usedCount = await getUsageCount(
       user.id,
-      UsageFeature.ai_improve_app_letter,
+      UsageFeature.ai_improve_cover_letter,
       periodStart
     );
 
-    if (usedCount >= plan.maxApplicationLetterAiImprovements) {
+    if (usedCount >= plan.maxCoverLetterAiImprovements) {
       throw new ResponseError(
         429,
-        `Batas perbaikan AI surat lamaran tercapai. Anda sudah menggunakan ${usedCount} dari ${plan.maxApplicationLetterAiImprovements} perbaikan. Silakan tingkatkan paket langganan atau tunggu periode berlangganan berikutnya.`,
+        `Batas perbaikan AI surat lamaran tercapai. Anda sudah menggunakan ${usedCount} dari ${plan.maxCoverLetterAiImprovements} perbaikan. Silakan tingkatkan paket langganan atau tunggu periode berlangganan berikutnya.`,
         undefined,
         { code: "AI_LIMIT_REACHED" }
       );
@@ -312,8 +312,8 @@ export const checkPremiumTemplate = async (
 
     const plan = getUserPlan(req);
     const allowed =
-      template.type === "application_letter"
-        ? plan.canUsePremiumApplicationLetterTemplates
+      template.type === "cover_letter"
+        ? plan.canUsePremiumCoverLetterTemplates
         : plan.canUsePremiumCvTemplates;
 
     if (!allowed) {

@@ -28,8 +28,8 @@ if (process.env.RUN_REAL_API_TESTS !== "true") {
     mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {},
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {},
     }));
     mock.module("../../src/services/account.service", () => ({
       AccountService: {

@@ -13,7 +13,7 @@ export type UserDashboardStats = {
   needs_followup_applications: number;
   overdue_applications: number;
   no_followup_applications: number;
-  total_application_letters: number;
+  total_cover_letters: number;
   total_cvs: number;
   total_portfolios: number;
   total_documents: number;
@@ -40,7 +40,7 @@ export class DashboardService {
       needsFollowupApplications,
       overdueApplications,
       noFollowupApplications,
-      totalApplicationLetters,
+      totalCoverLetters,
       totalCvs,
       totalPortfolios,
       totalDocuments,
@@ -84,7 +84,7 @@ export class DashboardService {
           status: { notIn: ["rejected", "accepted"] },
         },
       }),
-      prisma.applicationLetter.count({ where: { userId } }),
+      prisma.coverLetter.count({ where: { userId } }),
       prisma.cv.count({ where: { userId } }),
       prisma.portfolio.count({ where: { userId } }),
       prisma.document.count({ where: { userId } }),
@@ -108,7 +108,7 @@ export class DashboardService {
       needs_followup_applications: needsFollowupApplications,
       overdue_applications: overdueApplications,
       no_followup_applications: noFollowupApplications,
-      total_application_letters: totalApplicationLetters,
+      total_cover_letters: totalCoverLetters,
       total_cvs: totalCvs,
       total_portfolios: totalPortfolios,
       total_documents: totalDocuments,

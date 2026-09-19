@@ -10,7 +10,7 @@ import {
   passwordResetRateLimiter,
 } from "../middleware/rate-limit.middleware";
 import { ApplicationController } from "../controllers/application.controller";
-import { ApplicationLetterController } from "../controllers/application-letter.controller";
+import { CoverLetterController } from "../controllers/cover-letter.controller";
 import { AiImprovementController } from "../controllers/ai-improvement.controller";
 import { UploadController } from "../controllers/upload.controller";
 import {
@@ -26,7 +26,7 @@ import { DashboardController } from "../controllers/dashboard.controller";
 import { BlogController } from "../controllers/blog.controller";
 import { SubscriptionController } from "../controllers/subscription.controller";
 import {
-  checkApplicationLetterLimit,
+  checkCoverLetterLimit,
   checkAiImprovementAccess,
   checkApplicationTrackerLimit,
   checkCvLimit,
@@ -165,58 +165,58 @@ router.post(
   ApplicationController.duplicate,
 );
 
-// Application Letters API
+// Cover Letters API
 router.get(
-  "/application-letters",
+  "/cover-letters",
   authMiddleware,
-  ApplicationLetterController.list,
+  CoverLetterController.list,
 );
 router.post(
-  "/application-letters",
+  "/cover-letters",
   authMiddleware,
-  checkApplicationLetterLimit,
+  checkCoverLetterLimit,
   checkPremiumTemplate,
-  ApplicationLetterController.create,
+  CoverLetterController.create,
 );
 router.post(
-  "/application-letters/ai-improve",
+  "/cover-letters/ai-improve",
   authMiddleware,
   checkAiImprovementAccess,
   checkLetterAiImproveLimit,
-  AiImprovementController.improveApplicationLetter,
+  AiImprovementController.improveCoverLetter,
 );
 router.delete(
-  "/application-letters/mass-delete",
+  "/cover-letters/mass-delete",
   authMiddleware,
-  ApplicationLetterController.massDelete,
+  CoverLetterController.massDelete,
 );
 router.get(
-  "/application-letters/:id",
+  "/cover-letters/:id",
   authMiddleware,
-  ApplicationLetterController.get,
+  CoverLetterController.get,
 );
 router.put(
-  "/application-letters/:id",
+  "/cover-letters/:id",
   authMiddleware,
   checkPremiumTemplate,
-  ApplicationLetterController.update,
+  CoverLetterController.update,
 );
 router.delete(
-  "/application-letters/:id",
+  "/cover-letters/:id",
   authMiddleware,
-  ApplicationLetterController.delete,
+  CoverLetterController.delete,
 );
 router.post(
-  "/application-letters/:id/duplicate",
+  "/cover-letters/:id/duplicate",
   authMiddleware,
-  checkApplicationLetterLimit,
-  ApplicationLetterController.duplicate,
+  checkCoverLetterLimit,
+  CoverLetterController.duplicate,
 );
 router.get(
-  "/application-letters/:id/download",
+  "/cover-letters/:id/download",
   authMiddleware,
   checkLetterDownloadLimit,
-  ApplicationLetterController.download,
+  CoverLetterController.download,
 );
 
 // Portfolios API

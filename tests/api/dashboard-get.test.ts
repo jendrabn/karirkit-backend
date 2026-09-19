@@ -51,7 +51,7 @@ describe("GET /dashboard", () => {
       needs_followup_applications: 5,
       overdue_applications: 2,
       no_followup_applications: 3,
-      total_application_letters: 4,
+      total_cover_letters: 4,
       total_cvs: 3,
       total_portfolios: 2,
       total_documents: 6,
@@ -60,7 +60,7 @@ describe("GET /dashboard", () => {
       subscription_expires_at: "2026-12-31T00:00:00.000Z",
       usage: {
         max_cvs: { limit: 30, used: 3, remaining: 27 },
-        max_application_letters: { limit: 60, used: 4, remaining: 56 },
+        max_cover_letters: { limit: 60, used: 4, remaining: 56 },
         max_applications: { limit: 500, used: 12, remaining: 488 },
         max_document_storage_bytes: { limit: 209715200, used: 1024, remaining: 209714176 },
         max_cv_pdf_downloads: { limit: 30, used: 14, remaining: 16 },
@@ -68,9 +68,9 @@ describe("GET /dashboard", () => {
         max_letter_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
         max_letter_docx_downloads: { limit: 10, used: 1, remaining: 9 },
         max_cv_ai_improvements: { limit: 50, used: 3, remaining: 47 },
-        max_application_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
+        max_cover_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
         can_use_premium_cv_templates: true,
-        can_use_premium_application_letter_templates: true,
+        can_use_premium_cover_letter_templates: true,
       },
     } as never);
 
@@ -112,7 +112,7 @@ describe("GET /dashboard", () => {
       needs_followup_applications: 0,
       overdue_applications: 0,
       no_followup_applications: 0,
-      total_application_letters: 0,
+      total_cover_letters: 0,
       total_cvs: 0,
       total_portfolios: 0,
       total_documents: 0,
@@ -121,7 +121,7 @@ describe("GET /dashboard", () => {
       subscription_expires_at: null,
       usage: {
         max_cvs: { limit: 10, used: 0, remaining: 10 },
-        max_application_letters: { limit: 20, used: 0, remaining: 20 },
+        max_cover_letters: { limit: 20, used: 0, remaining: 20 },
         max_applications: { limit: 100, used: 0, remaining: 100 },
         max_document_storage_bytes: { limit: 52428800, used: 0, remaining: 52428800 },
         max_cv_pdf_downloads: { limit: 10, used: 0, remaining: 10 },
@@ -129,9 +129,9 @@ describe("GET /dashboard", () => {
         max_letter_pdf_downloads: { limit: 10, used: 0, remaining: 10 },
         max_letter_docx_downloads: { limit: 3, used: 0, remaining: 3 },
         max_cv_ai_improvements: { limit: 10, used: 0, remaining: 10 },
-        max_application_letter_ai_improvements: { limit: 20, used: 0, remaining: 20 },
+        max_cover_letter_ai_improvements: { limit: 20, used: 0, remaining: 20 },
         can_use_premium_cv_templates: false,
-        can_use_premium_application_letter_templates: false,
+        can_use_premium_cover_letter_templates: false,
       },
     } as never);
 
@@ -219,7 +219,7 @@ describe("GET /dashboard", () => {
       needs_followup_applications: 0,
       overdue_applications: 0,
       no_followup_applications: 1,
-      total_application_letters: 0,
+      total_cover_letters: 0,
       total_cvs: 0,
       total_portfolios: 0,
       total_documents: 0,

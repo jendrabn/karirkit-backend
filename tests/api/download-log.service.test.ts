@@ -50,12 +50,12 @@ describe("DownloadLogService", () => {
     });
   });
 
-  it("logs an application letter DOCX download to usage_logs", async () => {
+  it("logs a cover letter DOCX download to usage_logs", async () => {
     const prisma = getPrisma();
 
     await DownloadLogService.logDownload(
       "user-1",
-      "application_letter",
+      "cover_letter",
       "doc-2",
       "letter.docx",
       "docx"
@@ -64,7 +64,7 @@ describe("DownloadLogService", () => {
     expect(prisma.usageLog.create).toHaveBeenCalledWith({
       data: {
         userId: "user-1",
-        feature: "app_letter_download_docx",
+        feature: "cover_letter_download_docx",
       },
     });
   });
@@ -91,7 +91,7 @@ describe("DownloadLogService", () => {
         remaining: 7,
         total_count: 7,
       },
-      application_letter: {
+      cover_letter: {
         limit: 10,
         used: 1,
         remaining: 9,

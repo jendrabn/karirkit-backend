@@ -122,20 +122,20 @@ const massDeleteSchema = z.object({
   ids: z.array(z.string()).min(1, "Minimal satu ID harus dipilih"),
 });
 
-export class ApplicationLetterValidation {
+export class CoverLetterValidation {
   static readonly PAYLOAD = payloadSchema;
   static readonly LIST_QUERY = listQuerySchema;
   static readonly MASS_DELETE = massDeleteSchema;
 }
 
-export type ApplicationLetterPayloadInput = z.infer<
-  typeof ApplicationLetterValidation.PAYLOAD
+export type CoverLetterPayloadInput = z.infer<
+  typeof CoverLetterValidation.PAYLOAD
 >;
 
-export type ApplicationLetterListQuery = z.infer<
-  typeof ApplicationLetterValidation.LIST_QUERY
+export type CoverLetterListQuery = z.infer<
+  typeof CoverLetterValidation.LIST_QUERY
 >;
 
 export type MassDeleteInput = z.infer<
-  typeof ApplicationLetterValidation.MASS_DELETE
+  typeof CoverLetterValidation.MASS_DELETE
 >;

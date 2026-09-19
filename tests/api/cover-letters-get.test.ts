@@ -1,6 +1,6 @@
 import request from "supertest";
 import {
-  createRealApplicationLetterFixture,
+  createRealCoverLetterFixture,
   createRealTemplateFixture,
   createRealUser,
   createSessionToken,
@@ -13,20 +13,20 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
 let app: typeof import("../../src/index").default;
-let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
+let CoverLetterService: typeof import("../../src/services/cover-letter.service").CoverLetterService;
 
 beforeAll(async () => {
 if (process.env.RUN_REAL_API_TESTS !== "true") {
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {
         list: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
-  ({ ApplicationLetterService } = await import(
-    "../../src/services/application-letter.service"
+  ({ CoverLetterService } = await import(
+    "../../src/services/cover-letter.service"
   ));
 });
 
@@ -36,7 +36,7 @@ afterAll(async () => {
   }
 });
 
-describe("GET /application-letters", () => {
+describe("GET /cover-letters", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
@@ -44,15 +44,15 @@ describe("GET /application-letters", () => {
     mock.clearAllMocks();
   });
 
-  it("returns a paginated application letter list", async () => {
-    const listMock = ApplicationLetterService.list;
+  it("returns a paginated cover letter list", async () => {
+    const listMock = CoverLetterService.list;
     listMock.mockResolvedValue({
-      items: [{ id: validId, name: "Application Letter 1" }],
+      items: [{ id: validId, name: "Cover Letter 1" }],
       meta: { page: 1, per_page: 20, total: 1 },
     } as never);
 
     const response = await request(app)
-      .get("/application-letters")
+      .get("/cover-letters")
       .set("Authorization", "Bearer user-token");
 
     expect(response.status).toBe(200);
@@ -61,28 +61,28 @@ describe("GET /application-letters", () => {
     expect(Array.isArray(response.body.data.items)).toBe(true);
     expect(response.body.data.items[0]).toMatchObject({
       id: validId,
-      name: "Application Letter 1",
+      name: "Cover Letter 1",
     });
     expect(typeof response.body.data.meta.total).toBe("number");
   });
 
   it("returns 401 when the request is unauthenticated", async () => {
-    const response = await request(app).get("/application-letters");
+    const response = await request(app).get("/cover-letters");
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("supports an empty application letter state", async () => {
-    const listMock = ApplicationLetterService.list;
+  it("supports an empty cover letter state", async () => {
+    const listMock = CoverLetterService.list;
     listMock.mockResolvedValue({
       items: [],
       meta: { page: 1, per_page: 20, total: 0 },
     } as never);
 
     const response = await request(app)
-      .get("/application-letters")
+      .get("/cover-letters")
       .set("Authorization", "Bearer user-token");
 
     expect(response.status).toBe(200);
@@ -92,7 +92,7 @@ describe("GET /application-letters", () => {
   });
 });
 
-describe("GET /application-letters", () => {
+describe("GET /cover-letters", () => {
   if (process.env.RUN_REAL_API_TESTS !== "true") {
     return;
   }
@@ -103,7 +103,7 @@ describe("GET /application-letters", () => {
   afterEach(async () => {
     const prisma = await loadPrisma();
     if (trackedLetterIds.size > 0) {
-      await prisma.applicationLetter.deleteMany({
+      await prisma.coverLetter.deleteMany({
         where: { id: { in: [...trackedLetterIds] } },
       });
     }
@@ -118,28 +118,28 @@ describe("GET /application-letters", () => {
     trackedLetterIds.clear();
   });
 
-  it("returns a paginated application letter list", async () => {
-    const { user } = await createRealUser("application-letter-list");
+  it("returns a paginated cover letter list", async () => {
+    const { user } = await createRealUser("cover-letter-list");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-list"
     );
     trackedTemplateIds.add(template.id);
-    const letterOne = await createRealApplicationLetterFixture(user.id, template.id, {
-      name: "Application Letter Alpha",
+    const letterOne = await createRealCoverLetterFixture(user.id, template.id, {
+      name: "Cover Letter Alpha",
       subject: "Alpha",
     });
-    const letterTwo = await createRealApplicationLetterFixture(user.id, template.id, {
-      name: "Application Letter Beta",
+    const letterTwo = await createRealCoverLetterFixture(user.id, template.id, {
+      name: "Cover Letter Beta",
       subject: "Beta",
     });
     trackedLetterIds.add(letterOne.id);
     trackedLetterIds.add(letterTwo.id);
 
     const response = await request(app)
-      .get("/application-letters?q=Application Letter&sort_by=name&sort_order=asc")
+      .get("/cover-letters?q=Cover Letter&sort_by=name&sort_order=asc")
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
@@ -151,20 +151,20 @@ describe("GET /application-letters", () => {
   });
 
   it("returns 401 when the request is unauthenticated", async () => {
-    const response = await request(app).get("/application-letters");
+    const response = await request(app).get("/cover-letters");
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("supports an empty application letter state", async () => {
-    const { user } = await createRealUser("application-letter-list-empty");
+  it("supports an empty cover letter state", async () => {
+    const { user } = await createRealUser("cover-letter-list-empty");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
 
     const response = await request(app)
-      .get("/application-letters")
+      .get("/cover-letters")
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);

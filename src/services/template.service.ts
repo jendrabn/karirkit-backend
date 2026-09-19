@@ -11,13 +11,13 @@ import {
 } from "../config/subscription-plans.config";
 
 type GetTemplatesRequest = {
-  type?: "cv" | "application_letter";
+  type?: "cv" | "cover_letter";
   language?: "en" | "id";
   planId?: PlanId | string | null;
 };
 
 const GetTemplatesQuery = z.object({
-  type: z.enum(["cv", "application_letter"]).optional(),
+  type: z.enum(["cv", "cover_letter"]).optional(),
   language: z.enum(["en", "id"]).optional(),
 });
 
@@ -26,7 +26,7 @@ export class TemplateService {
     {
       id: string;
       name: string;
-      type: "cv" | "application_letter";
+      type: "cv" | "cover_letter";
       language: "en" | "id";
       isPremium: boolean;
       preview: string | null;
@@ -70,8 +70,8 @@ export class TemplateService {
         return plan.canUsePremiumCvTemplates;
       }
 
-      if (template.type === "application_letter") {
-        return plan.canUsePremiumApplicationLetterTemplates;
+      if (template.type === "cover_letter") {
+        return plan.canUsePremiumCoverLetterTemplates;
       }
 
       return false;

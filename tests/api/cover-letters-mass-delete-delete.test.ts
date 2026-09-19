@@ -1,6 +1,6 @@
 import request from "supertest";
 import {
-  createRealApplicationLetterFixture,
+  createRealCoverLetterFixture,
   createRealTemplateFixture,
   createRealUser,
   createSessionToken,
@@ -11,21 +11,21 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
-let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
+let CoverLetterService: typeof import("../../src/services/cover-letter.service").CoverLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
 if (process.env.RUN_REAL_API_TESTS !== "true") {
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {
         massDelete: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
-  ({ ApplicationLetterService } = await import(
-    "../../src/services/application-letter.service"
+  ({ CoverLetterService } = await import(
+    "../../src/services/cover-letter.service"
   ));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
@@ -38,7 +38,7 @@ afterAll(async () => {
   }
 });
 
-describe("DELETE /application-letters/mass-delete", () => {
+describe("DELETE /cover-letters/mass-delete", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
@@ -46,8 +46,8 @@ describe("DELETE /application-letters/mass-delete", () => {
     mock.clearAllMocks();
   });
 
-  it("deletes multiple application letter records", async () => {
-    const massDeleteMock = ApplicationLetterService.massDelete;
+  it("deletes multiple cover letter records", async () => {
+    const massDeleteMock = CoverLetterService.massDelete;
     massDeleteMock.mockResolvedValue({
       deleted_count: 2,
       ids: [
@@ -57,7 +57,7 @@ describe("DELETE /application-letters/mass-delete", () => {
     } as never);
 
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .set("Authorization", "Bearer user-token")
       .send({
         ids: [
@@ -80,7 +80,7 @@ describe("DELETE /application-letters/mass-delete", () => {
 
   it("returns 401 when authentication is missing", async () => {
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .send({ ids: ["550e8400-e29b-41d4-a716-446655440000"] });
 
     expect(response.status).toBe(401);
@@ -89,13 +89,13 @@ describe("DELETE /application-letters/mass-delete", () => {
   });
 
   it("returns validation errors when no ids are provided", async () => {
-    const massDeleteMock = ApplicationLetterService.massDelete;
+    const massDeleteMock = CoverLetterService.massDelete;
     massDeleteMock.mockRejectedValue(
       new ResponseErrorClass(400, "Minimal satu data harus dipilih")
     );
 
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .set("Authorization", "Bearer user-token")
       .send({ ids: [] });
 
@@ -105,7 +105,7 @@ describe("DELETE /application-letters/mass-delete", () => {
   });
 });
 
-describe("DELETE /application-letters/mass-delete", () => {
+describe("DELETE /cover-letters/mass-delete", () => {
   if (process.env.RUN_REAL_API_TESTS !== "true") {
     return;
   }
@@ -116,7 +116,7 @@ describe("DELETE /application-letters/mass-delete", () => {
   afterEach(async () => {
     const prisma = await loadPrisma();
     if (trackedLetterIds.size > 0) {
-      await prisma.applicationLetter.deleteMany({
+      await prisma.coverLetter.deleteMany({
         where: { id: { in: [...trackedLetterIds] } },
       });
     }
@@ -131,21 +131,21 @@ describe("DELETE /application-letters/mass-delete", () => {
     trackedLetterIds.clear();
   });
 
-  it("deletes multiple application letter records", async () => {
+  it("deletes multiple cover letter records", async () => {
     const prisma = await loadPrisma();
-    const { user } = await createRealUser("application-letter-mass-delete");
+    const { user } = await createRealUser("cover-letter-mass-delete");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-mass-delete"
     );
     trackedTemplateIds.add(template.id);
-    const letterOne = await createRealApplicationLetterFixture(user.id, template.id);
-    const letterTwo = await createRealApplicationLetterFixture(user.id, template.id);
+    const letterOne = await createRealCoverLetterFixture(user.id, template.id);
+    const letterTwo = await createRealCoverLetterFixture(user.id, template.id);
 
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .set("Authorization", `Bearer ${token}`)
       .send({ ids: [letterOne.id, letterTwo.id] });
 
@@ -153,7 +153,7 @@ describe("DELETE /application-letters/mass-delete", () => {
     expect(response.body).toHaveProperty("data");
     expect(response.body.data.deleted_count).toBe(2);
 
-    const remaining = await prisma.applicationLetter.findMany({
+    const remaining = await prisma.coverLetter.findMany({
       where: { id: { in: [letterOne.id, letterTwo.id] } },
     });
     expect(remaining).toHaveLength(0);
@@ -161,7 +161,7 @@ describe("DELETE /application-letters/mass-delete", () => {
 
   it("returns 401 when authentication is missing", async () => {
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .send({ ids: ["550e8400-e29b-41d4-a716-446655440000"] });
 
     expect(response.status).toBe(401);
@@ -170,19 +170,19 @@ describe("DELETE /application-letters/mass-delete", () => {
   });
 
   it("returns errors when one of the ids is missing", async () => {
-    const { user } = await createRealUser("application-letter-mass-delete-missing");
+    const { user } = await createRealUser("cover-letter-mass-delete-missing");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-mass-delete-missing"
     );
     trackedTemplateIds.add(template.id);
-    const letter = await createRealApplicationLetterFixture(user.id, template.id);
+    const letter = await createRealCoverLetterFixture(user.id, template.id);
     trackedLetterIds.add(letter.id);
 
     const response = await request(app)
-      .delete("/application-letters/mass-delete")
+      .delete("/cover-letters/mass-delete")
       .set("Authorization", `Bearer ${token}`)
       .send({ ids: [letter.id, "550e8400-e29b-41d4-a716-446655440099"] });
 

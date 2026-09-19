@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApplicationLetterValidation } from "./application-letter.validation";
+import { CoverLetterValidation } from "./cover-letter.validation";
 import { CvValidation } from "./cv.validation";
 
 const optionalPromptContextSchema = z
@@ -21,8 +21,8 @@ const cvAiImprovementDataSchema = CvValidation.PAYLOAD.omit({
   visibility: true,
 });
 
-const applicationLetterAiImprovementDataSchema =
-  ApplicationLetterValidation.PAYLOAD.omit({
+const coverLetterAiImprovementDataSchema =
+  CoverLetterValidation.PAYLOAD.omit({
     signature: true,
     template_id: true,
   });
@@ -33,8 +33,8 @@ const cvAiImprovementSchema = z.object({
   job_description: optionalJobDescriptionSchema,
 });
 
-const applicationLetterAiImprovementSchema = z.object({
-  data: applicationLetterAiImprovementDataSchema,
+const coverLetterAiImprovementSchema = z.object({
+  data: coverLetterAiImprovementDataSchema,
   target_position: optionalPromptContextSchema,
   job_description: optionalJobDescriptionSchema,
 });
@@ -42,18 +42,18 @@ const applicationLetterAiImprovementSchema = z.object({
 export class AiImprovementValidation {
   static readonly CV = cvAiImprovementSchema;
   static readonly CV_DATA = cvAiImprovementDataSchema;
-  static readonly APPLICATION_LETTER = applicationLetterAiImprovementSchema;
-  static readonly APPLICATION_LETTER_DATA =
-    applicationLetterAiImprovementDataSchema;
+  static readonly COVER_LETTER = coverLetterAiImprovementSchema;
+  static readonly COVER_LETTER_DATA =
+    coverLetterAiImprovementDataSchema;
 }
 
 export type CvAiImprovementInput = z.infer<typeof cvAiImprovementSchema>;
 export type CvAiImprovementDataInput = z.infer<
   typeof cvAiImprovementDataSchema
 >;
-export type ApplicationLetterAiImprovementInput = z.infer<
-  typeof applicationLetterAiImprovementSchema
+export type CoverLetterAiImprovementInput = z.infer<
+  typeof coverLetterAiImprovementSchema
 >;
-export type ApplicationLetterAiImprovementDataInput = z.infer<
-  typeof applicationLetterAiImprovementDataSchema
+export type CoverLetterAiImprovementDataInput = z.infer<
+  typeof coverLetterAiImprovementDataSchema
 >;

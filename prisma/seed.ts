@@ -50,7 +50,7 @@ async function main() {
   await prisma.cvExperience.deleteMany();
   await prisma.cvCertificate.deleteMany();
   await prisma.cvEducation.deleteMany();
-  await prisma.applicationLetter.deleteMany();
+  await prisma.coverLetter.deleteMany();
   await prisma.application.deleteMany();
   await prisma.cv.deleteMany();
   await prisma.user.deleteMany();
@@ -140,8 +140,8 @@ async function main() {
     }),
     prisma.template.create({
       data: {
-        name: "Classic Application Letter",
-        type: "application_letter",
+        name: "Classic Cover Letter",
+        type: "cover_letter",
         language: "en",
         path: "/templates/letter/classic.docx",
         preview:
@@ -1062,9 +1062,9 @@ async function main() {
     }),
   ]);
 
-  // Create Application Letters
+  // Create Cover Letters
   await Promise.all([
-    prisma.applicationLetter.create({
+    prisma.coverLetter.create({
       data: {
         userId: users[0].id,
         templateId: templates[1].id,
@@ -1095,7 +1095,7 @@ async function main() {
         updatedAt: new Date(),
       },
     }),
-    prisma.applicationLetter.create({
+    prisma.coverLetter.create({
       data: {
         userId: users[1].id,
         templateId: templates[1].id,
@@ -1126,7 +1126,7 @@ async function main() {
         updatedAt: new Date(),
       },
     }),
-    prisma.applicationLetter.create({
+    prisma.coverLetter.create({
       data: {
         userId: users[2].id,
         templateId: templates[1].id,

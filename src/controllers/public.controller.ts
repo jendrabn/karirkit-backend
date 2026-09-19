@@ -42,10 +42,10 @@ export class PublicController {
       const [
         totalUsers,
         totalCvs,
-        totalApplicationLetters,
+        totalCoverLetters,
         totalApplications,
         totalCvTemplates,
-        totalApplicationLetterTemplates,
+        totalCoverLetterTemplates,
       ] = await Promise.all([
         prisma.user.count({
           where: {
@@ -53,23 +53,23 @@ export class PublicController {
           },
         }),
         prisma.cv.count(),
-        prisma.applicationLetter.count(),
+        prisma.coverLetter.count(),
         prisma.application.count(),
         prisma.template.count({
           where: { type: "cv" },
         }),
         prisma.template.count({
-          where: { type: "application_letter" },
+          where: { type: "cover_letter" },
         }),
       ]);
 
       const stats = {
         total_users: totalUsers,
         total_cvs: totalCvs,
-        total_application_letters: totalApplicationLetters,
+        total_cover_letters: totalCoverLetters,
         total_applications: totalApplications,
         total_cv_templates: totalCvTemplates,
-        total_application_letter_templates: totalApplicationLetterTemplates,
+        total_cover_letter_templates: totalCoverLetterTemplates,
       };
 
       return sendSuccess(res, stats);
@@ -115,7 +115,7 @@ export class PublicController {
       const { type, language } = req.query;
 
       const templates = await TemplateService.getTemplates({
-        type: type as "cv" | "application_letter",
+        type: type as "cv" | "cover_letter",
         language: language as "en" | "id",
         planId: req.user?.subscriptionPlan,
       });

@@ -22,8 +22,8 @@ if (process.env.RUN_REAL_API_TESTS !== "true") {
     mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {},
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {},
     }));
     mock.module("../../src/services/template.service", () => ({
       TemplateService: {},
@@ -80,18 +80,18 @@ describe("GET /subscriptions/my", () => {
       currentLimits: {
         maxCvs: 30,
         maxApplications: 500,
-        maxApplicationLetters: 60,
+        maxCoverLetters: 60,
         maxDocumentStorageBytes: 209715200,
         maxCvPdfDownloads: 30,
         maxCvDocxDownloads: 10,
         maxLetterPdfDownloads: 30,
         maxLetterDocxDownloads: 10,
         maxCvAiImprovements: 50,
-        maxApplicationLetterAiImprovements: 100,
+        maxCoverLetterAiImprovements: 100,
       },
       currentFeatures: {
         canUsePremiumCvTemplates: true,
-        canUsePremiumApplicationLetterTemplates: true,
+        canUsePremiumCoverLetterTemplates: true,
       },
     } as never);
 
@@ -137,18 +137,18 @@ describe("GET /subscriptions/my", () => {
       currentLimits: {
         maxCvs: 10,
         maxApplications: 100,
-        maxApplicationLetters: 20,
+        maxCoverLetters: 20,
         maxDocumentStorageBytes: 52428800,
         maxCvPdfDownloads: 10,
         maxCvDocxDownloads: 3,
         maxLetterPdfDownloads: 10,
         maxLetterDocxDownloads: 3,
         maxCvAiImprovements: 10,
-        maxApplicationLetterAiImprovements: 20,
+        maxCoverLetterAiImprovements: 20,
       },
       currentFeatures: {
         canUsePremiumCvTemplates: false,
-        canUsePremiumApplicationLetterTemplates: false,
+        canUsePremiumCoverLetterTemplates: false,
       },
     } as never);
 
@@ -234,18 +234,18 @@ describe("GET /subscriptions/my", () => {
       current_limits: {
         max_cvs: 30,
         max_applications: 500,
-        max_application_letters: 60,
+        max_cover_letters: 60,
         max_document_storage_bytes: 209715200,
         max_cv_pdf_downloads: 30,
         max_cv_docx_downloads: 10,
         max_letter_pdf_downloads: 30,
         max_letter_docx_downloads: 10,
         max_cv_ai_improvements: 50,
-        max_application_letter_ai_improvements: 100,
+        max_cover_letter_ai_improvements: 100,
       },
       current_features: {
         can_use_premium_cv_templates: true,
-        can_use_premium_application_letter_templates: true,
+        can_use_premium_cover_letter_templates: true,
       },
     });
   });

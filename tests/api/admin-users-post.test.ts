@@ -141,7 +141,7 @@ describe("POST /admin/users", () => {
     });
     expect(response.body.data).toHaveProperty("usage");
     expect(response.body.data.usage.max_cvs).toBe(0);
-    expect(response.body.data.usage.max_application_letters).toBe(0);
+    expect(response.body.data.usage.max_cover_letters).toBe(0);
     expect(response.body.data.usage.max_cv_pdf_downloads).toBe(0);
     expect(response.body.data).not.toHaveProperty("download_today_count");
     expect(response.body.data).not.toHaveProperty("download_total_count");

@@ -323,7 +323,7 @@ export const cleanupStoredDocumentsForUser = async (userId: string) => {
 };
 
 export const createRealTemplateFixture = async (
-  type: "cv" | "application_letter",
+  type: "cv" | "cover_letter",
   label: string
 ) => {
   const prisma = await loadPrisma();
@@ -340,7 +340,7 @@ export const createRealTemplateFixture = async (
           ? "/uploads/templates/cv-001.docx"
           : "/uploads/templates/apl-001.docx",
       preview:
-        type === "application_letter" ? "/uploads/templates/apl-001.webp" : null,
+        type === "cover_letter" ? "/uploads/templates/apl-001.webp" : null,
       isPremium: false,
       createdAt: now,
       updatedAt: now,
@@ -348,7 +348,7 @@ export const createRealTemplateFixture = async (
   });
 };
 
-export const buildApplicationLetterPayload = (
+export const buildCoverLetterPayload = (
   templateId: string,
   overrides: Record<string, unknown> = {}
 ) => ({
@@ -377,15 +377,15 @@ export const buildApplicationLetterPayload = (
   ...overrides,
 });
 
-export const createRealApplicationLetterFixture = async (
+export const createRealCoverLetterFixture = async (
   userId: string,
   templateId: string,
   overrides: Record<string, unknown> = {}
 ) => {
   const prisma = await loadPrisma();
-  const payload = buildApplicationLetterPayload(templateId, overrides);
+  const payload = buildCoverLetterPayload(templateId, overrides);
 
-  return prisma.applicationLetter.create({
+  return prisma.coverLetter.create({
     data: {
       userId,
       name: payload.name as string,

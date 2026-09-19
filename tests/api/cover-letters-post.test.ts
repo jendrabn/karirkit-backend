@@ -1,7 +1,7 @@
 import request from "supertest";
 import {
-  buildApplicationLetterPayload,
-  createRealApplicationLetterFixture,
+  buildCoverLetterPayload,
+  createRealCoverLetterFixture,
   createRealTemplateFixture,
   createRealUser,
   createSessionToken,
@@ -12,7 +12,7 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
 let app: typeof import("../../src/index").default;
-let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
+let CoverLetterService: typeof import("../../src/services/cover-letter.service").CoverLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 let prismaMock: typeof import("../../src/config/prisma.config").prisma;
 
@@ -20,15 +20,15 @@ beforeAll(async () => {
 if (process.env.RUN_REAL_API_TESTS !== "true") {
     mock.module("../../src/config/prisma.config", () => ({
       prisma: {
-        applicationLetter: { count: mock(() => {}) },
+        coverLetter: { count: mock(() => {}) },
         template: { findUnique: mock(() => {}) },
       },
     }));
     mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {
         create: mock(() => {}),
       },
     }));
@@ -36,8 +36,8 @@ if (process.env.RUN_REAL_API_TESTS !== "true") {
 
   ({ default: app } = await import("../../src/index"));
   ({ prisma: prismaMock } = await import("../../src/config/prisma.config"));
-  ({ ApplicationLetterService } = await import(
-    "../../src/services/application-letter.service"
+  ({ CoverLetterService } = await import(
+    "../../src/services/cover-letter.service"
   ));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
@@ -50,48 +50,48 @@ afterAll(async () => {
   }
 });
 
-describe("POST /application-letters", () => {
+describe("POST /cover-letters", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
   const getPrisma = () =>
     prismaMock as unknown as {
-      applicationLetter: { count: Mock };
+      coverLetter: { count: Mock };
       template: { findUnique: Mock };
     };
 
   beforeEach(() => {
     mock.clearAllMocks();
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(0);
+    prisma.coverLetter.count.mockResolvedValue(0);
     prisma.template.findUnique.mockResolvedValue(null);
   });
 
-  it("creates an application letter record", async () => {
-    const createMock = ApplicationLetterService.create;
+  it("creates a cover letter record", async () => {
+    const createMock = CoverLetterService.create;
     createMock.mockResolvedValue({
       id: "550e8400-e29b-41d4-a716-446655440000",
-      name: "Application Letter Baru",
+      name: "Cover Letter Baru",
     } as never);
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer user-token")
-      .send({ name: "Application Letter Baru" });
+      .send({ name: "Cover Letter Baru" });
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("data");
     expect(response.body.data).toMatchObject({
       id: "550e8400-e29b-41d4-a716-446655440000",
-      name: "Application Letter Baru",
+      name: "Cover Letter Baru",
     });
     expect(typeof response.body.data.id).toBe("string");
   });
 
   it("returns 401 when authentication is missing", async () => {
     const response = await request(app)
-      .post("/application-letters")
-      .send({ name: "Application Letter Baru" });
+      .post("/cover-letters")
+      .send({ name: "Cover Letter Baru" });
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
@@ -99,13 +99,13 @@ describe("POST /application-letters", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const createMock = ApplicationLetterService.create;
+    const createMock = CoverLetterService.create;
     createMock.mockRejectedValue(
       new ResponseErrorClass(400, "Payload tidak valid")
     );
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer user-token")
       .send({ name: "" });
 
@@ -114,51 +114,51 @@ describe("POST /application-letters", () => {
     expect(response.body.errors.general[0]).toBe("Payload tidak valid");
   });
 
-  it("blocks creation when the free application letter limit is reached", async () => {
+  it("blocks creation when the free cover letter limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(20);
+    prisma.coverLetter.count.mockResolvedValue(20);
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer user-token")
-      .send(buildApplicationLetterPayload("template-basic"));
+      .send(buildCoverLetterPayload("template-basic"));
 
     expect(response.status).toBe(403);
     expect(response.body.errors.general[0]).toBe(
       "Batas maksimum surat lamaran telah tercapai"
     );
-    expect(response.body.code).toBe("APP_LETTER_LIMIT_REACHED");
+    expect(response.body.code).toBe("COVER_LETTER_LIMIT_REACHED");
   });
 
-  it("also blocks admins when their plan application letter limit is reached", async () => {
+  it("also blocks admins when their plan cover letter limit is reached", async () => {
     const prisma = getPrisma();
-    prisma.applicationLetter.count.mockResolvedValue(20);
+    prisma.coverLetter.count.mockResolvedValue(20);
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer admin-free-token")
-      .send(buildApplicationLetterPayload("template-basic"));
+      .send(buildCoverLetterPayload("template-basic"));
 
     expect(response.status).toBe(403);
     expect(response.body.errors.general[0]).toBe(
       "Batas maksimum surat lamaran telah tercapai"
     );
-    expect(response.body.code).toBe("APP_LETTER_LIMIT_REACHED");
+    expect(response.body.code).toBe("COVER_LETTER_LIMIT_REACHED");
   });
 
-  it("blocks premium application-letter templates for free users", async () => {
+  it("blocks premium cover-letter templates for free users", async () => {
     const prisma = getPrisma();
     prisma.template.findUnique.mockResolvedValue({
       id: "template-premium",
       isPremium: true,
-      type: "application_letter",
+      type: "cover_letter",
     });
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer user-token")
       .send({
-        name: "Application Letter Premium",
+        name: "Cover Letter Premium",
         template_id: "template-premium",
       });
 
@@ -169,19 +169,19 @@ describe("POST /application-letters", () => {
     expect(response.body.code).toBe("PREMIUM_TEMPLATE_REQUIRED");
   });
 
-  it("also blocks premium application-letter templates for admins on free plan", async () => {
+  it("also blocks premium cover-letter templates for admins on free plan", async () => {
     const prisma = getPrisma();
     prisma.template.findUnique.mockResolvedValue({
       id: "template-premium",
       isPremium: true,
-      type: "application_letter",
+      type: "cover_letter",
     });
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", "Bearer admin-free-token")
       .send({
-        name: "Application Letter Premium Admin",
+        name: "Cover Letter Premium Admin",
         template_id: "template-premium",
       });
 
@@ -193,7 +193,7 @@ describe("POST /application-letters", () => {
   });
 });
 
-describe("POST /application-letters", () => {
+describe("POST /cover-letters", () => {
   if (process.env.RUN_REAL_API_TESTS !== "true") {
     return;
   }
@@ -204,7 +204,7 @@ describe("POST /application-letters", () => {
   afterEach(async () => {
     const prisma = await loadPrisma();
     if (trackedLetterIds.size > 0) {
-      await prisma.applicationLetter.deleteMany({
+      await prisma.coverLetter.deleteMany({
         where: { id: { in: [...trackedLetterIds] } },
       });
     }
@@ -219,21 +219,21 @@ describe("POST /application-letters", () => {
     trackedLetterIds.clear();
   });
 
-  it("creates an application letter record", async () => {
-    const { user } = await createRealUser("application-letter-create");
+  it("creates a cover letter record", async () => {
+    const { user } = await createRealUser("cover-letter-create");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-create"
     );
     trackedTemplateIds.add(template.id);
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", `Bearer ${token}`)
       .send(
-        buildApplicationLetterPayload(template.id, {
+        buildCoverLetterPayload(template.id, {
           email: user.email,
           name: "Budi Santoso",
         })
@@ -250,14 +250,14 @@ describe("POST /application-letters", () => {
     });
     expect(response.body.data.template).toMatchObject({
       id: template.id,
-      type: "application_letter",
+      type: "cover_letter",
     });
     trackedLetterIds.add(response.body.data.id);
   });
 
   it("returns 401 when authentication is missing", async () => {
-    const response = await request(app).post("/application-letters").send({
-      name: "Application Letter Baru",
+    const response = await request(app).post("/cover-letters").send({
+      name: "Cover Letter Baru",
     });
 
     expect(response.status).toBe(401);
@@ -266,20 +266,20 @@ describe("POST /application-letters", () => {
   });
 
   it("returns validation errors for invalid payloads", async () => {
-    const { user } = await createRealUser("application-letter-create-invalid");
+    const { user } = await createRealUser("cover-letter-create-invalid");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-create-invalid"
     );
     trackedTemplateIds.add(template.id);
 
     const response = await request(app)
-      .post("/application-letters")
+      .post("/cover-letters")
       .set("Authorization", `Bearer ${token}`)
       .send(
-        buildApplicationLetterPayload(template.id, {
+        buildCoverLetterPayload(template.id, {
           name: "",
           email: "invalid-email",
         })

@@ -16,7 +16,7 @@ export type UsageBucket = {
 
 export type UsageStats = {
   max_cvs: UsageBucket;
-  max_application_letters: UsageBucket;
+  max_cover_letters: UsageBucket;
   max_applications: UsageBucket;
   max_document_storage_bytes: UsageBucket;
   max_cv_pdf_downloads: UsageBucket;
@@ -24,18 +24,18 @@ export type UsageStats = {
   max_letter_pdf_downloads: UsageBucket;
   max_letter_docx_downloads: UsageBucket;
   max_cv_ai_improvements: UsageBucket;
-  max_application_letter_ai_improvements: UsageBucket;
+  max_cover_letter_ai_improvements: UsageBucket;
   can_use_premium_cv_templates: boolean;
-  can_use_premium_application_letter_templates: boolean;
+  can_use_premium_cover_letter_templates: boolean;
 };
 
 const ALL_FEATURES: UsageFeature[] = [
   UsageFeature.cv_download_pdf,
   UsageFeature.cv_download_docx,
-  UsageFeature.app_letter_download_pdf,
-  UsageFeature.app_letter_download_docx,
+  UsageFeature.cover_letter_download_pdf,
+  UsageFeature.cover_letter_download_docx,
   UsageFeature.ai_improve_cv,
-  UsageFeature.ai_improve_app_letter,
+  UsageFeature.ai_improve_cover_letter,
 ];
 
 type CountMap = Record<string, number>;
@@ -55,7 +55,7 @@ const buildStats = (
   usageCounts: CountMap
 ): UsageStats => ({
   max_cvs: bucket(plan.maxCvs, cvCount),
-  max_application_letters: bucket(plan.maxApplicationLetters, letterCount),
+  max_cover_letters: bucket(plan.maxCoverLetters, letterCount),
   max_applications: bucket(plan.maxApplications, appCount),
   max_document_storage_bytes: bucket(plan.maxDocumentStorageBytes, storageUsed),
   max_cv_pdf_downloads: bucket(
@@ -68,23 +68,23 @@ const buildStats = (
   ),
   max_letter_pdf_downloads: bucket(
     plan.maxLetterPdfDownloads,
-    usageCounts[UsageFeature.app_letter_download_pdf] ?? 0
+    usageCounts[UsageFeature.cover_letter_download_pdf] ?? 0
   ),
   max_letter_docx_downloads: bucket(
     plan.maxLetterDocxDownloads,
-    usageCounts[UsageFeature.app_letter_download_docx] ?? 0
+    usageCounts[UsageFeature.cover_letter_download_docx] ?? 0
   ),
   max_cv_ai_improvements: bucket(
     plan.maxCvAiImprovements,
     usageCounts[UsageFeature.ai_improve_cv] ?? 0
   ),
-  max_application_letter_ai_improvements: bucket(
-    plan.maxApplicationLetterAiImprovements,
-    usageCounts[UsageFeature.ai_improve_app_letter] ?? 0
+  max_cover_letter_ai_improvements: bucket(
+    plan.maxCoverLetterAiImprovements,
+    usageCounts[UsageFeature.ai_improve_cover_letter] ?? 0
   ),
   can_use_premium_cv_templates: plan.canUsePremiumCvTemplates,
-  can_use_premium_application_letter_templates:
-    plan.canUsePremiumApplicationLetterTemplates,
+  can_use_premium_cover_letter_templates:
+    plan.canUsePremiumCoverLetterTemplates,
 });
 
 const fetchPlanId = async (userId: string): Promise<PlanId> => {
@@ -156,7 +156,7 @@ export class UsageStatsService {
     const [cvCount, letterCount, appCount, storageUsage, usageCounts] =
       await Promise.all([
         prisma.cv.count({ where: { userId } }),
-        prisma.applicationLetter.count({ where: { userId } }),
+        prisma.coverLetter.count({ where: { userId } }),
         prisma.application.count({ where: { userId } }),
         prisma.document.aggregate({
           where: { userId },
@@ -182,7 +182,7 @@ export class UsageStatsService {
     const [cvCount, letterCount, appCount, storageUsage, usageCounts] =
       await Promise.all([
         prisma.cv.count({ where: { userId } }),
-        prisma.applicationLetter.count({ where: { userId } }),
+        prisma.coverLetter.count({ where: { userId } }),
         prisma.application.count({ where: { userId } }),
         prisma.document.aggregate({
           where: { userId },
@@ -222,7 +222,7 @@ export class UsageStatsService {
         where: { userId: { in: userIds } },
         _count: { _all: true },
       }),
-      prisma.applicationLetter.groupBy({
+      prisma.coverLetter.groupBy({
         by: ["userId"],
         where: { userId: { in: userIds } },
         _count: { _all: true },

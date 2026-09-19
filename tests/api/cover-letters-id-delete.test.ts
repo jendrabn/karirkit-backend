@@ -1,6 +1,6 @@
 import request from "supertest";
 import {
-  createRealApplicationLetterFixture,
+  createRealCoverLetterFixture,
   createRealTemplateFixture,
   createRealUser,
   createSessionToken,
@@ -13,21 +13,21 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock 
 const validId = "550e8400-e29b-41d4-a716-446655440000";
 
 let app: typeof import("../../src/index").default;
-let ApplicationLetterService: typeof import("../../src/services/application-letter.service").ApplicationLetterService;
+let CoverLetterService: typeof import("../../src/services/cover-letter.service").CoverLetterService;
 let ResponseErrorClass: typeof import("../../src/utils/response-error.util").ResponseError;
 
 beforeAll(async () => {
 if (process.env.RUN_REAL_API_TESTS !== "true") {
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {
         delete: mock(() => {}),
       },
     }));
   }
 
   ({ default: app } = await import("../../src/index"));
-  ({ ApplicationLetterService } = await import(
-    "../../src/services/application-letter.service"
+  ({ CoverLetterService } = await import(
+    "../../src/services/cover-letter.service"
   ));
   ({ ResponseError: ResponseErrorClass } = await import(
     "../../src/utils/response-error.util"
@@ -40,7 +40,7 @@ afterAll(async () => {
   }
 });
 
-describe("DELETE /application-letters/:id", () => {
+describe("DELETE /cover-letters/:id", () => {
   if (process.env.RUN_REAL_API_TESTS === "true") {
     return;
   }
@@ -48,12 +48,12 @@ describe("DELETE /application-letters/:id", () => {
     mock.clearAllMocks();
   });
 
-  it("deletes the application letter resource", async () => {
-    const deleteMock = ApplicationLetterService.delete;
+  it("deletes the cover letter resource", async () => {
+    const deleteMock = CoverLetterService.delete;
     deleteMock.mockResolvedValue(undefined as never);
 
     const response = await request(app)
-      .delete(`/application-letters/${validId}`)
+      .delete(`/cover-letters/${validId}`)
       .set("Authorization", "Bearer user-token");
 
     expect(response.status).toBe(204);
@@ -61,21 +61,21 @@ describe("DELETE /application-letters/:id", () => {
   });
 
   it("returns 401 when authentication is missing", async () => {
-    const response = await request(app).delete(`/application-letters/${validId}`);
+    const response = await request(app).delete(`/cover-letters/${validId}`);
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("returns 404 when the application letter cannot be found", async () => {
-    const deleteMock = ApplicationLetterService.delete;
+  it("returns 404 when the cover letter cannot be found", async () => {
+    const deleteMock = CoverLetterService.delete;
     deleteMock.mockRejectedValue(
       new ResponseErrorClass(404, "Surat lamaran tidak ditemukan")
     );
 
     const response = await request(app)
-      .delete(`/application-letters/${validId}`)
+      .delete(`/cover-letters/${validId}`)
       .set("Authorization", "Bearer user-token");
 
     expect(response.status).toBe(404);
@@ -84,7 +84,7 @@ describe("DELETE /application-letters/:id", () => {
   });
 });
 
-describe("DELETE /application-letters/:id", () => {
+describe("DELETE /cover-letters/:id", () => {
   if (process.env.RUN_REAL_API_TESTS !== "true") {
     return;
   }
@@ -103,45 +103,45 @@ describe("DELETE /application-letters/:id", () => {
     trackedTemplateIds.clear();
   });
 
-  it("deletes the application letter resource", async () => {
+  it("deletes the cover letter resource", async () => {
     const prisma = await loadPrisma();
-    const { user } = await createRealUser("application-letter-delete");
+    const { user } = await createRealUser("cover-letter-delete");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
     const template = await createRealTemplateFixture(
-      "application_letter",
+      "cover_letter",
       "app-letter-delete"
     );
     trackedTemplateIds.add(template.id);
-    const letter = await createRealApplicationLetterFixture(user.id, template.id);
+    const letter = await createRealCoverLetterFixture(user.id, template.id);
 
     const response = await request(app)
-      .delete(`/application-letters/${letter.id}`)
+      .delete(`/cover-letters/${letter.id}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(204);
 
-    const deleted = await prisma.applicationLetter.findUnique({
+    const deleted = await prisma.coverLetter.findUnique({
       where: { id: letter.id },
     });
     expect(deleted).toBeNull();
   });
 
   it("returns 401 when authentication is missing", async () => {
-    const response = await request(app).delete(`/application-letters/${validId}`);
+    const response = await request(app).delete(`/cover-letters/${validId}`);
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("errors.general");
     expect(response.body.errors.general[0]).toBe("Unauthenticated");
   });
 
-  it("returns 404 when the application letter cannot be found", async () => {
-    const { user } = await createRealUser("application-letter-delete-missing");
+  it("returns 404 when the cover letter cannot be found", async () => {
+    const { user } = await createRealUser("cover-letter-delete-missing");
     trackedEmails.add(user.email);
     const token = await createSessionToken(user);
 
     const response = await request(app)
-      .delete("/application-letters/550e8400-e29b-41d4-a716-446655440099")
+      .delete("/cover-letters/550e8400-e29b-41d4-a716-446655440099")
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(404);

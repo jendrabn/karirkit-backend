@@ -238,7 +238,7 @@ describe("GET /templates", () => {
     const premiumTemplate = await prisma.template.create({
       data: {
         name: `Premium Letter ${suffix}`,
-        type: "application_letter",
+        type: "cover_letter",
         language: "id",
         path: `/uploads/templates/premium-letter-${suffix}.docx`,
         preview: `/uploads/templates/premium-letter-${suffix}.png`,
@@ -256,7 +256,7 @@ describe("GET /templates", () => {
     const token = await createSessionToken(user);
 
     const response = await request(app)
-      .get("/templates?type=application_letter&language=id")
+      .get("/templates?type=cover_letter&language=id")
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);

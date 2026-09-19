@@ -138,7 +138,7 @@ describe("DELETE /admin/templates/mass-delete", () => {
     const second = await prisma.template.create({
       data: {
         name: `Mass Template 2 ${Date.now()}`,
-        type: "application_letter",
+        type: "cover_letter",
         path: `/uploads/templates/mass-template-2-${Date.now()}.docx`,
         createdAt: new Date(),
         updatedAt: new Date(),

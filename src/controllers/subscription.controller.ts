@@ -10,17 +10,17 @@ const toPlanResponse = (plan: Record<string, any>) => ({
   duration_days: plan.durationDays,
   max_cvs: plan.maxCvs,
   max_applications: plan.maxApplications,
-  max_application_letters: plan.maxApplicationLetters,
+  max_cover_letters: plan.maxCoverLetters,
   max_document_storage_bytes: plan.maxDocumentStorageBytes,
   max_cv_pdf_downloads: plan.maxCvPdfDownloads,
   max_cv_docx_downloads: plan.maxCvDocxDownloads,
   max_letter_pdf_downloads: plan.maxLetterPdfDownloads,
   max_letter_docx_downloads: plan.maxLetterDocxDownloads,
   max_cv_ai_improvements: plan.maxCvAiImprovements,
-  max_application_letter_ai_improvements: plan.maxApplicationLetterAiImprovements,
+  max_cover_letter_ai_improvements: plan.maxCoverLetterAiImprovements,
   can_use_premium_cv_templates: plan.canUsePremiumCvTemplates,
-  can_use_premium_application_letter_templates:
-    plan.canUsePremiumApplicationLetterTemplates,
+  can_use_premium_cover_letter_templates:
+    plan.canUsePremiumCoverLetterTemplates,
 });
 
 const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
@@ -43,20 +43,20 @@ const toCurrentSubscriptionResponse = (result: Record<string, any>) => ({
   current_limits: {
     max_cvs: result.currentLimits.maxCvs,
     max_applications: result.currentLimits.maxApplications,
-    max_application_letters: result.currentLimits.maxApplicationLetters,
+    max_cover_letters: result.currentLimits.maxCoverLetters,
     max_document_storage_bytes: result.currentLimits.maxDocumentStorageBytes,
     max_cv_pdf_downloads: result.currentLimits.maxCvPdfDownloads,
     max_cv_docx_downloads: result.currentLimits.maxCvDocxDownloads,
     max_letter_pdf_downloads: result.currentLimits.maxLetterPdfDownloads,
     max_letter_docx_downloads: result.currentLimits.maxLetterDocxDownloads,
     max_cv_ai_improvements: result.currentLimits.maxCvAiImprovements,
-    max_application_letter_ai_improvements: result.currentLimits.maxApplicationLetterAiImprovements,
+    max_cover_letter_ai_improvements: result.currentLimits.maxCoverLetterAiImprovements,
   },
   current_features: {
     can_use_premium_cv_templates:
       result.currentFeatures.canUsePremiumCvTemplates,
-    can_use_premium_application_letter_templates:
-      result.currentFeatures.canUsePremiumApplicationLetterTemplates,
+    can_use_premium_cover_letter_templates:
+      result.currentFeatures.canUsePremiumCoverLetterTemplates,
   },
 });
 

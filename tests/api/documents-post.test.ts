@@ -41,7 +41,7 @@ beforeAll(async () => {
       passwordResetRateLimiter: (_req: any, _res: unknown, next: () => void) => next(),
     }));
     mock.module("../../src/middleware/plan-limit.middleware", () => ({
-      checkApplicationLetterLimit: (_req: any, _res: unknown, next: () => void) => next(),
+      checkCoverLetterLimit: (_req: any, _res: unknown, next: () => void) => next(),
       checkAiImprovementAccess: (_req: any, _res: unknown, next: () => void) => next(),
       checkApplicationTrackerLimit: (_req: any, _res: unknown, next: () => void) => next(),
       checkCvLimit: (_req: any, _res: unknown, next: () => void) => next(),

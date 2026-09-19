@@ -50,8 +50,8 @@ if (process.env.RUN_REAL_API_TESTS !== "true") {
         application: { count: mock(() => {}) },
       },
     }));
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {},
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {},
     }));
     mock.module("../../src/services/application.service", () => ({
       ApplicationService: {

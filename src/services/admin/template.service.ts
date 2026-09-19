@@ -35,7 +35,7 @@ type TemplateResponse = {
 
 type CreateTemplateRequest = {
   name: string;
-  type: "cv" | "application_letter";
+  type: "cv" | "cover_letter";
   language?: "en" | "id";
   path: string;
   preview?: string;
@@ -44,7 +44,7 @@ type CreateTemplateRequest = {
 
 type UpdateTemplateRequest = {
   name?: string;
-  type?: "cv" | "application_letter";
+  type?: "cv" | "cover_letter";
   language?: "en" | "id";
   path?: string;
   preview?: string;
@@ -338,7 +338,7 @@ export class TemplateService {
         _count: {
           select: {
             cvs: true,
-            applicationLetters: true,
+            coverLetters: true,
           },
         },
       },
@@ -350,7 +350,7 @@ export class TemplateService {
 
     if (
       existingTemplate._count.cvs > 0 ||
-      existingTemplate._count.applicationLetters > 0
+      existingTemplate._count.coverLetters > 0
     ) {
       throw new ResponseError(
         400,
@@ -381,7 +381,7 @@ export class TemplateService {
         _count: {
           select: {
             cvs: true,
-            applicationLetters: true,
+            coverLetters: true,
           },
         },
       },
@@ -394,7 +394,7 @@ export class TemplateService {
     if (
       templates.some(
         (template) =>
-          template._count.cvs > 0 || template._count.applicationLetters > 0
+          template._count.cvs > 0 || template._count.coverLetters > 0
       )
     ) {
       throw new ResponseError(

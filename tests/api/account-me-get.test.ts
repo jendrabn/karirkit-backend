@@ -23,8 +23,8 @@ if (process.env.RUN_REAL_API_TESTS !== "true") {
     mock.module("../../src/services/application.service", () => ({
       ApplicationService: {},
     }));
-    mock.module("../../src/services/application-letter.service", () => ({
-      ApplicationLetterService: {},
+    mock.module("../../src/services/cover-letter.service", () => ({
+      CoverLetterService: {},
     }));
     mock.module("../../src/services/account.service", () => ({
       AccountService: {
@@ -78,7 +78,7 @@ describe("GET /account/me", () => {
       subscription_expires_at: "2030-01-01T00:00:00.000Z",
       usage: {
         max_cvs: { limit: 30, used: 5, remaining: 25 },
-        max_application_letters: { limit: 60, used: 3, remaining: 57 },
+        max_cover_letters: { limit: 60, used: 3, remaining: 57 },
         max_applications: { limit: 500, used: 10, remaining: 490 },
         max_document_storage_bytes: { limit: 209715200, used: 50000, remaining: 209665200 },
         max_cv_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
@@ -86,9 +86,9 @@ describe("GET /account/me", () => {
         max_letter_pdf_downloads: { limit: 30, used: 5, remaining: 25 },
         max_letter_docx_downloads: { limit: 10, used: 2, remaining: 8 },
         max_cv_ai_improvements: { limit: 50, used: 3, remaining: 47 },
-        max_application_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
+        max_cover_letter_ai_improvements: { limit: 100, used: 5, remaining: 95 },
         can_use_premium_cv_templates: false,
-        can_use_premium_application_letter_templates: false,
+        can_use_premium_cover_letter_templates: false,
       },
     } as never);
 
@@ -210,7 +210,7 @@ describe("GET /account/me", () => {
     expect(response.body.data.usage.max_document_storage_bytes.used).toBeGreaterThan(0);
     expect(response.body.data).not.toHaveProperty("max_cvs");
     expect(response.body.data).not.toHaveProperty("max_applications");
-    expect(response.body.data).not.toHaveProperty("max_application_letters");
+    expect(response.body.data).not.toHaveProperty("max_cover_letters");
     expect(response.body.data).not.toHaveProperty("daily_download_limit");
     expect(response.body.data).not.toHaveProperty("document_storage_limit");
     expect(response.body.data).not.toHaveProperty("download_limits");

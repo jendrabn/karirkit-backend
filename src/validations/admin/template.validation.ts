@@ -29,7 +29,7 @@ export class TemplateValidation {
         ])
         .default("created_at"),
       sort_order: z.enum(["asc", "desc"]).default("desc"),
-      type: z.enum(["cv", "application_letter"]).optional(),
+      type: z.enum(["cv", "cover_letter"]).optional(),
       language: z.enum(["en", "id"]).optional(),
       is_premium: optionalBooleanSchema,
       created_at_from: optionalDateSchema(dateOnlySchema),
@@ -65,7 +65,7 @@ export class TemplateValidation {
 
   static readonly PAYLOAD = z.object({
     name: z.string().min(1).max(255),
-    type: z.enum(["cv", "application_letter"]),
+    type: z.enum(["cv", "cover_letter"]),
     language: z.enum(["en", "id"]).default("en"),
     path: z.string().min(1),
     preview: z.string().or(z.literal("")).optional(),
