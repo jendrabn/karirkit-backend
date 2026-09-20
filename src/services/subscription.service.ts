@@ -31,8 +31,7 @@ import {
   type AdminSubscriptionListQuery,
 } from "../validations/admin/subscription.validation";
 
-const midtransClient =
-  require("midtrans-client") as typeof import("midtrans-client");
+import * as midtransClient from "midtrans-client";
 
 type MidtransTransactionResponse = {
   token: string;
