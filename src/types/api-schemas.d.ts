@@ -555,7 +555,6 @@ export interface CvExperience {
 
 export interface CvSkill {
   name?: string;
-  level?: "beginner" | "intermediate" | "advanced" | "expert";
   skill_category?: SkillCategory;
 }
 

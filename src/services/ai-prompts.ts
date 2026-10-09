@@ -70,7 +70,6 @@ STRICT RULES:
 - Use ONLY these valid enum values:
   * degree: middle_school, high_school, associate_d1, associate_d2, associate_d3, bachelor, master, doctorate, any
   * job_type: full_time, contract, internship, freelance, part_time
-  * skill_level: beginner, intermediate, advanced, expert
   * skill_category: ${formatEnumValues(SkillCategory)}
   * organization_type: student, community, professional, volunteer, other
   * platform: ${formatEnumValues(Platform)}

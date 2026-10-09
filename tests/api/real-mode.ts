@@ -450,7 +450,6 @@ export const buildCvPayload = (
   skills: [
     {
       name: "TypeScript",
-      level: "advanced",
       skill_category: "programming_language",
     },
   ],
@@ -551,7 +550,6 @@ export const createRealCvFixture = async (
         ? {
             create: (payload.skills as any[]).map((record) => ({
               name: record.name,
-              level: record.level,
               skillCategory: record.skill_category,
               createdAt: now,
               updatedAt: now,

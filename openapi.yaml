@@ -1559,11 +1559,6 @@ paths:
           in: query
           schema:
             type: boolean
-        - name: skills_level
-          in: query
-          schema:
-            $ref: "#/components/schemas/SkillLevel"
-          description: Comma-separated values
         - name: skills_skill_category
           in: query
           schema:
@@ -6219,13 +6214,6 @@ components:
         end_year: { type: integer, nullable: true }
         is_current: { type: boolean }
         description: { type: string, nullable: true }
-    SkillLevel:
-      type: string
-      enum:
-        - beginner
-        - intermediate
-        - advanced
-        - expert
     SkillCategory:
       type: string
       enum:
@@ -6394,9 +6382,6 @@ components:
       type: object
       properties:
         name: { type: string }
-        level:
-          type: string
-          enum: [beginner, intermediate, advanced, expert]
         skill_category:
           $ref: "#/components/schemas/SkillCategory"
     CvVisibility:

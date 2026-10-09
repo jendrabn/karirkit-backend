@@ -515,7 +515,6 @@ async function main() {
       data: {
         cvId: cvs[0].id,
         name: "JavaScript",
-        level: "expert",
         skillCategory: SkillCategory.programming_language,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -525,7 +524,6 @@ async function main() {
       data: {
         cvId: cvs[0].id,
         name: "React",
-        level: "advanced",
         skillCategory: SkillCategory.framework_library,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -535,7 +533,6 @@ async function main() {
       data: {
         cvId: cvs[0].id,
         name: "Node.js",
-        level: "advanced",
         skillCategory: SkillCategory.backend_development,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -545,7 +542,6 @@ async function main() {
       data: {
         cvId: cvs[1].id,
         name: "Figma",
-        level: "expert",
         skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -555,7 +551,6 @@ async function main() {
       data: {
         cvId: cvs[1].id,
         name: "Adobe XD",
-        level: "advanced",
         skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -565,7 +560,6 @@ async function main() {
       data: {
         cvId: cvs[1].id,
         name: "Sketch",
-        level: "intermediate",
         skillCategory: SkillCategory.ui_ux_design,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -575,7 +569,6 @@ async function main() {
       data: {
         cvId: cvs[2].id,
         name: "Project Management",
-        level: "expert",
         skillCategory: SkillCategory.project_management,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -585,7 +578,6 @@ async function main() {
       data: {
         cvId: cvs[2].id,
         name: "Agile",
-        level: "advanced",
         skillCategory: SkillCategory.agile_scrum,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -595,7 +587,6 @@ async function main() {
       data: {
         cvId: cvs[2].id,
         name: "Scrum",
-        level: "advanced",
         skillCategory: SkillCategory.agile_scrum,
         createdAt: new Date(),
         updatedAt: new Date(),

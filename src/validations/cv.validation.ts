@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   Degree,
   JobType,
-  SkillLevel,
   SkillCategory,
   CvVisibility,
   OrganizationType,
@@ -101,7 +100,6 @@ const experienceSchema = z.object({
 
 const skillSchema = z.object({
   name: trimmedString(),
-  level: z.nativeEnum(SkillLevel),
   skill_category: z.nativeEnum(SkillCategory).default("other"),
 });
 
@@ -188,7 +186,6 @@ const listQuerySchema = z
     educations_degree: commaSeparatedNativeEnum(Degree).optional(),
     experiences_job_type: commaSeparatedNativeEnum(JobType).optional(),
     experiences_is_current: optionalBooleanSchema,
-    skills_level: commaSeparatedNativeEnum(SkillLevel).optional(),
     skills_skill_category: commaSeparatedNativeEnum(SkillCategory).optional(),
     organizations_organization_type:
       commaSeparatedNativeEnum(OrganizationType).optional(),

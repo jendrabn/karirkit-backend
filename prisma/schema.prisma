@@ -248,7 +248,6 @@ model CvSkill {
   id            String        @id @default(uuid()) @db.VarChar(255)
   cvId          String        @map("cv_id") @db.VarChar(255)
   name          String        @db.VarChar(255)
-  level         SkillLevel
   skillCategory SkillCategory @default(other) @map("skill_category")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
@@ -734,13 +733,6 @@ enum JobStatus {
   published
   closed
   archived
-}
-
-enum SkillLevel {
-  beginner
-  intermediate
-  advanced
-  expert
 }
 
 enum SkillCategory {

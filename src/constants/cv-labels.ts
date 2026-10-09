@@ -42,21 +42,6 @@ export const JOB_TYPE_LABELS = {
   },
 } as const satisfies Record<LabelLanguage, Record<string, string>>;
 
-export const SKILL_LEVEL_LABELS = {
-  id: {
-    beginner: "Pemula",
-    intermediate: "Menengah",
-    advanced: "Lanjutan",
-    expert: "Ahli",
-  },
-  en: {
-    beginner: "Beginner",
-    intermediate: "Intermediate",
-    advanced: "Advanced",
-    expert: "Expert",
-  },
-} as const satisfies Record<LabelLanguage, Record<string, string>>;
-
 export const SKILL_CATEGORY_LABELS = {
   id: {
     software: "Perangkat Lunak",

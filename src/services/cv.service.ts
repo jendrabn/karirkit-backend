@@ -49,7 +49,6 @@ import {
   PLATFORM_LABELS,
   PROJECT_LINK_LABELS,
   SKILL_CATEGORY_LABELS,
-  SKILL_LEVEL_LABELS,
 } from "../constants/cv-labels";
 import {
   CvValidation,
@@ -281,14 +280,9 @@ export class CvService {
       };
     }
 
-    if (filters.skills_level?.length || filters.skills_skill_category?.length) {
+    if (filters.skills_skill_category?.length) {
       const skillFilters: CvSkillWhereInput = {};
-      if (filters.skills_level?.length) {
-        skillFilters.level = { in: filters.skills_level };
-      }
-      if (filters.skills_skill_category?.length) {
-        skillFilters.skillCategory = { in: filters.skills_skill_category };
-      }
+      skillFilters.skillCategory = { in: filters.skills_skill_category };
       where.skills = {
         some: skillFilters,
       };
@@ -956,7 +950,6 @@ export class CvService {
   ): CvSkillCreateWithoutCvInput {
     return {
       name: record.name,
-      level: record.level,
       skillCategory: record.skill_category,
     };
   }
@@ -1253,7 +1246,6 @@ export class CvService {
       })),
       skills: cv.skills.map((record) => ({
         name: text(record.name),
-        level: CvService.getSkillLevelLabel(record.level, language),
         category: CvService.getSkillCategoryLabel(
           record.skillCategory,
           language
@@ -1372,13 +1364,6 @@ export class CvService {
     return CvService.getEnumLabel(value, JOB_TYPE_LABELS, language);
   }
 
-  private static getSkillLevelLabel(
-    value?: string | null,
-    language: LabelLanguage = "id"
-  ): string {
-    return CvService.getEnumLabel(value, SKILL_LEVEL_LABELS, language);
-  }
-
   private static getSkillCategoryLabel(
     value?: string | null,
     language: LabelLanguage = "id"
@@ -1410,8 +1395,8 @@ export class CvService {
   private static groupSkillsByCategory(
     skills: PrismaCvSkill[],
     language: LabelLanguage
-  ): { label: string; skills: { name: string; level: string }[] }[] {
-    const grouped = new Map<string, { name: string; level: string }[]>();
+  ): { label: string; skills: { name: string }[] }[] {
+    const grouped = new Map<string, { name: string }[]>();
 
     for (const skill of skills) {
       const label = CvService.getSkillCategoryLabel(
@@ -1420,7 +1405,6 @@ export class CvService {
       );
       const entry = {
         name: skill.name ?? "",
-        level: CvService.getSkillLevelLabel(skill.level, language),
       };
       const bucket = grouped.get(label);
       if (bucket) {
@@ -1680,7 +1664,6 @@ export class CvService {
         id: record.id,
         cv_id: record.cvId,
         name: record.name,
-        level: record.level,
         skill_category: record.skillCategory,
       })),
       awards: cv.awards.map((record) => ({
