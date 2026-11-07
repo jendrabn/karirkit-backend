@@ -26,7 +26,6 @@ const optionalNullableString = (max = 255) =>
     .string()
     .trim()
     .max(max, `Maksimal ${max} karakter`)
-    .or(z.literal(""))
     .nullable()
     .optional();
 

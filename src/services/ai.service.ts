@@ -16,8 +16,55 @@ import {
   buildCvImprovementPrompt,
   type AiPromptBundle,
 } from "./ai-prompts";
-import { generateObject, TypeValidationError, JSONParseError, APICallError } from "ai";
+import {
+  generateObject,
+  jsonSchema,
+  TypeValidationError,
+  JSONParseError,
+  APICallError,
+} from "ai";
+import { toJSONSchema } from "zod/v4/core";
 import type { z } from "zod";
+
+const strictifyJsonSchema = (node: unknown): unknown => {
+  if (Array.isArray(node)) {
+    return node.map(strictifyJsonSchema);
+  }
+
+  if (!node || typeof node !== "object") {
+    return node;
+  }
+
+  const source = node as Record<string, unknown>;
+  const result: Record<string, unknown> = { ...source };
+  delete result.$schema;
+
+  if (result.properties && typeof result.properties === "object") {
+    const properties = result.properties as Record<string, unknown>;
+
+    for (const key of Object.keys(properties)) {
+      properties[key] = strictifyJsonSchema(properties[key]);
+    }
+
+    result.required = Object.keys(properties);
+    result.additionalProperties = false;
+  }
+
+  for (const key of ["anyOf", "allOf", "oneOf"] as const) {
+    if (Array.isArray(result[key])) {
+      result[key] = (result[key] as unknown[]).map(strictifyJsonSchema);
+    }
+  }
+
+  if (result.items) {
+    result.items = strictifyJsonSchema(result.items);
+  }
+
+  return result;
+};
+
+const toProviderJsonSchema = (schema: z.ZodSchema): Record<string, unknown> =>
+  strictifyJsonSchema(toJSONSchema(schema as never)) as Record<string, unknown>;
 
 const getErrorSummary = (error: unknown): Record<string, unknown> => {
   const candidate =
@@ -136,10 +183,17 @@ const runPrompt = async <T>(
 ): Promise<T> => {
   try {
     const model = resolveLanguageModel();
-    
+
     const { object } = await generateObject({
       model,
-      schema,
+      schema: jsonSchema<T>(toProviderJsonSchema(schema) as never, {
+        validate: (value) => {
+          const result = schema.safeParse(value);
+          return result.success
+            ? { success: true, value: result.data }
+            : { success: false, error: result.error };
+        },
+      }),
       system: prompt.systemPrompt,
       prompt: prompt.userPrompt,
       temperature: env.ai.temperature,
