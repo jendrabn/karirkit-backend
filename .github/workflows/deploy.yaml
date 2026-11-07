@@ -59,8 +59,4 @@ jobs:
             bun install --frozen-lockfile
             bunx --bun prisma migrate deploy
 
-            if supervisorctl status karirkit-backend >/dev/null 2>&1; then
-              supervisorctl restart karirkit-backend
-            else
-              sudo -n supervisorctl restart karirkit-backend
-            fi
+            sudo -n supervisorctl restart karirkit-backend

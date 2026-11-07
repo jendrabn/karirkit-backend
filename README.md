@@ -263,6 +263,14 @@ Jika proses sudah berjalan dan hanya perlu memuat config baru:
 sudo supervisorctl restart karirkit-backend
 ```
 
+Catatan Ubuntu 24.04:
+- Socket `supervisorctl` (`/var/run/supervisor.sock`) hanya bisa diakses root, jadi command dijalankan dengan `sudo`.
+- Untuk deploy otomatis lewat GitHub Actions, user SSH perlu passwordless sudo agar `sudo -n supervisorctl restart karirkit-backend` bisa berjalan tanpa prompt. Contoh di `/etc/sudoers.d/karirkit-deploy`:
+
+```sudoers
+deploy ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl
+```
+
 ### 5. Supervisor Commands
 
 ```bash
