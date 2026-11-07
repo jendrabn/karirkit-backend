@@ -180,98 +180,111 @@ npm test
 npm run test:coverage
 ```
 
-## Production Deployment dengan Bun dan PM2
+## Production Deployment dengan Bun dan Supervisor
 
-### 1. Install Bun dan PM2
+### 1. Install Bun dan Supervisor
 
 ```bash
+# Install Bun (untuk user yang menjalankan aplikasi)
 curl -fsSL https://bun.sh/install | bash
 export PATH="$HOME/.bun/bin:$PATH"
-npm install -g pm2
+
+# Install Supervisor
+sudo apt update
+sudo apt install -y supervisor
+sudo systemctl enable supervisor
+sudo systemctl start supervisor
 ```
 
-### 2. Build Application
+Verifikasi path Bun, karena Supervisor membutuhkan path absolut:
 
 ```bash
+which bun
+# contoh: /home/deploy/.bun/bin/bun atau /root/.bun/bin/bun
+```
+
+### 2. Siapkan Aplikasi
+
+Aplikasi dijalankan langsung dari source TypeScript dengan Bun, jadi tidak ada langkah build terpisah.
+
+```bash
+cd /var/www/karirkit-backend
 bun install --frozen-lockfile
-bun run build
-```
-
-### 3. PM2 Ecosystem File
-
-File `ecosystem.config.js` menjalankan hasil build dengan interpreter Bun:
-
-```javascript
-module.exports = {
-  apps: [
-    {
-      name: 'karirkit-backend',
-      script: 'dist/server.js',
-      interpreter: 'bun',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3000
-      }
-    }
-  ]
-};
-```
-
-### 4. Setup Production Environment
-
-```bash
-# Create logs directory
+bunx --bun prisma migrate deploy
 mkdir -p logs
-
-# Set production environment variables
-export NODE_ENV=production
-export DATABASE_URL="mysql://user:pass@prod-host:3306/karirkit_prod"
-export JWT_SECRET="your-production-jwt-secret"
-# ... set other production variables
 ```
 
-### 5. Start Application dengan PM2
+### 3. Membuat Config Supervisor
+
+Buat file `/etc/supervisor/conf.d/karirkit-backend.conf`:
+
+```ini
+[program:karirkit-backend]
+directory=/var/www/karirkit-backend
+command=/home/deploy/.bun/bin/bun run src/server.ts
+user=deploy
+autostart=true
+autorestart=true
+startsecs=5
+stopasgroup=true
+killasgroup=true
+environment=NODE_ENV="production",PORT="3000",HOME="/home/deploy"
+stdout_logfile=/var/www/karirkit-backend/logs/supervisor.out.log
+stderr_logfile=/var/www/karirkit-backend/logs/supervisor.err.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
+stderr_logfile_maxbytes=10MB
+stderr_logfile_backups=5
+```
+
+Sesuaikan:
+- `command`: gunakan hasil `which bun` (mis. `/root/.bun/bin/bun` jika berjalan sebagai root).
+- `user`: user pemilik direktori `/var/www/karirkit-backend`.
+- `environment`: variabel selain di `.env` yang dibutuhkan proses. Variabel di `.env` tetap dimuat otomatis oleh `dotenv`.
+
+Pastikan direktori log ada dan bisa ditulis oleh user tersebut:
 
 ```bash
-# Start application
-pm2 start ecosystem.config.js --env production
-
-# Save PM2 configuration
-pm2 save
-
-# Setup PM2 startup script
-pm2 startup
+sudo mkdir -p /var/www/karirkit-backend/logs
+sudo chown -R deploy:deploy /var/www/karirkit-backend/logs
 ```
 
-### 6. PM2 Commands
+### 4. Load dan Jalankan Aplikasi
 
 ```bash
-# List all processes
-pm2 list
-
-# View logs
-pm2 logs karirkit-backend
-
-# Monitor application
-pm2 monit
-
-# Restart application
-pm2 restart karirkit-backend
-
-# Reload application (zero downtime)
-pm2 reload karirkit-backend
-
-# Stop application
-pm2 stop karirkit-backend
-
-# Delete application
-pm2 delete karirkit-backend
-
-# View detailed information
-pm2 show karirkit-backend
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl status karirkit-backend
 ```
 
-### 7. Update / Redeploy Production Tanpa Menghapus Database
+Jika proses sudah berjalan dan hanya perlu memuat config baru:
+
+```bash
+sudo supervisorctl restart karirkit-backend
+```
+
+### 5. Supervisor Commands
+
+```bash
+# Lihat semua proses
+sudo supervisorctl status
+
+# Lihat status aplikasi
+sudo supervisorctl status karirkit-backend
+
+# Restart aplikasi
+sudo supervisorctl restart karirkit-backend
+
+# Start / stop aplikasi
+sudo supervisorctl start karirkit-backend
+sudo supervisorctl stop karirkit-backend
+
+# Lihat log realtime
+sudo supervisorctl tail -f karirkit-backend
+sudo supervisorctl tail -f karirkit-backend stderr
+```
+
+### 6. Update / Redeploy Production Tanpa Menghapus Database
 
 Untuk update aplikasi di server production yang sudah memiliki data, gunakan alur berikut:
 
@@ -279,17 +292,17 @@ Untuk update aplikasi di server production yang sudah memiliki data, gunakan alu
 2. Ambil kode terbaru di server.
 3. Install dependency sesuai lockfile.
 4. Jalankan migration yang belum diterapkan.
-5. Build ulang aplikasi.
-6. Reload PM2.
+5. Restart Supervisor.
 
 ```bash
-cd /path/ke/karirkit-backend
+cd /var/www/karirkit-backend
 git pull
 bun install --frozen-lockfile
 bunx --bun prisma migrate deploy
-bun run build
-pm2 reload ecosystem.config.js --env production
+sudo supervisorctl restart karirkit-backend
 ```
+
+Workflow GitHub Actions pada `.github/workflows/deploy.yaml` melakukan langkah yang sama dan me-restart program Supervisor `karirkit-backend`.
 
 Catatan penting:
 - `npx prisma migrate deploy` tidak akan menghapus data lama kecuali file migration yang Anda buat sendiri memang berisi perubahan destruktif seperti `DROP`, `DELETE`, atau perubahan kolom yang tidak kompatibel.

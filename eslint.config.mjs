@@ -13,7 +13,6 @@ export default tseslint.config(
       ".agents/**",
       "development/**",
       "scripts/**",
-      "ecosystem.config.cjs",
       "prisma/**",
     ],
   },

@@ -59,5 +59,8 @@ jobs:
             bun install --frozen-lockfile
             bunx --bun prisma migrate deploy
 
-            pm2 startOrReload ecosystem.config.cjs --update-env
-            pm2 save
+            if supervisorctl status karirkit-backend >/dev/null 2>&1; then
+              supervisorctl restart karirkit-backend
+            else
+              sudo -n supervisorctl restart karirkit-backend
+            fi
